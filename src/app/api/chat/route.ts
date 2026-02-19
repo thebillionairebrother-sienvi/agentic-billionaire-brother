@@ -1,0 +1,233 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import openai, { ASSISTANT_ID } from '@/lib/openai';
+
+/**
+ * Parse Derek's response which should be JSON with { reaction, response }.
+ * Falls back gracefully if not valid JSON.
+ */
+function parseDerekResponse(raw: string): { reaction: string; response: string } {
+    // Strip markdown code fences if present
+    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+    // Try JSON parse first
+    try {
+        const parsed = JSON.parse(cleaned);
+        if (parsed.reaction && parsed.response) return parsed;
+    } catch { /* fallback below */ }
+
+    // Fallback: regex extraction
+    const reactionMatch = raw.match(/"reaction"\s*:\s*"([^"]+)"/);
+    const responseMatch = raw.match(/"response"\s*:\s*"([\s\S]*?)"\s*\}?\s*$/);
+
+    return {
+        reaction: reactionMatch?.[1] || '',
+        response: responseMatch?.[1]?.replace(/\\n/g, '\n') || raw,
+    };
+}
+
+export async function POST(request: Request) {
+    try {
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { message, threadId } = await request.json();
+
+        if (!message) {
+            return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+        }
+
+        // Fetch user context: tasks, profile, strategy
+        const today = new Date().toISOString().split('T')[0];
+        const [
+            { data: todayTasks },
+            { data: businessProfile },
+            { data: contract },
+        ] = await Promise.all([
+            supabase
+                .from('tasks')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('due_date', today)
+                .order('sort_order', { ascending: true }),
+            supabase
+                .from('business_profiles')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single(),
+            supabase
+                .from('execution_contracts')
+                .select('*, strategy:strategy_options(*)')
+                .eq('user_id', user.id)
+                .order('signed_at', { ascending: false })
+                .limit(1)
+                .single(),
+        ]);
+
+        // Build task context for Derek
+        const taskList = (todayTasks || []).map((t, i) => {
+            let meta = { summary: '', category: '', time_mins: 0 };
+            try { meta = JSON.parse(t.description || '{}'); } catch { /* */ }
+            return `${i + 1}. [${t.status.toUpperCase()}] "${t.title}" (ID: ${t.id}) — ${meta.summary || t.description || 'no description'}`;
+        }).join('\n');
+
+        const systemContext = `You are "Derek" — The Billionaire Brother. A tough-love but caring business mentor who talks like a real big brother. You're chatting with a founder you genuinely care about.
+
+FOUNDER CONTEXT:
+- Business: ${businessProfile?.business_name || 'Unknown'} (${businessProfile?.industry || 'Unknown'})
+- Stage: ${businessProfile?.business_state || 'unknown'}
+- Strategy: ${contract?.strategy?.archetype || 'none set'}
+- KPI: ${contract?.locked_kpi || 'none'}
+
+TODAY'S TASKS:
+${taskList || '(No tasks generated yet)'}
+
+YOUR PERSONALITY:
+- Talk like a real person, not a corporate AI. Use casual language.
+- Be direct but supportive. No sugarcoating, but always encouraging.
+- If they want to skip a task, probe WHY before agreeing. Ask questions like "What's holding you back?" or "Is it the task itself or something else?"
+- You can suggest modifications to tasks — when you do, output a JSON block on its own line like:
+  %%TASK_UPDATE:{"taskId":"<uuid>","title":"new title","description":"new JSON description"}%%
+- You can also mark tasks done or remove them:
+  %%TASK_STATUS:{"taskId":"<uuid>","status":"done"}%%
+  %%TASK_STATUS:{"taskId":"<uuid>","status":"skipped"}%%
+- Only modify tasks when the user clearly wants changes. Don't modify unprompted.
+- Keep responses SHORT — 2-3 sentences max unless they need detailed advice.
+- Reference their specific business and tasks by name.
+
+RESPONSE FORMAT:
+Always respond in this exact JSON format:
+{
+  "reaction": "emotional phrase",
+  "response": "your actual message here"
+}
+
+REACTION RULES:
+- "reaction" is a 2-3 word emotional phrase that captures the VIBE of your response
+- It will be used to search for a GIF, so make it expressive and searchable
+- Examples: "let's go", "I feel you", "oh come on", "proud of you", "hmm thinking", "not buying it", "you got this"
+- Always include a reaction, never leave it empty
+- Never include the reaction phrase in the response text
+- Task update/status commands (%%TASK_UPDATE%% etc.) go INSIDE the response field`;
+
+        // Create or reuse thread
+        let activeThreadId = threadId;
+        if (!activeThreadId) {
+            const thread = await openai.beta.threads.create();
+            activeThreadId = thread.id;
+
+            // Send context as first message
+            await openai.beta.threads.messages.create(activeThreadId, {
+                role: 'user',
+                content: `[SYSTEM CONTEXT — do not repeat this to the user]\n${systemContext}\n\n[USER'S FIRST MESSAGE]\n${message}`,
+            });
+        } else {
+            await openai.beta.threads.messages.create(activeThreadId, {
+                role: 'user',
+                content: message,
+            });
+        }
+
+        let run = await openai.beta.threads.runs.create(activeThreadId, {
+            assistant_id: ASSISTANT_ID,
+        });
+
+        // Poll
+        const timeout = Date.now() + 30_000;
+        while (run.status === 'in_progress' || run.status === 'queued') {
+            if (Date.now() > timeout) throw new Error('Response timed out');
+            await new Promise((r) => setTimeout(r, 1000));
+            run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: activeThreadId });
+        }
+
+        if (run.status !== 'completed') {
+            throw new Error(`Run failed: ${run.status}`);
+        }
+
+        const messages = await openai.beta.threads.messages.list(activeThreadId, {
+            order: 'desc',
+            limit: 1,
+        });
+
+        const aiMessage = messages.data[0];
+        if (!aiMessage || aiMessage.role !== 'assistant') {
+            throw new Error('No response from Derek');
+        }
+
+        const textContent = aiMessage.content.find((c) => c.type === 'text');
+        if (!textContent || textContent.type !== 'text') {
+            throw new Error('No text in response');
+        }
+
+        const rawText = textContent.text.value;
+        const parsed = parseDerekResponse(rawText);
+        let responseText = parsed.response;
+
+        // Process task commands embedded in response
+        const taskUpdates: string[] = [];
+
+        // Handle TASK_UPDATE commands
+        const updateRegex = /%%TASK_UPDATE:(.*?)%%/g;
+        let match;
+        while ((match = updateRegex.exec(responseText)) !== null) {
+            try {
+                const cmd = JSON.parse(match[1]);
+                if (cmd.taskId) {
+                    const updateData: Record<string, string> = {};
+                    if (cmd.title) updateData.title = cmd.title;
+                    if (cmd.description) updateData.description = cmd.description;
+
+                    await supabase
+                        .from('tasks')
+                        .update(updateData)
+                        .eq('id', cmd.taskId)
+                        .eq('user_id', user.id);
+
+                    taskUpdates.push(`Updated task: ${cmd.title || cmd.taskId}`);
+                }
+            } catch { /* skip malformed */ }
+        }
+
+        // Handle TASK_STATUS commands
+        const statusRegex = /%%TASK_STATUS:(.*?)%%/g;
+        while ((match = statusRegex.exec(responseText)) !== null) {
+            try {
+                const cmd = JSON.parse(match[1]);
+                if (cmd.taskId && cmd.status) {
+                    await supabase
+                        .from('tasks')
+                        .update({ status: cmd.status })
+                        .eq('id', cmd.taskId)
+                        .eq('user_id', user.id);
+
+                    taskUpdates.push(`Task marked as ${cmd.status}`);
+                }
+            } catch { /* skip malformed */ }
+        }
+
+        // Strip command blocks from visible response
+        responseText = responseText
+            .replace(/%%TASK_UPDATE:.*?%%/g, '')
+            .replace(/%%TASK_STATUS:.*?%%/g, '')
+            .trim();
+
+        return NextResponse.json({
+            response: responseText,
+            reaction: parsed.reaction,
+            threadId: activeThreadId,
+            taskUpdates: taskUpdates.length > 0 ? taskUpdates : undefined,
+        });
+    } catch (error) {
+        console.error('Chat error:', error);
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : 'Derek is unavailable right now' },
+            { status: 500 }
+        );
+    }
+}

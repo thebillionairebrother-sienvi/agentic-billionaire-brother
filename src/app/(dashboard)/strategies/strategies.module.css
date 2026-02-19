@@ -1,0 +1,123 @@
+.page {
+    animation: fadeInUp var(--duration-slow) var(--ease-out);
+}
+
+.header {
+    margin-bottom: var(--space-8);
+}
+
+.header h1 {
+    margin-bottom: var(--space-2);
+}
+
+/* ─── Strategy Cards Grid ─── */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+}
+
+.strategyCard {
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--duration-base) var(--ease-out),
+        box-shadow var(--duration-base) var(--ease-out);
+}
+
+.strategyCard:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-glow-gold);
+}
+
+.cardTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+}
+
+.rankBadge {
+    font-size: var(--text-3xl);
+    font-weight: 900;
+    font-family: var(--font-mono);
+    color: var(--gold-500);
+    opacity: 0.4;
+}
+
+.archetype {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    margin-bottom: var(--space-2);
+    letter-spacing: -0.01em;
+}
+
+/* ─── Meta ─── */
+.meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--surface-border);
+}
+
+.metaItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+
+.metaItem svg {
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+}
+
+.confidence {
+    margin-top: var(--space-4);
+}
+
+.risks {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    font-size: var(--text-xs);
+}
+
+.riskIcon {
+    flex-shrink: 0;
+    color: var(--accent-amber);
+    margin-top: 2px;
+}
+
+/* ─── States ─── */
+.loading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    padding: var(--space-8) 0;
+}
+
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--space-20) var(--space-6);
+    gap: var(--space-4);
+}
+
+.emptyIcon {
+    color: var(--gold-500);
+    opacity: 0.3;
+    margin-bottom: var(--space-4);
+}
+
+@media (max-width: 1024px) {
+    .grid {
+        grid-template-columns: 1fr;
+        max-width: 480px;
+    }
+}

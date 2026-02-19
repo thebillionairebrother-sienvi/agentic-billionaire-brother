@@ -1,0 +1,198 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { GenerationProgress } from '@/components/GenerationProgress';
+import { Crown, ArrowRight, AlertTriangle, TrendingUp, Clock, Target } from 'lucide-react';
+import type { StrategyOption, Decision } from '@/lib/types';
+import styles from './strategies.module.css';
+
+function ScoreBadge({ score }: { score: number }) {
+    const level = score >= 70 ? 'high' : score >= 45 ? 'medium' : 'low';
+    return (
+        <div className={`score-badge score-${level}`}>
+            {score}
+        </div>
+    );
+}
+
+function StrategyCard({ strategy, onSelect }: { strategy: StrategyOption; onSelect: () => void }) {
+    return (
+        <div className={`card ${styles.strategyCard}`}>
+            <div className={styles.cardTop}>
+                <div className={styles.rankBadge}>#{strategy.rank}</div>
+                <ScoreBadge score={strategy.decision_score} />
+            </div>
+
+            <h3 className={styles.archetype}>{strategy.archetype}</h3>
+            <p className="text-secondary">{strategy.thesis}</p>
+
+            <div className={styles.meta}>
+                <div className={styles.metaItem}>
+                    <Target size={14} />
+                    <span>{strategy.channel_focus?.join(', ')}</span>
+                </div>
+                <div className={styles.metaItem}>
+                    <TrendingUp size={14} />
+                    <span>{strategy.offer_shape}</span>
+                </div>
+                <div className={styles.metaItem}>
+                    <Clock size={14} />
+                    <span>{strategy.first_7_day_plan?.reduce((sum: number, d: { time_mins: number }) => sum + d.time_mins, 0)} mins in Week 1</span>
+                </div>
+            </div>
+
+            <div className={styles.confidence}>
+                <span className={`badge badge-${strategy.confidence === 'high' ? 'green' : strategy.confidence === 'medium' ? 'gold' : 'red'}`}>
+                    {strategy.confidence} confidence
+                </span>
+            </div>
+
+            {strategy.risks && strategy.risks.length > 0 && (
+                <div className={styles.risks}>
+                    <AlertTriangle size={14} className={styles.riskIcon} />
+                    <span className="text-tertiary">{(strategy.risks as string[])[0]}</span>
+                </div>
+            )}
+
+            <button
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: 'var(--space-4)' }}
+                onClick={onSelect}
+            >
+                Choose This Strategy <ArrowRight size={16} />
+            </button>
+        </div>
+    );
+}
+
+export default function StrategiesPage() {
+    const [decision, setDecision] = useState<Decision | null>(null);
+    const [strategies, setStrategies] = useState<StrategyOption[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [jobId, setJobId] = useState<string | null>(null);
+    const [generating, setGenerating] = useState(false);
+    const router = useRouter();
+    const supabase = createClient();
+
+    useEffect(() => {
+        loadStrategies();
+    }, []);
+
+    const loadStrategies = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Check for pending generation job
+        const { data: pendingJob } = await supabase
+            .from('generation_jobs')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('job_type', 'strategies')
+            .in('status', ['queued', 'processing'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (pendingJob) {
+            setJobId(pendingJob.id);
+            setGenerating(true);
+            setLoading(false);
+            return;
+        }
+
+        // Load latest decision with strategies
+        const { data: latestDecision } = await supabase
+            .from('decisions')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('status', 'ready')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (latestDecision) {
+            setDecision(latestDecision);
+
+            const { data: strats } = await supabase
+                .from('strategy_options')
+                .select('*')
+                .eq('decision_id', latestDecision.id)
+                .order('rank', { ascending: true });
+
+            setStrategies(strats || []);
+        }
+
+        setLoading(false);
+    };
+
+    const handleSelect = (strategy: StrategyOption) => {
+        router.push(`/commit?decision=${decision?.id}&strategy=${strategy.id}`);
+    };
+
+    if (loading) {
+        return (
+            <div className={styles.loading}>
+                <div className="skeleton" style={{ width: '100%', height: '200px' }} />
+                <div className="skeleton" style={{ width: '100%', height: '200px' }} />
+                <div className="skeleton" style={{ width: '100%', height: '200px' }} />
+            </div>
+        );
+    }
+
+    if (generating && jobId) {
+        return (
+            <GenerationProgress
+                jobId={jobId}
+                onComplete={() => {
+                    setGenerating(false);
+                    setJobId(null);
+                    setLoading(true);
+                    loadStrategies();
+                }}
+                title="Generating Your Strategies"
+            />
+        );
+    }
+
+    if (strategies.length === 0) {
+        return (
+            <div className={styles.empty}>
+                <Crown size={48} className={styles.emptyIcon} />
+                <h2 className="heading-lg">No strategies yet</h2>
+                <p className="text-secondary">Complete the questionnaire to generate your 3 ranked strategy paths.</p>
+                <a href="/onboard" className="btn btn-primary btn-lg">Start Questionnaire</a>
+            </div>
+        );
+    }
+
+    return (
+        <div className={styles.page}>
+            <header className={styles.header}>
+                <h1 className="heading-lg">Your 3 Ranked Strategies</h1>
+                <p className="text-secondary">
+                    Pick the path that fits your constraints. Each strategy has a transparent Decision Score showing exactly how we scored it.
+                </p>
+            </header>
+
+            <div className={styles.grid}>
+                {strategies.map((strategy) => (
+                    <StrategyCard
+                        key={strategy.id}
+                        strategy={strategy}
+                        onSelect={() => handleSelect(strategy)}
+                    />
+                ))}
+            </div>
+
+            <div className="disclaimer" style={{ marginTop: 'var(--space-8)' }}>
+                <span>⚠️</span>
+                <span>
+                    Decision Scores are model-based estimates, not guarantees. Scores reflect pattern matching against your stated inputs
+                    and documented assumptions. Results depend on your execution quality and market conditions.
+                </span>
+            </div>
+        </div>
+    );
+}

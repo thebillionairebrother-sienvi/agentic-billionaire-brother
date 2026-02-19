@@ -1,0 +1,213 @@
+.card {
+    animation: fadeInUp var(--duration-slow) var(--ease-out);
+}
+
+.skeleton {
+    width: 100%;
+    height: 250px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    animation: pulse 1.5s infinite;
+}
+
+.headerRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+}
+
+.journeyBadge {
+    background: rgba(234, 179, 8, 0.12);
+    border: 1px solid rgba(234, 179, 8, 0.2);
+    border-radius: var(--radius-full);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--gold-400);
+    font-family: var(--font-mono);
+}
+
+/* ─── Month Nav ─── */
+.monthNav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+}
+
+.monthLabel {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.navBtn {
+    background: none;
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all var(--duration-fast);
+}
+
+.navBtn:hover {
+    color: var(--gold-400);
+    border-color: var(--gold-400);
+}
+
+/* ─── Calendar Grid ─── */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.dayLabel {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    padding: var(--space-1) 0;
+    letter-spacing: 0.05em;
+}
+
+.emptySlot {
+    aspect-ratio: 1;
+}
+
+.day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+    position: relative;
+    gap: 2px;
+}
+
+.day:hover {
+    background: var(--bg-glass);
+    transform: scale(1.1);
+}
+
+.dayNum {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    line-height: 1;
+}
+
+.dayDot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+}
+
+/* ─── Day States ─── */
+.today {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3) !important;
+}
+
+.today .dayNum {
+    color: var(--gold-400);
+    font-weight: 700;
+}
+
+.startDay {
+    background: rgba(96, 165, 250, 0.1);
+}
+
+.startDay .dayNum {
+    color: #60a5fa;
+}
+
+.allDone {
+    background: rgba(52, 211, 153, 0.08);
+}
+
+.allDone .dayNum {
+    color: var(--accent-green);
+}
+
+.allDone .dayDot,
+.legendDot.allDone {
+    background: var(--accent-green);
+}
+
+.partial {
+    background: rgba(251, 191, 36, 0.06);
+}
+
+.partial .dayNum {
+    color: var(--gold-400);
+}
+
+.partial .dayDot,
+.legendDot.partial {
+    background: var(--gold-400);
+}
+
+.hasTasks .dayDot,
+.legendDot.hasTasks {
+    background: rgba(239, 68, 68, 0.5);
+}
+
+.future {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.future:hover {
+    background: none;
+    transform: none;
+}
+
+/* ─── Legend ─── */
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--surface-border);
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: 10px;
+    color: var(--text-tertiary);
+}
+
+.legendDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
