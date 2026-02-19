@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { ProgressChart } from '@/components/ProgressChart';
+import { ResetStrategyButton } from '@/components/ResetStrategyButton';
 import { JourneyCalendar } from '@/components/JourneyCalendar';
 import styles from './page.module.css';
 
@@ -79,9 +80,12 @@ export default async function DashboardPage() {
                     <div className={`card ${styles.strategyCard}`}>
                         <div className={styles.cardHeader}>
                             <h3 className="heading-sm">Active Strategy</h3>
-                            <span className="badge badge-gold">
-                                {contract?.strategy?.confidence} confidence
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                <span className="badge badge-gold">
+                                    {contract?.strategy?.confidence} confidence
+                                </span>
+                                <ResetStrategyButton />
+                            </div>
                         </div>
                         <h2 className={styles.archetype}>{contract?.strategy?.archetype}</h2>
                         <p className="text-secondary" style={{ marginTop: '0.5rem' }}>
