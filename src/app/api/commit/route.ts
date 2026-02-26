@@ -87,6 +87,17 @@ export async function POST(request: Request) {
             }),
         }).catch(console.error);
 
+        // Trigger immediate task generation (fire-and-forget)
+        const taskUrl = new URL('/api/tasks/generate', request.url);
+        fetch(taskUrl.toString(), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cookie': request.headers.get('cookie') || '',
+            },
+            body: JSON.stringify({ date: new Date().toISOString().split('T')[0] }),
+        }).catch(console.error);
+
         return NextResponse.json({
             contractId: contract!.id,
             cycleId: cycle!.id,
