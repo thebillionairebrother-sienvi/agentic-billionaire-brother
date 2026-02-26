@@ -137,7 +137,9 @@ export async function POST(request: Request) {
             }
 
             if (initRun.status !== 'completed') {
-                throw new Error(`Init run failed: ${initRun.status}`);
+                const lastErr = (initRun as unknown as { last_error?: { message?: string; code?: string } }).last_error;
+                console.error(`Interview init run failed: status=${initRun.status}, code=${lastErr?.code || 'unknown'}, message=${lastErr?.message || 'unknown'}`);
+                throw new Error(`Init run failed: ${lastErr?.message || initRun.status}`);
             }
 
             // Get the greeting
@@ -194,7 +196,9 @@ export async function POST(request: Request) {
         }
 
         if (run.status !== 'completed') {
-            throw new Error(`Run failed: ${run.status}`);
+            const lastErr = (run as unknown as { last_error?: { message?: string; code?: string } }).last_error;
+            console.error(`Interview run failed: status=${run.status}, code=${lastErr?.code || 'unknown'}, message=${lastErr?.message || 'unknown'}`);
+            throw new Error(`Run failed: ${lastErr?.message || run.status}`);
         }
 
         // Get response
