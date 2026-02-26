@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Check, Lock, ArrowRight, AlertTriangle } from 'lucide-react';
+import { ScoreBreakdownPopup } from '@/components/ScoreBreakdownPopup';
 import type { StrategyOption } from '@/lib/types';
 import styles from './commit.module.css';
 
@@ -98,9 +99,11 @@ export default function CommitPage() {
                         <h2 className={styles.archetype}>{strategy.archetype}</h2>
                         <p className="text-secondary">{strategy.thesis}</p>
                     </div>
-                    <div className={`score-badge score-${strategy.decision_score >= 70 ? 'high' : strategy.decision_score >= 45 ? 'medium' : 'low'}`}>
-                        {strategy.decision_score}
-                    </div>
+                    <ScoreBreakdownPopup breakdown={strategy.score_breakdown} totalScore={strategy.decision_score}>
+                        <div className={`score-badge score-${strategy.decision_score >= 70 ? 'high' : strategy.decision_score >= 45 ? 'medium' : 'low'}`}>
+                            {strategy.decision_score}
+                        </div>
+                    </ScoreBreakdownPopup>
                 </div>
             </div>
 

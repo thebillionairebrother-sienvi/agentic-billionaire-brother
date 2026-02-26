@@ -75,7 +75,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                             <Crown size={20} />
                         </div>
                         {!collapsed && (
-                            <span className={styles.brandText}>Billionaire Bro</span>
+                            <span className={styles.brandText}>Billionaire Brother</span>
                         )}
                     </Link>
                     <button

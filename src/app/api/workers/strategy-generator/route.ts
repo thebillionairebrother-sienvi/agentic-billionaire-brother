@@ -107,11 +107,16 @@ INSTRUCTIONS:
    - Founder Fit (15%): Matches strengths, avoids constraints
    - Risk Profile (10%): Downside vs. stated tolerance
    - Scalability (10%): Growth ceiling after traction
-3. Each strategy must include ALL of: archetype name, thesis, channel_focus, offer_shape, first_7_day_plan, risks, mitigations, kpis, decision_score, confidence, score_breakdown, assumptions.
+3. Each strategy must include ALL of: archetype name, thesis, channel_focus, offer_shape, first_7_day_plan, phases, risks, mitigations, kpis, decision_score, confidence, score_breakdown, assumptions.
 4. The first_7_day_plan must have exactly 7 entries with day, task, owner, and time_mins.
 5. Total weekly time across all tasks must not exceed the founder's stated hours_per_week.
 6. Respect ALL no_go_constraints — never recommend something the founder explicitly rejected.
 7. Include a mandatory disclaimer: "Decision Score is a model-based estimate, not a guarantee."
+8. Each strategy MUST include a "phases" array with exactly 3 phases:
+   - Phase 1 "Foundation" (Weeks 1-5): Validate idea, build first offer, launch initial channel
+   - Phase 2 "Growth" (Weeks 6-10): Scale what works, kill what doesn't, double down on traction
+   - Phase 3 "Scale" (Weeks 11-15): Systemize, automate, explore secondary channels
+   Each phase must include: phase_number, name, weeks, goal, milestones (3-5 items), focus_areas (2-3 items)
 
 OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fences, no introduction, no explanation — just the JSON:
 {
@@ -136,6 +141,16 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
         ],
         "disclaimer": "Decision Score is a model-based estimate, not a guarantee."
       },
+      "phases": [
+        {
+          "phase_number": 1,
+          "name": "Foundation",
+          "weeks": "1-5",
+          "goal": "one-sentence phase goal",
+          "milestones": ["milestone1", "milestone2", "milestone3"],
+          "focus_areas": ["area1", "area2"]
+        }
+      ],
       "assumptions": [
         {"text": "string", "category": "market|resource|timing|financial", "risk_level": "low|medium|high"}
       ]
@@ -211,6 +226,7 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
                 decision_score: strategy.decision_score,
                 confidence: strategy.confidence,
                 score_breakdown: strategy.score_breakdown,
+                phases: strategy.phases || [],
                 assumptions: strategy.assumptions,
                 raw_ai_output: strategy,
             });

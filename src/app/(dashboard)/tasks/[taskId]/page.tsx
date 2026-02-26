@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle, Circle, Clock, Lightbulb, ChevronRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Clock, Lightbulb, ChevronRight, Sparkles, Download, Bot } from 'lucide-react';
 import styles from './task-detail.module.css';
 
 interface TaskDetail {
@@ -19,6 +19,7 @@ interface ParsedDetail {
     time_mins: number;
     steps: string[];
     tips: string;
+    ai_doable?: boolean;
 }
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; emoji: string }> = {
@@ -38,10 +39,39 @@ function parseDescription(desc: string): ParsedDetail {
     }
 }
 
+/** Lightweight markdown → HTML (no external dependency) */
+function simpleMarkdown(md: string): string {
+    return md
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        // headings
+        .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+        .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+        // bold & italic
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        // unordered list items
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        // numbered list items
+        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+        // paragraphs (double newline)
+        .replace(/\n\n/g, '</p><p>')
+        // single newlines
+        .replace(/\n/g, '<br/>')
+        // wrap
+        .replace(/^/, '<p>')
+        .replace(/$/, '</p>');
+}
+
 export default function TaskDetailPage({ params }: { params: Promise<{ taskId: string }> }) {
     const [task, setTask] = useState<TaskDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+    const [derekWorking, setDerekWorking] = useState(false);
+    const [derekOutput, setDerekOutput] = useState<string | null>(null);
+    const [derekError, setDerekError] = useState<string | null>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -75,6 +105,40 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
             else next.add(idx);
             return next;
         });
+    };
+
+    const handleDerekDoIt = async () => {
+        if (!task) return;
+        setDerekWorking(true);
+        setDerekError(null);
+        setDerekOutput(null);
+        try {
+            const res = await fetch(`/api/tasks/${task.id}/derek`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setDerekError(data.error || 'Something went wrong');
+            } else {
+                setDerekOutput(data.output);
+                setTask({ ...task, status: 'done' });
+            }
+        } catch {
+            setDerekError('Failed to reach Derek. Try again later.');
+        }
+        setDerekWorking(false);
+    };
+
+    const downloadMarkdown = () => {
+        if (!derekOutput || !task) return;
+        const blob = new Blob([derekOutput], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${task.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     if (loading) {
@@ -170,6 +234,54 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                         <strong>Pro Tip</strong>
                         <p>{detail.tips}</p>
                     </div>
+                </div>
+            )}
+
+            {/* Have Derek Do It */}
+            {detail.ai_doable !== false && task.status !== 'done' && !derekOutput && (
+                <button
+                    className={styles.derekBtn}
+                    onClick={handleDerekDoIt}
+                    disabled={derekWorking}
+                >
+                    {derekWorking ? (
+                        <>
+                            <Sparkles size={18} className={styles.spinning} />
+                            Derek is working on it...
+                        </>
+                    ) : (
+                        <>
+                            <Bot size={18} />
+                            Have Derek Do It
+                        </>
+                    )}
+                </button>
+            )}
+
+            {derekError && (
+                <div className={styles.derekError}>
+                    <span>⚠️</span>
+                    <span>{derekError}</span>
+                </div>
+            )}
+
+            {/* Derek's Output */}
+            {derekOutput && (
+                <div className={styles.derekOutputCard}>
+                    <div className={styles.derekOutputHeader}>
+                        <div className={styles.derekOutputTitle}>
+                            <Bot size={16} />
+                            <span>Derek&apos;s Deliverable</span>
+                        </div>
+                        <button className={styles.downloadBtn} onClick={downloadMarkdown}>
+                            <Download size={14} />
+                            Download .md
+                        </button>
+                    </div>
+                    <div
+                        className={styles.derekOutputBody}
+                        dangerouslySetInnerHTML={{ __html: simpleMarkdown(derekOutput) }}
+                    />
                 </div>
             )}
 

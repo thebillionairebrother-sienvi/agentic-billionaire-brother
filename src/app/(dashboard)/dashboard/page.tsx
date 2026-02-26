@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { ProgressChart } from '@/components/ProgressChart';
 import { ResetStrategyButton } from '@/components/ResetStrategyButton';
 import { JourneyCalendar } from '@/components/JourneyCalendar';
+import { StrategyGantt } from '@/components/StrategyGantt';
 import styles from './page.module.css';
 
 export default async function DashboardPage() {
@@ -102,6 +103,12 @@ export default async function DashboardPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Strategy Gantt Chart — full width */}
+                    <StrategyGantt
+                        phases={contract?.strategy?.phases}
+                        currentWeek={currentCycle?.week_number || 1}
+                    />
 
                     {/* Progress Chart */}
                     <ProgressChart />

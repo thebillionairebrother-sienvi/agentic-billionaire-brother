@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { GenerationProgress } from '@/components/GenerationProgress';
 import { Crown, ArrowRight, AlertTriangle, TrendingUp, Clock, Target } from 'lucide-react';
+import { ScoreBreakdownPopup } from '@/components/ScoreBreakdownPopup';
 import type { StrategyOption, Decision } from '@/lib/types';
 import styles from './strategies.module.css';
 
@@ -22,7 +23,9 @@ function StrategyCard({ strategy, onSelect }: { strategy: StrategyOption; onSele
         <div className={`card ${styles.strategyCard}`}>
             <div className={styles.cardTop}>
                 <div className={styles.rankBadge}>#{strategy.rank}</div>
-                <ScoreBadge score={strategy.decision_score} />
+                <ScoreBreakdownPopup breakdown={strategy.score_breakdown} totalScore={strategy.decision_score}>
+                    <ScoreBadge score={strategy.decision_score} />
+                </ScoreBreakdownPopup>
             </div>
 
             <h3 className={styles.archetype}>{strategy.archetype}</h3>

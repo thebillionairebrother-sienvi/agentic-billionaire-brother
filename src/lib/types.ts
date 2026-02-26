@@ -70,6 +70,7 @@ export interface StrategyOption {
     channel_focus: string[];
     offer_shape: string;
     first_7_day_plan: DayPlan[];
+    phases: StrategyPhase[];
     risks: string[];
     mitigations: string[];
     kpis: string[];
@@ -99,6 +100,15 @@ export interface ScoreCategory {
     score: number;
     weighted_score: number;
     rationale: string;
+}
+
+export interface StrategyPhase {
+    phase_number: number;
+    name: string;
+    weeks: string;
+    goal: string;
+    milestones: string[];
+    focus_areas: string[];
 }
 
 export interface Assumption {
