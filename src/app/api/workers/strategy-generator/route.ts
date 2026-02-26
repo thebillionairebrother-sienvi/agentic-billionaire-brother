@@ -158,50 +158,73 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
   ]
 }`;
 
-        // Create Thread + Run
-        const thread = await openai.beta.threads.create();
+        // Create Thread + Run (with retry)
+        let rawText = '';
+        const MAX_ATTEMPTS = 2;
 
-        await openai.beta.threads.messages.create(thread.id, {
-            role: 'user',
-            content: strategyPrompt,
-        });
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            const thread = await openai.beta.threads.create();
 
-        let run = await openai.beta.threads.runs.create(thread.id, {
-            assistant_id: ASSISTANT_ID,
-        });
+            await openai.beta.threads.messages.create(thread.id, {
+                role: 'user',
+                content: strategyPrompt,
+            });
 
-        // Poll for completion (timeout: 120s)
-        const timeout = Date.now() + 120_000;
-        while (run.status === 'in_progress' || run.status === 'queued') {
-            if (Date.now() > timeout) {
-                throw new Error('Strategy generation timed out');
+            let run = await openai.beta.threads.runs.create(thread.id, {
+                assistant_id: ASSISTANT_ID,
+            });
+
+            // Poll for completion (timeout: 180s)
+            const timeout = Date.now() + 180_000;
+            while (run.status === 'in_progress' || run.status === 'queued') {
+                if (Date.now() > timeout) {
+                    throw new Error('Strategy generation timed out');
+                }
+                await new Promise((r) => setTimeout(r, 2000));
+                run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: thread.id });
             }
-            await new Promise((r) => setTimeout(r, 2000));
-            run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: thread.id });
-        }
 
-        if (run.status !== 'completed') {
-            throw new Error(`Run failed with status: ${run.status}`);
-        }
+            if (run.status !== 'completed') {
+                const errorMsg = (run as unknown as { last_error?: { message?: string; code?: string } }).last_error?.message || 'unknown error';
+                const errorCode = (run as unknown as { last_error?: { message?: string; code?: string } }).last_error?.code || 'unknown';
+                console.error(`Strategy run failed (attempt ${attempt}/${MAX_ATTEMPTS}): status=${run.status}, code=${errorCode}, message=${errorMsg}`);
 
-        // Get response
-        const messages = await openai.beta.threads.messages.list(thread.id, {
-            order: 'desc',
-            limit: 1,
-        });
+                if (attempt < MAX_ATTEMPTS) {
+                    console.log('Retrying strategy generation...');
+                    await new Promise((r) => setTimeout(r, 3000));
+                    continue;
+                }
+                throw new Error(`Run failed after ${MAX_ATTEMPTS} attempts: ${errorCode} - ${errorMsg}`);
+            }
 
-        const assistantMessage = messages.data[0];
-        if (!assistantMessage || assistantMessage.role !== 'assistant') {
-            throw new Error('No assistant response found');
-        }
+            // Get response
+            const messages = await openai.beta.threads.messages.list(thread.id, {
+                order: 'desc',
+                limit: 1,
+            });
 
-        const textContent = assistantMessage.content.find((c) => c.type === 'text');
-        if (!textContent || textContent.type !== 'text') {
-            throw new Error('No text content in response');
+            const assistantMessage = messages.data[0];
+            if (!assistantMessage || assistantMessage.role !== 'assistant') {
+                throw new Error('No assistant response found');
+            }
+
+            const textContent = assistantMessage.content.find((c) => c.type === 'text');
+            if (!textContent || textContent.type !== 'text') {
+                throw new Error('No text content in response');
+            }
+
+            rawText = textContent.text.value;
+
+            // Update decision with thread_id
+            await supabase
+                .from('decisions')
+                .update({ thread_id: thread.id })
+                .eq('id', decisionId);
+
+            break; // Success — exit retry loop
         }
 
         // Parse JSON (robust extraction handles conversational wrapping)
-        const rawText = textContent.text.value;
         const parsed = extractJSON(rawText);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const strategies = (parsed as any).strategies;
@@ -238,10 +261,10 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
             });
         }
 
-        // Update decision with thread_id and status
+        // Update decision status to ready
         await supabase
             .from('decisions')
-            .update({ status: 'ready', thread_id: thread.id })
+            .update({ status: 'ready' })
             .eq('id', decisionId);
 
         // Mark job completed
