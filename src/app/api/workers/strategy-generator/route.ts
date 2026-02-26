@@ -206,12 +206,18 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const strategies = (parsed as any).strategies;
 
-        if (!Array.isArray(strategies) || strategies.length !== 3) {
-            throw new Error('Invalid response: expected 3 strategies');
+        if (!Array.isArray(strategies) || strategies.length === 0) {
+            throw new Error(`Invalid response: expected strategies array, got ${typeof strategies}`);
         }
 
         // Store strategy options
         for (const strategy of strategies) {
+            const defaultPhases = [
+                { phase_number: 1, name: 'Foundation', weeks: '1-5', goal: 'Validate idea, build first offer, launch initial channel.', milestones: ['Define target customer', 'Launch MVP', 'First paying customer'], focus_areas: ['Validation', 'Launch'] },
+                { phase_number: 2, name: 'Growth', weeks: '6-10', goal: 'Scale what works, optimize conversion, build pipeline.', milestones: ['Double down on best channel', 'Optimize funnel', 'Hit revenue milestone'], focus_areas: ['Traction', 'Optimization'] },
+                { phase_number: 3, name: 'Scale', weeks: '11-15', goal: 'Systemize, automate, expand to new channels.', milestones: ['Automate key workflow', 'Launch second channel', 'Establish brand'], focus_areas: ['Automation', 'Expansion'] },
+            ];
+
             await supabase.from('strategy_options').insert({
                 decision_id: decisionId,
                 rank: strategy.rank,
@@ -226,7 +232,7 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
                 decision_score: strategy.decision_score,
                 confidence: strategy.confidence,
                 score_breakdown: strategy.score_breakdown,
-                phases: strategy.phases || [],
+                phases: (Array.isArray(strategy.phases) && strategy.phases.length === 3) ? strategy.phases : defaultPhases,
                 assumptions: strategy.assumptions,
                 raw_ai_output: strategy,
             });
