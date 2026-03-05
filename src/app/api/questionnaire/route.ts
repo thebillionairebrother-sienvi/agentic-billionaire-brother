@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import type { QuestionnairePayload } from '@/lib/types';
 
+// Allow enough time for the strategy generation sub-call
+export const maxDuration = 60;
+
 // Normalize AI-extracted values to valid DB enums
 function normalizeBusinessState(val: string): 'idea' | 'pre-revenue' | 'revenue' | 'scaling' {
     const v = (val || '').toLowerCase().trim();
