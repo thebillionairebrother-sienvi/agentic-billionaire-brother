@@ -3,10 +3,20 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import Image from 'next/image';
 import { Check, Lock, ArrowRight, AlertTriangle } from 'lucide-react';
 import { ScoreBreakdownPopup } from '@/components/ScoreBreakdownPopup';
 import type { StrategyOption } from '@/lib/types';
 import styles from './commit.module.css';
+
+/** Pick a hero image based on strategy archetype keywords */
+function getStrategyImage(archetype: string): string {
+    const a = archetype.toLowerCase();
+    if (/launch|start|build|create|mvp|validate|idea|new/.test(a)) return '/images/strategies/strategy-launch.png';
+    if (/monetiz|revenue|income|profit|cash|sell|convert|earn/.test(a)) return '/images/strategies/strategy-monetize.png';
+    // Default to growth for scaling, expand, grow, etc.
+    return '/images/strategies/strategy-growth.png';
+}
 
 export default function CommitPage() {
     const [strategy, setStrategy] = useState<StrategyOption | null>(null);
@@ -92,18 +102,27 @@ export default function CommitPage() {
                 </p>
             </header>
 
-            {/* Strategy Summary */}
+            {/* Strategy Visual + Summary */}
             <div className={`card ${styles.summaryCard}`}>
-                <div className={styles.summaryTop}>
-                    <div>
-                        <h2 className={styles.archetype}>{strategy.archetype}</h2>
-                        <p className="text-secondary">{strategy.thesis}</p>
+                <div className={styles.heroBanner}>
+                    <Image
+                        src={getStrategyImage(strategy.archetype)}
+                        alt={`${strategy.archetype} strategy visual`}
+                        fill
+                        className={styles.heroImage}
+                        priority
+                    />
+                    <div className={styles.heroOverlay}>
+                        <ScoreBreakdownPopup breakdown={strategy.score_breakdown} totalScore={strategy.decision_score}>
+                            <div className={`score-badge score-${strategy.decision_score >= 70 ? 'high' : strategy.decision_score >= 45 ? 'medium' : 'low'}`}>
+                                {strategy.decision_score}
+                            </div>
+                        </ScoreBreakdownPopup>
                     </div>
-                    <ScoreBreakdownPopup breakdown={strategy.score_breakdown} totalScore={strategy.decision_score}>
-                        <div className={`score-badge score-${strategy.decision_score >= 70 ? 'high' : strategy.decision_score >= 45 ? 'medium' : 'low'}`}>
-                            {strategy.decision_score}
-                        </div>
-                    </ScoreBreakdownPopup>
+                </div>
+                <div className={styles.summaryContent}>
+                    <h2 className={styles.archetype}>{strategy.archetype}</h2>
+                    <p className="text-secondary">{strategy.thesis}</p>
                 </div>
             </div>
 
