@@ -1,0 +1,146 @@
+Discipline, Willpower & Identity-Based Performance Systems
+-----------------------------------------------------------
+
+Purpose:
+A reference library of high-performance psychological and behavioral systems to support discipline, consistency, execution, and identity-driven behavior change. Purely informational.
+
+---------------------------------------------------
+1. Identity-Based Discipline
+---------------------------------------------------
+The strongest habits come from identity, not willpower.
+
+Identity Loops:
+- “I am someone who does X consistently.”
+- Behaviors reinforce identity.
+- Identity removes decision fatigue.
+
+Steps:
+1. Choose desired identity.
+2. Reinforce through micro-actions.
+3. Automate via environment.
+4. Track consistency visually.
+
+---------------------------------------------------
+2. Willpower Systems
+---------------------------------------------------
+Willpower is a resource that:
+- Depletes with decision-making
+- Strengthens with repetition
+- Improves with clarity
+- Weakens with ambiguity
+
+Useful Models:
+- Task Simplification
+- One Decision Per Day Rule
+- Morning Momentum Rituals
+- Commitment Anchors
+- Dopamine Reset Sessions
+
+---------------------------------------------------
+3. Habit Optimization Framework
+---------------------------------------------------
+Habit Loop:
+- Cue
+- Action
+- Reward
+
+Enhancers:
+- Reduce friction
+- Remove triggers
+- Increase stakes
+- Stack habits
+- Create ritual anchors
+
+---------------------------------------------------
+4. Execution Systems
+---------------------------------------------------
+Execution requires:
+- Step reduction
+- Task batching
+- Environment shaping
+- Clear deadlines
+- Priority narrowing
+- Distraction removal
+
+Execution Framework:
+"Execution Plan:
+  Primary Task: {task}
+  Simplified Steps:
+    1. {step}
+    2. {step}
+  Blockers: {list}
+  Blocks Removed: {actions}
+  Accountability: {mechanism}"
+
+---------------------------------------------------
+5. Discipline Tools
+---------------------------------------------------
+- Time-boxing
+- 90/30 Focus Cycles
+- Non-negotiable daily reps
+- Action-first behavior
+- Friction elimination
+- Repetition-based reinforcement
+
+---------------------------------------------------
+6. Anti-Procrastination Mechanisms
+---------------------------------------------------
+- 2-Minute Rule
+- “Start Ugly” Method
+- 5-Second Rule
+- Micro-Commitment Protocol
+- Emotional Reframe:
+  “Do it for ten minutes and reevaluate.”
+
+---------------------------------------------------
+7. Attention Control Models
+---------------------------------------------------
+- Single Focus Mode
+- Priority Laddering
+- Input Detox (reduce noise)
+- Weekly Intent Reset
+- Output-first Planning
+
+---------------------------------------------------
+8. Cognitive Resistance Patterns
+---------------------------------------------------
+Why people don’t execute:
+- Fear of failure
+- Lack of clarity
+- Perfectionism
+- Past trauma associations
+- Low energy cycles
+- Overwhelm
+- Competing commitments
+
+Overcoming Pattern:
+- Simplify → Start → Iterate → Scale
+
+---------------------------------------------------
+9. Motivation vs Discipline
+---------------------------------------------------
+Motivation = emotion  
+Discipline = identity  
+
+High performers rely on:
+- Predictability
+- Systems
+- Routines
+- Reps
+- Accountability
+- Identity grounding
+
+---------------------------------------------------
+10. Micro-Win Momentum System
+---------------------------------------------------
+Small wins create:
+- Dopamine loops
+- Confidence increases
+- Identity reinforcement
+- Reduced activation energy
+
+Momentum Template:
+"Momentum:
+  Last Win: {win}
+  Next Micro Win: {action}
+  Identity Reinforcement: {statement}"

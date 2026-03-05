@@ -1,0 +1,131 @@
+Money-Making Models, Revenue Archetypes & Profit Pathways
+----------------------------------------------------------
+
+Purpose:
+Reference file for understanding business models, revenue dynamics, pricing strategies, and the difference between fast vs slow vs delayed monetization. Informational only.
+
+---------------------------------------------------
+1. Revenue Model Archetypes
+---------------------------------------------------
+- Subscription (SaaS, membership)
+- One-time purchase
+- High-ticket service
+- Volume low-ticket
+- Marketplace cuts
+- Affiliate commissions
+- Licensing/IP
+- ads + traffic arbitrage
+- Transaction fees
+- Retainers
+- Hybrid models
+
+---------------------------------------------------
+2. Fast Money Models
+---------------------------------------------------
+Characteristics:
+- Low startup cost
+- Immediate demand
+- Low barrier to entry
+- High execution dependence
+- Service-based or info-based
+
+Examples:
+- Freelancing
+- Coaching/consulting
+- Digital products
+- Agency offers
+- Dropshipping (with demand)
+
+---------------------------------------------------
+3. Slow Money Models
+---------------------------------------------------
+Characteristics:
+- Long ramp-up time
+- Large TAM
+- Delayed revenue
+- High compounding potential
+
+Examples:
+- SaaS
+- Brand building
+- Content creator businesses
+- Platforms
+- Educational ecosystems
+
+---------------------------------------------------
+4. Capital-Heavy Models
+---------------------------------------------------
+Characteristics:
+- High upfront investment
+- Regulatory or production complexity
+- Profit delayed until scale
+
+Examples:
+- Manufacturing
+- Hardware
+- Biotech
+- Large physical goods
+
+---------------------------------------------------
+5. Build-to-Sell Businesses
+---------------------------------------------------
+Characteristics:
+- Designed from day one for acquisition
+- Clean books
+- Recurring revenue
+- Standardized processes
+- No personal dependency
+
+---------------------------------------------------
+6. Artistic Business Models
+---------------------------------------------------
+Characteristics:
+- Passion-driven
+- Volatile revenue
+- High identity alignment
+- High fan engagement needed
+
+Examples:
+- Music
+- Writing
+- Games
+- Creative apps
+
+---------------------------------------------------
+7. Investment-Based Models
+---------------------------------------------------
+- Real estate
+- Equity investing
+- Angel investing
+- Long-horizon plays
+
+---------------------------------------------------
+8. Profit Path Mapping
+---------------------------------------------------
+Steps:
+1. Select business archetype
+2. Determine timeline
+3. Identify revenue accelerators
+4. Minimize early expenses
+5. Build high-margin MVP
+6. Optimize channel fit
+7. Scale with leverage
+
+---------------------------------------------------
+9. Pricing Psychology
+---------------------------------------------------
+People pay for:
+- Status
+- Time savings
+- Money savings
+- Emotion reduction
+- Identity reinforcement
+- Certainty
+
+---------------------------------------------------
+10. Profit Velocity Equation
+---------------------------------------------------
+Profit Velocity =  
+(Price × Audience Conversion × Frequency × Retention)  
+÷  
+(Cost × Time to Value × Operational Complexity)

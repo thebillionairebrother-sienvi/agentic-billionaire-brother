@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import openai, { ASSISTANT_ID } from '@/lib/openai';
+import ai, { GEMINI_MODEL } from '@/lib/gemini';
+import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 
 export async function POST(request: Request) {
     try {
@@ -11,10 +12,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { threadId } = await request.json();
+        const { chatHistory } = await request.json() as {
+            chatHistory: Array<{ role: string; content: string }>;
+        };
 
-        if (!threadId) {
-            return NextResponse.json({ error: 'threadId required' }, { status: 400 });
+        if (!chatHistory || chatHistory.length === 0) {
+            return NextResponse.json({ error: 'chatHistory required' }, { status: 400 });
         }
 
         // Gather data for summary
@@ -49,10 +52,20 @@ export async function POST(request: Request) {
         const tasks = weekTasks || [];
         const doneTasks = tasks.filter(t => t.status === 'done');
 
-        // Use the same thread to generate the summary
-        await openai.beta.threads.messages.create(threadId, {
+        // Build Gemini contents from conversation history
+        const geminiContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
+        for (const msg of chatHistory) {
+            geminiContents.push({
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: msg.content }],
+            });
+        }
+
+        // Add summary generation prompt
+        geminiContents.push({
             role: 'user',
-            content: `[SYSTEM — GENERATE WEEKLY SUMMARY]
+            parts: [{
+                text: `[SYSTEM — GENERATE WEEKLY SUMMARY]
 Based on our entire conversation above, generate a comprehensive weekly summary presentation.
 
 Return a JSON object with this EXACT structure:
@@ -76,34 +89,20 @@ Return a JSON object with this EXACT structure:
 
 Extract KPI data, wins, kill/keep/double items, and insights from the conversation. Be accurate — use what the user actually said.
 IMPORTANT: Return ONLY the JSON object, no other text.`,
+            }],
         });
 
-        // Run assistant
-        const run = await openai.beta.threads.runs.createAndPoll(threadId, {
-            assistant_id: ASSISTANT_ID,
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            config: {
+                systemInstruction: DEREK_FULL_PROMPT,
+                responseMimeType: 'application/json',
+            },
+            contents: geminiContents,
         });
-
-        if (run.status !== 'completed') {
-            throw new Error(`Run failed: ${run.status}`);
-        }
-
-        const messages = await openai.beta.threads.messages.list(threadId, {
-            order: 'desc',
-            limit: 1,
-        });
-
-        const assistantMsg = messages.data[0];
-        if (!assistantMsg || assistantMsg.role !== 'assistant') {
-            throw new Error('No assistant response');
-        }
-
-        const textContent = assistantMsg.content.find(c => c.type === 'text');
-        if (!textContent || textContent.type !== 'text') {
-            throw new Error('No text in response');
-        }
 
         // Parse the summary JSON
-        const raw = textContent.text.value
+        const raw = (response.text || '')
             .replace(/```json\n?/g, '')
             .replace(/```\n?/g, '')
             .trim();

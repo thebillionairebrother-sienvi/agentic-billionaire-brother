@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import openai, { ASSISTANT_ID } from '@/lib/openai';
+import ai, { GEMINI_MODEL } from '@/lib/gemini';
+import { Type } from '@google/genai';
+import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 
 /**
  * Parse Derek's response which should be JSON with { reaction, response }.
@@ -35,7 +37,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { message, threadId } = await request.json();
+        const { message, chatHistory } = await request.json() as {
+            message: string;
+            chatHistory?: Array<{ role: string; content: string }>;
+        };
 
         if (!message) {
             return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -77,7 +82,12 @@ export async function POST(request: Request) {
             return `${i + 1}. [${t.status.toUpperCase()}] "${t.title}" (ID: ${t.id}) — ${meta.summary || t.description || 'no description'}`;
         }).join('\n');
 
-        const systemContext = `You are "Derek" — The Billionaire Brother. A tough-love but caring business mentor who talks like a real big brother. You're chatting with a founder you genuinely care about.
+        const systemInstruction = `${DEREK_FULL_PROMPT}
+
+-------------------------------
+CHAT MODE CONTEXT
+-------------------------------
+You are chatting with a founder you genuinely care about.
 
 FOUNDER CONTEXT:
 - Business: ${businessProfile?.business_name || 'Unknown'} (${businessProfile?.industry || 'Unknown'})
@@ -116,56 +126,42 @@ REACTION RULES:
 - Never include the reaction phrase in the response text
 - Task update/status commands (%%TASK_UPDATE%% etc.) go INSIDE the response field`;
 
-        // Create or reuse thread
-        let activeThreadId = threadId;
-        if (!activeThreadId) {
-            const thread = await openai.beta.threads.create();
-            activeThreadId = thread.id;
+        // Build Gemini message history from client-provided chat history
+        const geminiHistory: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
-            // Send context as first message
-            await openai.beta.threads.messages.create(activeThreadId, {
-                role: 'user',
-                content: `[SYSTEM CONTEXT — do not repeat this to the user]\n${systemContext}\n\n[USER'S FIRST MESSAGE]\n${message}`,
-            });
-        } else {
-            await openai.beta.threads.messages.create(activeThreadId, {
-                role: 'user',
-                content: message,
-            });
+        if (chatHistory && chatHistory.length > 0) {
+            for (const msg of chatHistory) {
+                geminiHistory.push({
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: msg.content }],
+                });
+            }
         }
 
-        let run = await openai.beta.threads.runs.create(activeThreadId, {
-            assistant_id: ASSISTANT_ID,
+        // Add current user message
+        geminiHistory.push({
+            role: 'user',
+            parts: [{ text: message }],
         });
 
-        // Poll
-        const timeout = Date.now() + 30_000;
-        while (run.status === 'in_progress' || run.status === 'queued') {
-            if (Date.now() > timeout) throw new Error('Response timed out');
-            await new Promise((r) => setTimeout(r, 1000));
-            run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: activeThreadId });
-        }
-
-        if (run.status !== 'completed') {
-            throw new Error(`Run failed: ${run.status}`);
-        }
-
-        const messages = await openai.beta.threads.messages.list(activeThreadId, {
-            order: 'desc',
-            limit: 1,
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            config: {
+                systemInstruction,
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        reaction: { type: Type.STRING },
+                        response: { type: Type.STRING },
+                    },
+                    required: ['reaction', 'response'],
+                },
+            },
+            contents: geminiHistory,
         });
 
-        const aiMessage = messages.data[0];
-        if (!aiMessage || aiMessage.role !== 'assistant') {
-            throw new Error('No response from Derek');
-        }
-
-        const textContent = aiMessage.content.find((c) => c.type === 'text');
-        if (!textContent || textContent.type !== 'text') {
-            throw new Error('No text in response');
-        }
-
-        const rawText = textContent.text.value;
+        const rawText = response.text || '';
         const parsed = parseDerekResponse(rawText);
         let responseText = parsed.response;
 
@@ -220,7 +216,6 @@ REACTION RULES:
         return NextResponse.json({
             response: responseText,
             reaction: parsed.reaction,
-            threadId: activeThreadId,
             taskUpdates: taskUpdates.length > 0 ? taskUpdates : undefined,
         });
     } catch (error) {

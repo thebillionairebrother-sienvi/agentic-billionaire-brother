@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import OpenAI from 'openai';
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-const ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID!;
+import ai, { GEMINI_MODEL } from '@/lib/gemini';
+import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 
 export async function POST(
     _request: Request,
@@ -66,7 +64,7 @@ export async function POST(
 
         const strategy = contract?.strategy;
 
-        const prompt = `You are "Derek, The Billionaire Brother" — a successful entrepreneur acting as a big brother mentor. A founder has asked you to COMPLETE the following task for them. Do the actual work and produce a comprehensive, actionable deliverable.
+        const prompt = `A founder has asked you to COMPLETE the following task for them. Do the actual work and produce a comprehensive, actionable deliverable.
 
 TASK TO COMPLETE:
 Title: ${task.title}
@@ -102,44 +100,13 @@ INSTRUCTIONS:
 
 FORMAT: Output in clean Markdown. Start with a title using # heading.`;
 
-        const thread = await openai.beta.threads.create();
-        await openai.beta.threads.messages.create(thread.id, {
-            role: 'user',
-            content: prompt,
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            config: { systemInstruction: DEREK_FULL_PROMPT },
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
         });
 
-        let run = await openai.beta.threads.runs.create(thread.id, {
-            assistant_id: ASSISTANT_ID,
-        });
-
-        // Poll for completion
-        const timeout = Date.now() + 90_000;
-        while (run.status === 'in_progress' || run.status === 'queued') {
-            if (Date.now() > timeout) throw new Error('Derek timed out');
-            await new Promise((r) => setTimeout(r, 2000));
-            run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: thread.id });
-        }
-
-        if (run.status !== 'completed') {
-            throw new Error(`Run failed: ${run.status}`);
-        }
-
-        const messages = await openai.beta.threads.messages.list(thread.id, {
-            order: 'desc',
-            limit: 1,
-        });
-
-        const aiMessage = messages.data[0];
-        if (!aiMessage || aiMessage.role !== 'assistant') {
-            throw new Error('No response from Derek');
-        }
-
-        const textContent = aiMessage.content.find((c) => c.type === 'text');
-        if (!textContent || textContent.type !== 'text') {
-            throw new Error('No text in response');
-        }
-
-        const output = textContent.text.value;
+        const output = response.text || '';
 
         // Mark the task as done
         await supabase

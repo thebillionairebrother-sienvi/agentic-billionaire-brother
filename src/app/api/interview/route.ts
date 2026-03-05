@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import openai, { ASSISTANT_ID } from '@/lib/openai';
+import ai, { GEMINI_MODEL } from '@/lib/gemini';
+import { Type } from '@google/genai';
+import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 
 /**
  * Parse AI response that should be JSON with { reaction, response }.
@@ -26,7 +28,12 @@ function parseAssistantResponse(raw: string): { reaction: string; response: stri
     };
 }
 
-const INTERVIEW_SYSTEM_PROMPT = `You are "The Billionaire Brother" — a sharp, supportive, no-BS business mentor having a casual conversation with someone who wants to build something. Your goal is to learn about them so you can create strategies that actually fit their life.
+const INTERVIEW_SYSTEM_PROMPT = `${DEREK_FULL_PROMPT}
+
+-------------------------------
+INTERVIEW MODE
+-------------------------------
+You are having a casual conversation with someone who wants to build something. Your goal is to learn about them so you can create strategies that actually fit their life.
 
 RESPONSE FORMAT — CRITICAL:
 You MUST respond in valid JSON with exactly two fields:
@@ -52,20 +59,22 @@ RESPONSE RULES:
 CONVERSATION RULES:
 1. Ask ONE question at a time. Keep it simple and human.
 2. Start by asking what they're working on or trying to build. Be warm and casual.
-3. Guide the conversation naturally through these areas — but NEVER use business jargon or technical terms:
-   - What they do or want to create (and a name for it if they have one)
-   - Where they're at with it — just an idea? Already making money? Somewhere in between?
-   - Who it's for — who are the people they want to help or sell to?
-   - What they're good at — their skills, talents, or experience
-   - What they struggle with — what feels hard or where they get stuck
-   - What they have to work with — any website, social media, email list, or audience they've already built
-   - How much time they can realistically put in per week
-   - Whether they have any budget to invest, even a small one
-   - Whether they're doing this solo or have people helping
-   - Anything they absolutely don't want to do (optional, only if it comes up naturally)
+3. Guide the conversation naturally through ALL of these areas — you MUST cover every single one before wrapping up:
+   a. What they do or want to create (and a name for it if they have one)
+   b. Where they're at with it — just an idea? Already making money? Somewhere in between?
+   c. Who it's for — who are the people they want to help or sell to?
+   d. What they're good at — their skills, talents, or experience
+   e. What they struggle with — what feels hard or where they get stuck
+   f. What they have to work with — any website, social media, email list, or audience they've already built
+   g. How much time they can realistically put in per week (get a NUMBER)
+   h. Whether they have any budget to invest, even a small one (get a RANGE)
+   i. Whether they're doing this solo or have people helping
+   j. How comfortable they are taking risks — do they play it safe or bet big?
+   k. Anything they absolutely don't want to do (optional, only if it comes up naturally)
 4. Ask follow-ups when answers are vague or interesting — dig deeper like a curious friend.
-5. Keep it to 4-6 exchanges. Don't interrogate. If you have enough, wrap it up.
-6. NEVER ask about "risk tolerance", "calendar blocks", "KPIs", "VAs", or any business jargon. Talk like a real person having a conversation.
+5. Take AT LEAST 6-8 exchanges. Do NOT rush. NEVER wrap up before covering items (a) through (j) above.
+6. NEVER ask about "calendar blocks", "KPIs", "VAs", or heavy business jargon. Talk like a real person having a conversation.
+7. If the user gives short answers, ask follow-up questions to get more detail — don't just move on.
 
 WHEN YOU HAVE ENOUGH INFO:
 Your FINAL response must:
@@ -110,114 +119,91 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { message, threadId, messageCount = 0 } = body as { message: string; threadId?: string; messageCount?: number };
+        const { message, chatHistory, messageCount = 0 } = body as {
+            message: string;
+            chatHistory?: Array<{ role: string; content: string }>;
+            messageCount?: number;
+        };
 
-        // Create or reuse thread
-        let activeThreadId = threadId;
-        if (!activeThreadId) {
-            const thread = await openai.beta.threads.create();
-            activeThreadId = thread.id;
+        // Build Gemini message history
+        const geminiContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
-            // Send system-level context as first user message
-            await openai.beta.threads.messages.create(activeThreadId, {
+        // First call — no history, generate a greeting
+        if (!chatHistory || chatHistory.length === 0) {
+            geminiContents.push({
                 role: 'user',
-                content: INTERVIEW_SYSTEM_PROMPT + '\n\nNow greet the founder and ask your first question. Remember to respond in the JSON format with reaction and response fields.',
+                parts: [{ text: 'Now greet the founder and ask your first question. Remember to respond in the JSON format with reaction and response fields.' }],
             });
 
-            let initRun = await openai.beta.threads.runs.create(activeThreadId, {
-                assistant_id: ASSISTANT_ID,
+            const response = await ai.models.generateContent({
+                model: GEMINI_MODEL,
+                config: {
+                    systemInstruction: INTERVIEW_SYSTEM_PROMPT,
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: Type.OBJECT,
+                        properties: {
+                            reaction: { type: Type.STRING },
+                            response: { type: Type.STRING },
+                        },
+                        required: ['reaction', 'response'],
+                    },
+                },
+                contents: geminiContents,
             });
 
-            // Poll for completion
-            const initTimeout = Date.now() + 60_000;
-            while (initRun.status === 'in_progress' || initRun.status === 'queued') {
-                if (Date.now() > initTimeout) throw new Error('Interview init timed out');
-                await new Promise((r) => setTimeout(r, 1500));
-                initRun = await openai.beta.threads.runs.retrieve(initRun.id, { thread_id: activeThreadId });
-            }
-
-            if (initRun.status !== 'completed') {
-                const lastErr = (initRun as unknown as { last_error?: { message?: string; code?: string } }).last_error;
-                console.error(`Interview init run failed: status=${initRun.status}, code=${lastErr?.code || 'unknown'}, message=${lastErr?.message || 'unknown'}`);
-                throw new Error(`Init run failed: ${lastErr?.message || initRun.status}`);
-            }
-
-            // Get the greeting
-            const initMessages = await openai.beta.threads.messages.list(activeThreadId, {
-                order: 'desc',
-                limit: 1,
-            });
-
-            const greeting = initMessages.data[0];
-            if (!greeting || greeting.role !== 'assistant') {
-                throw new Error('No greeting received');
-            }
-
-            const textContent = greeting.content.find((c) => c.type === 'text');
-            if (!textContent || textContent.type !== 'text') {
-                throw new Error('No text in greeting');
-            }
-
-            const parsed = parseAssistantResponse(textContent.text.value);
+            const rawText = response.text || '';
+            const parsed = parseAssistantResponse(rawText);
 
             return NextResponse.json({
                 reply: parsed.response,
                 reaction: parsed.reaction,
-                threadId: activeThreadId,
                 complete: false,
             });
         }
 
-        // Send user message
-        await openai.beta.threads.messages.create(activeThreadId, {
+        // Subsequent calls — rebuild history and send user message
+        for (const msg of chatHistory) {
+            geminiContents.push({
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: msg.content }],
+            });
+        }
+
+        // Add current user message
+        geminiContents.push({
             role: 'user',
-            content: message,
+            parts: [{ text: message }],
         });
 
         // After enough exchanges, nudge the AI to wrap up
-        let additionalInstructions: string | undefined;
-        if (messageCount >= 6) {
-            additionalInstructions = 'You have enough information now. You MUST wrap up this conversation in THIS response. Summarize what you learned and include the [INTERVIEW_COMPLETE] marker with the extracted JSON data. Do NOT ask any more questions.';
-        } else if (messageCount >= 4) {
-            additionalInstructions = 'You are nearing the end of this conversation. If you have enough information to generate strategies, wrap up NOW with the [INTERVIEW_COMPLETE] marker and extracted JSON. Only ask one more question if something critical is missing.';
+        let additionalContext = '';
+        if (messageCount >= 8) {
+            additionalContext = '\n\n[SYSTEM NOTE: You have had plenty of exchanges. You MUST wrap up this conversation in THIS response. Give a brief, enthusiastic sign-off message. Include the text [INTERVIEW_COMPLETE] somewhere in your response. Do NOT ask any more questions.]';
+        } else if (messageCount >= 6) {
+            additionalContext = '\n\n[SYSTEM NOTE: You are nearing the end of this conversation. If you have covered all the required topics (business idea, stage, target audience, strengths, weaknesses, existing assets, time per week, budget, team, risk comfort), wrap up NOW with a brief sign-off and include [INTERVIEW_COMPLETE] in your response. If any of these topics are still missing, ask about them now.]';
         }
 
-        let run = await openai.beta.threads.runs.create(activeThreadId, {
-            assistant_id: ASSISTANT_ID,
-            ...(additionalInstructions ? { additional_instructions: additionalInstructions } : {}),
+        const systemPrompt = INTERVIEW_SYSTEM_PROMPT + additionalContext;
+
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            config: {
+                systemInstruction: systemPrompt,
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        reaction: { type: Type.STRING },
+                        response: { type: Type.STRING },
+                    },
+                    required: ['reaction', 'response'],
+                },
+            },
+            contents: geminiContents,
         });
 
-        // Poll for completion (timeout: 90s)
-        const timeout = Date.now() + 90_000;
-        while (run.status === 'in_progress' || run.status === 'queued') {
-            if (Date.now() > timeout) throw new Error('Interview response timed out');
-            await new Promise((r) => setTimeout(r, 1500));
-            run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: activeThreadId });
-        }
-
-        if (run.status !== 'completed') {
-            const lastErr = (run as unknown as { last_error?: { message?: string; code?: string } }).last_error;
-            console.error(`Interview run failed: status=${run.status}, code=${lastErr?.code || 'unknown'}, message=${lastErr?.message || 'unknown'}`);
-            throw new Error(`Run failed: ${lastErr?.message || run.status}`);
-        }
-
-        // Get response
-        const messages = await openai.beta.threads.messages.list(activeThreadId, {
-            order: 'desc',
-            limit: 1,
-        });
-
-        const assistantMessage = messages.data[0];
-        if (!assistantMessage || assistantMessage.role !== 'assistant') {
-            throw new Error('No assistant response');
-        }
-
-        const textContent = assistantMessage.content.find((c) => c.type === 'text');
-        if (!textContent || textContent.type !== 'text') {
-            throw new Error('No text in response');
-        }
-
-        const rawText = textContent.text.value;
+        const rawText = response.text || '';
         const parsed = parseAssistantResponse(rawText);
 
         // Check for interview completion
@@ -225,96 +211,75 @@ export async function POST(request: Request) {
 
         // Also detect "natural" sign-offs when the AI wraps up without the marker
         const signoffPatterns = [
-            /stay ready/i, /let'?s (do this|go|hustle|get|build|make)/i,
+            /stay ready/i, /let'?s (do this|go|hustle|get|build|make|cook)/i,
             /pumped for this/i, /going to kill it/i, /got everything/i,
-            /let me (cook|work|put together|build|generate)/i,
+            /let me (cook|work|put together|build|generate|craft|create)/i,
             /i'?ve got what i need/i, /enough to (work with|build|generate|create)/i,
+            /time to (build|cook|work|create|generate|get to work)/i,
+            /strap in/i, /buckle up/i, /hold tight/i,
+            /working on your strateg/i, /generate.*strateg/i, /craft.*strateg/i,
+            /everything i need/i, /all i need/i,
+            /sit tight/i, /hang tight/i,
         ];
         const looksLikeSignoff = messageCount >= 6 && signoffPatterns.some(p => p.test(parsed.response));
 
         if (hasCompletionMarker || looksLikeSignoff) {
             let extractedData = null;
 
-            // Try to extract JSON from marker response
-            if (hasCompletionMarker) {
-                const jsonMatch = parsed.response.match(/```json\s*([\s\S]*?)\s*```/);
-                if (jsonMatch) {
-                    try {
-                        extractedData = JSON.parse(jsonMatch[1]);
-                    } catch {
-                        console.error('Failed to parse interview data JSON from marker');
-                    }
-                }
-            }
+            // Always use the dedicated extraction call for reliability
+            try {
+                const extractContents = [...geminiContents];
+                extractContents.push({
+                    role: 'model',
+                    parts: [{ text: parsed.response }],
+                });
+                extractContents.push({
+                    role: 'user',
+                    parts: [{
+                        text: `Based on our entire conversation, extract the founder's business profile into JSON. Fill in ALL fields using reasonable defaults for anything not explicitly discussed.`,
+                    }],
+                });
 
-            // Fallback: if no data extracted (AI didn't include JSON or it failed to parse),
-            // ask the AI to explicitly extract the data in a follow-up
-            if (!extractedData) {
+                const extractResponse = await ai.models.generateContent({
+                    model: GEMINI_MODEL,
+                    config: {
+                        systemInstruction: 'You are a data extraction assistant. Extract structured business profile data from conversations. Return only valid JSON.',
+                        responseMimeType: 'application/json',
+                        responseSchema: {
+                            type: Type.OBJECT,
+                            properties: {
+                                business_name: { type: Type.STRING },
+                                business_state: { type: Type.STRING },
+                                industry: { type: Type.STRING },
+                                current_revenue_range: { type: Type.STRING },
+                                strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                risk_tolerance: { type: Type.STRING },
+                                hours_per_week: { type: Type.NUMBER },
+                                monthly_budget_range: { type: Type.STRING },
+                                no_go_constraints: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                target_audience: { type: Type.STRING },
+                                existing_assets: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                additional_context: { type: Type.STRING },
+                                team_size: { type: Type.STRING },
+                                va_count: { type: Type.NUMBER },
+                                calendar_blocks_available: { type: Type.NUMBER },
+                                timezone: { type: Type.STRING },
+                            },
+                            required: ['business_name', 'business_state', 'industry'],
+                        },
+                    },
+                    contents: extractContents,
+                });
+
+                const rawJson = (extractResponse.text || '').trim();
                 try {
-                    await openai.beta.threads.messages.create(activeThreadId, {
-                        role: 'user',
-                        content: `[SYSTEM — DO NOT SHOW TO USER]
-Based on our entire conversation above, extract the founder's business profile into this EXACT JSON format. Return ONLY the JSON, no other text:
-\`\`\`json
-{
-  "business_name": "string",
-  "business_state": "idea|pre-revenue|revenue|scaling",
-  "industry": "string",
-  "current_revenue_range": "string or empty",
-  "strengths": ["string array"],
-  "weaknesses": ["string array"],
-  "risk_tolerance": "conservative|moderate|aggressive",
-  "hours_per_week": number,
-  "monthly_budget_range": "string",
-  "no_go_constraints": ["string array"],
-  "target_audience": "string",
-  "existing_assets": ["string array"],
-  "additional_context": "string",
-  "team_size": "solo|founder_plus_vas|small_team",
-  "va_count": 0,
-  "calendar_blocks_available": number,
-  "timezone": "string or empty"
-}
-\`\`\`
-Fill in based on what the user told us. Use reasonable defaults for any missing fields.`,
-                    });
-
-                    let extractRun = await openai.beta.threads.runs.create(activeThreadId, {
-                        assistant_id: ASSISTANT_ID,
-                    });
-
-                    const extTimeout = Date.now() + 60_000;
-                    while (extractRun.status === 'in_progress' || extractRun.status === 'queued') {
-                        if (Date.now() > extTimeout) break;
-                        await new Promise((r) => setTimeout(r, 1500));
-                        extractRun = await openai.beta.threads.runs.retrieve(extractRun.id, { thread_id: activeThreadId });
-                    }
-
-                    if (extractRun.status === 'completed') {
-                        const extMessages = await openai.beta.threads.messages.list(activeThreadId, {
-                            order: 'desc',
-                            limit: 1,
-                        });
-
-                        const extMsg = extMessages.data[0];
-                        if (extMsg?.role === 'assistant') {
-                            const extText = extMsg.content.find((c) => c.type === 'text');
-                            if (extText && extText.type === 'text') {
-                                const rawJson = extText.text.value
-                                    .replace(/```json\s*/g, '')
-                                    .replace(/```\s*/g, '')
-                                    .trim();
-                                try {
-                                    extractedData = JSON.parse(rawJson);
-                                } catch {
-                                    console.error('Failed to parse fallback extraction JSON');
-                                }
-                            }
-                        }
-                    }
-                } catch (err) {
-                    console.error('Fallback extraction failed:', err);
+                    extractedData = JSON.parse(rawJson);
+                } catch {
+                    console.error('Failed to parse extraction JSON:', rawJson.substring(0, 200));
                 }
+            } catch (err) {
+                console.error('Data extraction failed:', err);
             }
 
             // Clean the display text
@@ -325,7 +290,6 @@ Fill in based on what the user told us. Use reasonable defaults for any missing 
             return NextResponse.json({
                 reply: displayText,
                 reaction: parsed.reaction,
-                threadId: activeThreadId,
                 complete: true,
                 extractedData,
             });
@@ -334,7 +298,6 @@ Fill in based on what the user told us. Use reasonable defaults for any missing 
         return NextResponse.json({
             reply: parsed.response,
             reaction: parsed.reaction,
-            threadId: activeThreadId,
             complete: false,
         });
     } catch (error) {

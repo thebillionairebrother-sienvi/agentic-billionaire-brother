@@ -282,7 +282,7 @@ export interface InterviewMessage {
 export interface InterviewResponse {
     reply: string;
     reaction?: string;
-    threadId: string;
+    threadId?: string;
     complete: boolean;
     extractedData?: QuestionnairePayload;
 }

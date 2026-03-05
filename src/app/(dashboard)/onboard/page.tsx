@@ -11,7 +11,7 @@ import styles from './onboard.module.css';
 export default function OnboardPage() {
     const [messages, setMessages] = useState<InterviewMessage[]>([]);
     const [input, setInput] = useState('');
-    const [threadId, setThreadId] = useState<string | null>(null);
+
     const [loading, setLoading] = useState(false);
     const [initializing, setInitializing] = useState(true);
     const [complete, setComplete] = useState(false);
@@ -40,7 +40,6 @@ export default function OnboardPage() {
                 if (!res.ok) throw new Error('Failed to start interview');
 
                 const data: InterviewResponse = await res.json();
-                setThreadId(data.threadId);
                 setMessages([{
                     role: 'assistant',
                     content: data.reply,
@@ -66,10 +65,15 @@ export default function OnboardPage() {
 
         try {
             const userMessageCount = messages.filter(m => m.role === 'user').length + 1; // +1 for current
+            // Build chat history from existing messages for Gemini context
+            const chatHistory = messages.map(m => ({
+                role: m.role,
+                content: m.content,
+            }));
             const res = await fetch('/api/interview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage, threadId, messageCount: userMessageCount }),
+                body: JSON.stringify({ message: userMessage, chatHistory, messageCount: userMessageCount }),
             });
 
             if (!res.ok) throw new Error('Failed to send message');
@@ -231,7 +235,7 @@ export default function OnboardPage() {
                             </div>
                             <div className={styles.takeawayItem}>
                                 <span className={styles.takeawayLabel}>Strengths</span>
-                                <span>{extractedData.strengths.join(', ')}</span>
+                                <span>{(extractedData.strengths || []).join(', ') || 'N/A'}</span>
                             </div>
                             <div className={styles.takeawayItem}>
                                 <span className={styles.takeawayLabel}>Risk</span>

@@ -53,7 +53,6 @@ export default function WeeklyCheckinPage() {
     const [status, setStatus] = useState<CheckinStatus | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
-    const [threadId, setThreadId] = useState<string | null>(null);
     const [chatLoading, setChatLoading] = useState(false);
     const [summary, setSummary] = useState<Summary | null>(null);
     const [started, setStarted] = useState(false);
@@ -95,7 +94,6 @@ export default function WeeklyCheckinPage() {
                     content: data.response,
                     reaction: data.reaction,
                 }]);
-                setThreadId(data.threadId);
             }
         } catch (err) {
             console.error(err);
@@ -111,10 +109,16 @@ export default function WeeklyCheckinPage() {
         setChatLoading(true);
 
         try {
+            // Build chat history from existing messages for Gemini context
+            const chatHistory = [...messages, { role: 'user', content: userMsg }].map(m => ({
+                role: m.role === 'derek' ? 'assistant' : 'user',
+                content: m.content,
+            }));
+
             const res = await fetch('/api/weekly-checkin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMsg, threadId }),
+                body: JSON.stringify({ message: userMsg, chatHistory }),
             });
             const data = await res.json();
             if (data.response) {
@@ -123,10 +127,17 @@ export default function WeeklyCheckinPage() {
                     content: data.response,
                     reaction: data.reaction,
                 }]);
-                if (data.threadId) setThreadId(data.threadId);
 
                 if (data.isComplete) {
-                    setTimeout(() => generateSummary(data.threadId || threadId), 1500);
+                    // Pass the full conversation for summary generation
+                    const fullHistory = [...messages,
+                    { role: 'user', content: userMsg },
+                    { role: 'derek', content: data.response },
+                    ].map(m => ({
+                        role: m.role === 'derek' ? 'assistant' : 'user',
+                        content: m.content,
+                    }));
+                    setTimeout(() => generateSummary(fullHistory), 1500);
                 }
             }
         } catch (err) {
@@ -135,15 +146,15 @@ export default function WeeklyCheckinPage() {
         setChatLoading(false);
     };
 
-    const generateSummary = async (tid: string | null) => {
-        if (!tid) return;
+    const generateSummary = async (chatHistory: Array<{ role: string; content: string }>) => {
+        if (!chatHistory || chatHistory.length === 0) return;
         setPhase('generating');
 
         try {
             const res = await fetch('/api/weekly-checkin/summary', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ threadId: tid }),
+                body: JSON.stringify({ chatHistory }),
             });
             const data = await res.json();
             if (data.summary) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import openai, { ASSISTANT_ID } from '@/lib/openai';
+import ai, { GEMINI_MODEL } from '@/lib/gemini';
+import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 
 /**
  * Extracts a JSON object from text that may contain conversational wrapping.
@@ -158,70 +159,32 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
   ]
 }`;
 
-        // Create Thread + Run (with retry)
+        // Generate with retry
         let rawText = '';
         const MAX_ATTEMPTS = 2;
 
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            const thread = await openai.beta.threads.create();
+            try {
+                const response = await ai.models.generateContent({
+                    model: GEMINI_MODEL,
+                    config: {
+                        systemInstruction: DEREK_FULL_PROMPT,
+                        responseMimeType: 'application/json',
+                    },
+                    contents: [{ role: 'user', parts: [{ text: strategyPrompt }] }],
+                });
 
-            await openai.beta.threads.messages.create(thread.id, {
-                role: 'user',
-                content: strategyPrompt,
-            });
-
-            let run = await openai.beta.threads.runs.create(thread.id, {
-                assistant_id: ASSISTANT_ID,
-            });
-
-            // Poll for completion (timeout: 180s)
-            const timeout = Date.now() + 180_000;
-            while (run.status === 'in_progress' || run.status === 'queued') {
-                if (Date.now() > timeout) {
-                    throw new Error('Strategy generation timed out');
-                }
-                await new Promise((r) => setTimeout(r, 2000));
-                run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: thread.id });
-            }
-
-            if (run.status !== 'completed') {
-                const errorMsg = (run as unknown as { last_error?: { message?: string; code?: string } }).last_error?.message || 'unknown error';
-                const errorCode = (run as unknown as { last_error?: { message?: string; code?: string } }).last_error?.code || 'unknown';
-                console.error(`Strategy run failed (attempt ${attempt}/${MAX_ATTEMPTS}): status=${run.status}, code=${errorCode}, message=${errorMsg}`);
-
+                rawText = response.text || '';
+                break; // Success — exit retry loop
+            } catch (err) {
+                console.error(`Strategy generation failed (attempt ${attempt}/${MAX_ATTEMPTS}):`, err);
                 if (attempt < MAX_ATTEMPTS) {
                     console.log('Retrying strategy generation...');
                     await new Promise((r) => setTimeout(r, 3000));
                     continue;
                 }
-                throw new Error(`Run failed after ${MAX_ATTEMPTS} attempts: ${errorCode} - ${errorMsg}`);
+                throw err;
             }
-
-            // Get response
-            const messages = await openai.beta.threads.messages.list(thread.id, {
-                order: 'desc',
-                limit: 1,
-            });
-
-            const assistantMessage = messages.data[0];
-            if (!assistantMessage || assistantMessage.role !== 'assistant') {
-                throw new Error('No assistant response found');
-            }
-
-            const textContent = assistantMessage.content.find((c) => c.type === 'text');
-            if (!textContent || textContent.type !== 'text') {
-                throw new Error('No text content in response');
-            }
-
-            rawText = textContent.text.value;
-
-            // Update decision with thread_id
-            await supabase
-                .from('decisions')
-                .update({ thread_id: thread.id })
-                .eq('id', decisionId);
-
-            break; // Success — exit retry loop
         }
 
         // Parse JSON (robust extraction handles conversational wrapping)

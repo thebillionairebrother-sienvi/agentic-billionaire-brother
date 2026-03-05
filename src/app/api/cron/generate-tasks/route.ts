@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import openai, { ASSISTANT_ID } from '@/lib/openai';
+import ai, { GEMINI_MODEL } from '@/lib/gemini';
+import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 
 export const maxDuration = 300; // 5 min max for cron jobs
 export const dynamic = 'force-dynamic';
@@ -107,7 +108,7 @@ export async function GET(request: Request) {
             const dateObj = new Date(today + 'T00:00:00');
             const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
 
-            const prompt = `You are "The Billionaire Brother" — a no-BS business mentor. Generate action items starting from ${dayName}, ${today} for this founder.
+            const prompt = `Generate action items starting from ${dayName}, ${today} for this founder.
 
 FOUNDER CONTEXT:
 - Business: ${businessProfile.business_name || 'Unknown'} (${businessProfile.industry || 'Unknown industry'})
@@ -162,37 +163,13 @@ Return ONLY a JSON array:
 ]`;
 
             try {
-                const thread = await openai.beta.threads.create();
-                await openai.beta.threads.messages.create(thread.id, {
-                    role: 'user',
-                    content: prompt,
+                const response = await ai.models.generateContent({
+                    model: GEMINI_MODEL,
+                    config: { systemInstruction: DEREK_FULL_PROMPT },
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 });
 
-                let run = await openai.beta.threads.runs.create(thread.id, {
-                    assistant_id: ASSISTANT_ID,
-                });
-
-                const timeout = Date.now() + 60_000;
-                while (run.status === 'in_progress' || run.status === 'queued') {
-                    if (Date.now() > timeout) throw new Error('Timeout');
-                    await new Promise((r) => setTimeout(r, 1500));
-                    run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: thread.id });
-                }
-
-                if (run.status !== 'completed') throw new Error(`Run: ${run.status}`);
-
-                const messages = await openai.beta.threads.messages.list(thread.id, {
-                    order: 'desc',
-                    limit: 1,
-                });
-
-                const aiMessage = messages.data[0];
-                if (!aiMessage || aiMessage.role !== 'assistant') throw new Error('No response');
-
-                const textContent = aiMessage.content.find((c) => c.type === 'text');
-                if (!textContent || textContent.type !== 'text') throw new Error('No text');
-
-                const raw = textContent.text.value;
+                const raw = response.text || '';
                 const jsonMatch = raw.match(/\[[\s\S]*\]/);
                 if (!jsonMatch) throw new Error('No JSON');
 

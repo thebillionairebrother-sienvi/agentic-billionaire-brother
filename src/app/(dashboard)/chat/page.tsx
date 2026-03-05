@@ -16,7 +16,6 @@ export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [threadId, setThreadId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -45,10 +44,16 @@ export default function ChatPage() {
         setLoading(true);
 
         try {
+            // Build chat history from existing messages for Gemini context
+            const chatHistory = messages.map(m => ({
+                role: m.role === 'derek' ? 'assistant' : 'user',
+                content: m.content,
+            }));
+
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: msg, threadId }),
+                body: JSON.stringify({ message: msg, chatHistory }),
             });
 
             const data = await res.json();
@@ -56,8 +61,6 @@ export default function ChatPage() {
             if (!res.ok) {
                 throw new Error(data.error || 'Failed to get response');
             }
-
-            if (data.threadId) setThreadId(data.threadId);
 
             setMessages((prev) => [
                 ...prev,
@@ -90,7 +93,6 @@ export default function ChatPage() {
 
     const startNewChat = () => {
         setMessages([]);
-        setThreadId(null);
     };
 
     return (

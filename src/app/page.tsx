@@ -14,6 +14,9 @@ export default function LandingPage() {
           <span>The Billionaire Brother</span>
         </Link>
         <div className={styles.navActions}>
+          <Link href="/testimonials" className="btn btn-ghost">
+            Testimonials
+          </Link>
           <Link href="/auth" className="btn btn-ghost">
             Sign In
           </Link>

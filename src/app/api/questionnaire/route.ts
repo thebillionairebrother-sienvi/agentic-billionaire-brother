@@ -2,6 +2,47 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import type { QuestionnairePayload } from '@/lib/types';
 
+// Normalize AI-extracted values to valid DB enums
+function normalizeBusinessState(val: string): 'idea' | 'pre-revenue' | 'revenue' | 'scaling' {
+    const v = (val || '').toLowerCase().trim();
+    if (v.includes('idea') || v.includes('concept')) return 'idea';
+    if (v.includes('pre') || v.includes('launch') || v.includes('start')) return 'pre-revenue';
+    if (v.includes('scal') || v.includes('grow')) return 'scaling';
+    if (v.includes('rev')) return 'revenue';
+    return 'idea';
+}
+
+function normalizeRiskTolerance(val: string): 'conservative' | 'moderate' | 'aggressive' {
+    const v = (val || '').toLowerCase().trim();
+    if (v.includes('aggr') || v.includes('high') || v.includes('bold')) return 'aggressive';
+    if (v.includes('conserv') || v.includes('low') || v.includes('safe') || v.includes('cautious')) return 'conservative';
+    return 'moderate';
+}
+
+function normalizeTeamSize(val: string): 'solo' | 'founder_plus_vas' | 'small_team' {
+    const v = (val || '').toLowerCase().trim();
+    if (v.includes('small') || v.includes('team') || v.includes('employees')) return 'small_team';
+    if (v.includes('va') || v.includes('freelanc') || v.includes('contractor') || v.includes('plus')) return 'founder_plus_vas';
+    return 'solo';
+}
+
+function normalizePayload(body: QuestionnairePayload): QuestionnairePayload {
+    return {
+        ...body,
+        business_state: normalizeBusinessState(body.business_state),
+        risk_tolerance: normalizeRiskTolerance(body.risk_tolerance),
+        team_size: normalizeTeamSize(body.team_size),
+        hours_per_week: Number(body.hours_per_week) || 10,
+        va_count: Number(body.va_count) || 0,
+        calendar_blocks_available: Number(body.calendar_blocks_available) || 5,
+        strengths: Array.isArray(body.strengths) ? body.strengths : [],
+        weaknesses: Array.isArray(body.weaknesses) ? body.weaknesses : [],
+        no_go_constraints: Array.isArray(body.no_go_constraints) ? body.no_go_constraints : [],
+        existing_assets: Array.isArray(body.existing_assets) ? body.existing_assets : [],
+        timezone: body.timezone || 'UTC',
+    };
+}
+
 export async function POST(request: Request) {
     try {
         const supabase = await createClient();
@@ -11,7 +52,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const body: QuestionnairePayload = await request.json();
+        const body = normalizePayload(await request.json());
 
         // Upsert business profile
         const { data: existingProfile } = await supabase

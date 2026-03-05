@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import openai, { ASSISTANT_ID } from '@/lib/openai';
+import ai, { GEMINI_MODEL } from '@/lib/gemini';
+import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 
 /**
  * Extracts a JSON object from text that may contain conversational wrapping.
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
         // Fetch context
         const { data: decision } = await supabase
             .from('decisions')
-            .select('thread_id, chosen_strategy_id')
+            .select('chosen_strategy_id')
             .eq('id', decisionId)
             .single();
 
@@ -62,9 +63,6 @@ export async function POST(request: Request) {
             .order('created_at', { ascending: false })
             .limit(1)
             .single();
-
-        // Use existing thread or create new one
-        const threadId = decision!.thread_id;
 
         const shipPackPrompt = `
 You are a JSON-only API. Do NOT include any conversational text, greetings, or explanations outside the JSON.
@@ -114,48 +112,16 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
   ]
 }`;
 
-        if (threadId) {
-            await openai.beta.threads.messages.create(threadId, {
-                role: 'user',
-                content: shipPackPrompt,
-            });
-        }
-
-        const activeThreadId = threadId || (await openai.beta.threads.create()).id;
-
-        if (!threadId) {
-            await openai.beta.threads.messages.create(activeThreadId, {
-                role: 'user',
-                content: shipPackPrompt,
-            });
-        }
-
-        let run = await openai.beta.threads.runs.create(activeThreadId, {
-            assistant_id: ASSISTANT_ID,
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            config: {
+                systemInstruction: DEREK_FULL_PROMPT,
+                responseMimeType: 'application/json',
+            },
+            contents: [{ role: 'user', parts: [{ text: shipPackPrompt }] }],
         });
 
-        // Poll
-        const timeout = Date.now() + 120_000;
-        while (run.status === 'in_progress' || run.status === 'queued') {
-            if (Date.now() > timeout) throw new Error('Ship pack generation timed out');
-            await new Promise((r) => setTimeout(r, 2000));
-            run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: activeThreadId });
-        }
-
-        if (run.status !== 'completed') {
-            throw new Error(`Run failed: ${run.status}`);
-        }
-
-        // Parse response
-        const messages = await openai.beta.threads.messages.list(activeThreadId, {
-            order: 'desc',
-            limit: 1,
-        });
-
-        const textContent = messages.data[0]?.content.find((c) => c.type === 'text');
-        if (!textContent || textContent.type !== 'text') throw new Error('No response');
-
-        const rawText = textContent.text.value;
+        const rawText = response.text || '';
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const parsed = extractJSON(rawText) as any;
 
@@ -165,7 +131,6 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
             .update({
                 status: 'active',
                 kpi_target: parsed.kpi_target,
-                thread_id: activeThreadId,
             })
             .eq('id', cycleId);
 

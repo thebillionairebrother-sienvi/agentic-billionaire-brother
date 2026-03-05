@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import openai, { ASSISTANT_ID } from '@/lib/openai';
+import ai, { GEMINI_MODEL } from '@/lib/gemini';
+import { Type } from '@google/genai';
+import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 
 function parseDerekResponse(raw: string): { reaction: string; response: string } {
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -26,7 +28,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { message, threadId } = await request.json();
+        const { message, chatHistory } = await request.json() as {
+            message?: string;
+            chatHistory?: Array<{ role: string; content: string }>;
+        };
 
         // Gather weekly context
         const { data: contract } = await supabase
@@ -67,7 +72,12 @@ export async function POST(request: Request) {
             `- ${t.title} [${t.status}] (due: ${t.due_date})`
         ).join('\n');
 
-        const systemContext = `You are Derek, the Billionaire Brother — conducting a WEEKLY CHECK-IN interview.
+        const systemInstruction = `${DEREK_FULL_PROMPT}
+
+-------------------------------
+WEEKLY CHECK-IN MODE
+-------------------------------
+You are conducting a WEEKLY CHECK-IN interview.
 
 CONTEXT:
 - Strategy: ${contract?.strategy?.archetype || 'Not set'}
@@ -110,50 +120,49 @@ REACTION RULES:
 - Examples: "let's go", "tell me more", "proud of you", "hmm interesting", "respect the grind"
 - Always include a reaction, never leave it empty`;
 
-        // Create or reuse thread
-        let activeThreadId = threadId;
-        if (!activeThreadId) {
-            const thread = await openai.beta.threads.create();
-            activeThreadId = thread.id;
+        // Build Gemini contents from chat history
+        const geminiContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
-            // Send system context as first message
-            await openai.beta.threads.messages.create(activeThreadId, {
+        if (!chatHistory || chatHistory.length === 0) {
+            // First call — generate greeting
+            geminiContents.push({
                 role: 'user',
-                content: `[SYSTEM CONTEXT — DO NOT REPEAT THIS TO THE USER]\n${systemContext}\n\nNow greet the user and start the weekly check-in interview.`,
+                parts: [{ text: 'Now greet the user and start the weekly check-in interview. Respond in the JSON format with reaction and response fields.' }],
             });
-        } else if (message) {
-            await openai.beta.threads.messages.create(activeThreadId, {
-                role: 'user',
-                content: message,
-            });
+        } else {
+            // Rebuild history
+            for (const msg of chatHistory) {
+                geminiContents.push({
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: msg.content }],
+                });
+            }
+            if (message) {
+                geminiContents.push({
+                    role: 'user',
+                    parts: [{ text: message }],
+                });
+            }
         }
 
-        // Run assistant
-        const run = await openai.beta.threads.runs.createAndPoll(activeThreadId, {
-            assistant_id: ASSISTANT_ID,
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            config: {
+                systemInstruction,
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        reaction: { type: Type.STRING },
+                        response: { type: Type.STRING },
+                    },
+                    required: ['reaction', 'response'],
+                },
+            },
+            contents: geminiContents,
         });
 
-        if (run.status !== 'completed') {
-            throw new Error(`Run failed: ${run.status}`);
-        }
-
-        // Get response
-        const messages = await openai.beta.threads.messages.list(activeThreadId, {
-            order: 'desc',
-            limit: 1,
-        });
-
-        const assistantMsg = messages.data[0];
-        if (!assistantMsg || assistantMsg.role !== 'assistant') {
-            throw new Error('No assistant response');
-        }
-
-        const textContent = assistantMsg.content.find(c => c.type === 'text');
-        if (!textContent || textContent.type !== 'text') {
-            throw new Error('No text in response');
-        }
-
-        const rawText = textContent.text.value;
+        const rawText = response.text || '';
         const parsed = parseDerekResponse(rawText);
         let responseText = parsed.response;
 
@@ -164,7 +173,6 @@ REACTION RULES:
         return NextResponse.json({
             response: responseText,
             reaction: parsed.reaction,
-            threadId: activeThreadId,
             isComplete,
         });
     } catch (error) {
