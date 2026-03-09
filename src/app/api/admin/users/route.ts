@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/admin';
+import { MODEL_PRICING } from '@/lib/ai-config';
 
 export async function GET() {
     try {
@@ -60,29 +61,27 @@ export async function GET() {
             const tasksTotal = userTasks.length;
             const latestCycle = userCycles.sort((a, b) => b.week_number - a.week_number)[0];
 
-            // Estimated API cost calculation (heuristic)
-            // Gemini 2.0 Flash: ~$0.075/1M input tokens, ~$0.30/1M output tokens
-            // We estimate avg tokens per operation type
-            const chatEstimate = tasksTotal * 0.5; // rough: half of tasks trigger chat-like calls
+            // Heuristic cost estimation based on user activity
+            const chatEstimate = tasksTotal * 0.5;
             const strategyGens = userDecisions.length;
-            const taskGens = Math.ceil(tasksTotal / 5); // ~5 tasks per generation call
+            const taskGens = Math.ceil(tasksTotal / 5);
             const checkinCount = userCycles.length;
 
-            // Token estimates per operation
             const inputTokens =
-                (chatEstimate * 1500) +      // chat: ~1500 input tokens avg
-                (strategyGens * 6000) +       // strategy: ~6000 input tokens (system + context)
-                (taskGens * 4000) +           // task gen: ~4000 input tokens
-                (checkinCount * 3000);         // check-in: ~3000 input tokens
+                (chatEstimate * 1500) +
+                (strategyGens * 6000) +
+                (taskGens * 4000) +
+                (checkinCount * 3000);
 
             const outputTokens =
-                (chatEstimate * 500) +        // chat: ~500 output tokens
-                (strategyGens * 4000) +       // strategy: ~4000 output tokens (JSON)
-                (taskGens * 2000) +           // task gen: ~2000 output tokens
-                (checkinCount * 800);          // check-in: ~800 output tokens
+                (chatEstimate * 500) +
+                (strategyGens * 4000) +
+                (taskGens * 2000) +
+                (checkinCount * 800);
 
-            const inputCost = (inputTokens / 1_000_000) * 0.075;
-            const outputCost = (outputTokens / 1_000_000) * 0.30;
+            // Cost estimation based on configured model pricing
+            const inputCost = (inputTokens / 1_000_000) * MODEL_PRICING.actual.input_per_1m_tokens;
+            const outputCost = (outputTokens / 1_000_000) * MODEL_PRICING.actual.output_per_1m_tokens;
             const estimatedCost = inputCost + outputCost;
 
             return {

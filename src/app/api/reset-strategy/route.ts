@@ -27,25 +27,34 @@ export async function POST() {
         // 3. Deliverables (references weekly_cycles)
         await admin.from('deliverables').delete().eq('user_id', uid);
 
-        // 4. Assumptions (references strategy_options, weekly_cycles)
-        await admin.from('assumptions').delete().or(
-            `strategy_option_id.in.(select id from strategy_options where decision_id in (select id from decisions where user_id = '${uid}')),weekly_cycle_id.in.(select id from weekly_cycles where user_id = '${uid}')`
-        );
-
-        // 5. Weekly cycles (references execution_contracts)
-        await admin.from('weekly_cycles').delete().eq('user_id', uid);
-
-        // 6. Execution contracts (references decisions, strategy_options)
-        await admin.from('execution_contracts').delete().eq('user_id', uid);
-
-        // 7. Strategy options (references decisions) — delete via decision IDs
+        // 4. Get decision IDs (needed for assumptions + strategy options)
         const { data: decisions } = await admin
             .from('decisions')
             .select('id')
             .eq('user_id', uid);
 
-        if (decisions && decisions.length > 0) {
-            const decisionIds = decisions.map((d: { id: string }) => d.id);
+        const decisionIds = (decisions || []).map((d: { id: string }) => d.id);
+
+        // 5. Assumptions (references strategy_options, weekly_cycles)
+        if (decisionIds.length > 0) {
+            const { data: strategyOptions } = await admin
+                .from('strategy_options')
+                .select('id')
+                .in('decision_id', decisionIds);
+            const strategyIds = (strategyOptions || []).map((s: { id: string }) => s.id);
+            if (strategyIds.length > 0) {
+                await admin.from('assumptions').delete().in('strategy_option_id', strategyIds);
+            }
+        }
+
+        // 6. Weekly cycles (references execution_contracts)
+        await admin.from('weekly_cycles').delete().eq('user_id', uid);
+
+        // 7. Execution contracts (references decisions, strategy_options)
+        await admin.from('execution_contracts').delete().eq('user_id', uid);
+
+        // 8. Strategy options (references decisions)
+        if (decisionIds.length > 0) {
             await admin.from('strategy_options').delete().in('decision_id', decisionIds);
         }
 

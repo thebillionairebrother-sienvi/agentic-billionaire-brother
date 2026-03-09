@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
-import { Type } from '@google/genai';
+import { Type, ThinkingLevel } from '@google/genai';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
+import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
 
 /**
  * Parse Derek's response which should be JSON with { reaction, response }.
@@ -144,10 +145,16 @@ REACTION RULES:
             parts: [{ text: message }],
         });
 
+        // ── Guardrail Gate ──
+        const ctx = await buildAiContext(supabase, user);
+
+        const startTime = Date.now();
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
             config: {
-                systemInstruction,
+                systemInstruction: ctx.isDegradeMode
+                    ? systemInstruction + '\n\nIMPORTANT: Keep responses very SHORT (1-2 sentences max). User is in sprint-save mode.'
+                    : systemInstruction,
                 responseMimeType: 'application/json',
                 responseSchema: {
                     type: Type.OBJECT,
@@ -157,9 +164,12 @@ REACTION RULES:
                     },
                     required: ['reaction', 'response'],
                 },
+                maxOutputTokens: ctx.maxOutputTokens,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
             },
             contents: geminiHistory,
         });
+        const latencyMs = Date.now() - startTime;
 
         const rawText = response.text || '';
         const parsed = parseDerekResponse(rawText);
@@ -213,12 +223,27 @@ REACTION RULES:
             .replace(/%%TASK_STATUS:.*?%%/g, '')
             .trim();
 
+        // ── Log usage and cost ──
+        await logUsageAndCost(supabase, {
+            userId: user.id,
+            tier: ctx.tier,
+            endpoint: '/api/chat',
+            inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            latencyMs,
+            isDegradeMode: ctx.isDegradeMode,
+        });
+
         return NextResponse.json({
             response: responseText,
             reaction: parsed.reaction,
             taskUpdates: taskUpdates.length > 0 ? taskUpdates : undefined,
+            isDegradeMode: ctx.isDegradeMode || undefined,
         });
     } catch (error) {
+        if (error instanceof GuardError) {
+            return NextResponse.json(guardErrorResponse(error), { status: error.statusCode });
+        }
         console.error('Chat error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Derek is unavailable right now' },

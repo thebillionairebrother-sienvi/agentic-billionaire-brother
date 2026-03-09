@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
+import { ThinkingLevel } from '@google/genai';
+import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
 
 export async function POST(request: Request) {
     try {
@@ -14,6 +16,18 @@ export async function POST(request: Request) {
 
         const body = await request.json().catch(() => ({}));
         const targetDate = body.date || new Date().toISOString().split('T')[0];
+
+        // ── Guardrail Gate ──
+        const ctx = await buildAiContext(supabase, user);
+
+        // Block heavy workflow in degrade mode
+        if (ctx.isDegradeMode) {
+            return NextResponse.json({
+                error_code: 'DEGRADE_MODE',
+                user_message: "You're approaching your sprint budget. Focus on execution.",
+                retry_allowed: false,
+            }, { status: 429 });
+        }
 
         // Helper: offset a YYYY-MM-DD string by N days
         function offsetDate(base: string, days: number): string {
@@ -140,11 +154,17 @@ Return ONLY a JSON array:
   }
 ]`;
 
+        const startTime = Date.now();
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
-            config: { systemInstruction: DEREK_FULL_PROMPT },
+            config: {
+                systemInstruction: DEREK_FULL_PROMPT,
+                maxOutputTokens: ctx.maxOutputTokens,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
+            },
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
         });
+        const latencyMs = Date.now() - startTime;
 
         const raw = response.text || '';
 
@@ -194,8 +214,19 @@ Return ONLY a JSON array:
 
         if (insertError) throw insertError;
 
+        // ── Log usage and cost ──
+        await logUsageAndCost(supabase, {
+            userId: user.id, tier: ctx.tier, endpoint: '/api/tasks/generate',
+            inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            latencyMs, isDegradeMode: ctx.isDegradeMode,
+        });
+
         return NextResponse.json({ tasks: savedTasks || [] });
     } catch (error) {
+        if (error instanceof GuardError) {
+            return NextResponse.json(guardErrorResponse(error), { status: error.statusCode });
+        }
         console.error('Task generation error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to generate tasks' },

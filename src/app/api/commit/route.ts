@@ -87,15 +87,15 @@ export async function POST(request: Request) {
             }),
         }).catch(console.error);
 
-        // Trigger immediate task generation (fire-and-forget)
-        const taskUrl = new URL('/api/tasks/generate', request.url);
+        // Trigger immediate task generation (fire-and-forget via cron endpoint)
+        // Uses cron endpoint to avoid subscription middleware dependency
+        const taskUrl = new URL('/api/cron/generate-tasks', request.url);
         fetch(taskUrl.toString(), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Cookie': request.headers.get('cookie') || '',
+                'Authorization': `Bearer ${process.env.CRON_SECRET || ''}`,
             },
-            body: JSON.stringify({ date: new Date().toISOString().split('T')[0] }),
         }).catch(console.error);
 
         return NextResponse.json({

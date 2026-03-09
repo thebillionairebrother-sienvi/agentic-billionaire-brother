@@ -85,9 +85,28 @@ export default function OnboardPage() {
                 reaction: data.reaction,
             }]);
 
-            if (data.complete && data.extractedData) {
+            if (data.complete) {
                 setComplete(true);
-                setExtractedData(data.extractedData);
+                // Use extracted data if available, or a minimal default so the button still shows
+                setExtractedData(data.extractedData || {
+                    business_name: 'My Business',
+                    business_state: 'idea',
+                    industry: 'General',
+                    current_revenue_range: 'Pre-revenue',
+                    target_audience: '',
+                    strengths: [],
+                    weaknesses: [],
+                    risk_tolerance: 'moderate',
+                    hours_per_week: 10,
+                    monthly_budget_range: '$0',
+                    no_go_constraints: [],
+                    existing_assets: [],
+                    additional_context: '',
+                    team_size: 'solo',
+                    va_count: 0,
+                    calendar_blocks_available: 4,
+                    timezone: 'UTC',
+                });
             }
         } catch {
             setError('Something went wrong. Please try again.');

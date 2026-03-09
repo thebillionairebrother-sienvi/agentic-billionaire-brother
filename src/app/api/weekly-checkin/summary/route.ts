@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
+import { ThinkingLevel } from '@google/genai';
+import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
 
 export async function POST(request: Request) {
     try {
@@ -19,6 +21,9 @@ export async function POST(request: Request) {
         if (!chatHistory || chatHistory.length === 0) {
             return NextResponse.json({ error: 'chatHistory required' }, { status: 400 });
         }
+
+        // ── Guardrail Gate ──
+        const ctx = await buildAiContext(supabase, user);
 
         // Gather data for summary
         const { data: contract } = await supabase
@@ -92,14 +97,18 @@ IMPORTANT: Return ONLY the JSON object, no other text.`,
             }],
         });
 
+        const startTime = Date.now();
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
             config: {
                 systemInstruction: DEREK_FULL_PROMPT,
                 responseMimeType: 'application/json',
+                maxOutputTokens: ctx.maxOutputTokens,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
             },
             contents: geminiContents,
         });
+        const latencyMs = Date.now() - startTime;
 
         // Parse the summary JSON
         const raw = (response.text || '')
@@ -147,8 +156,19 @@ IMPORTANT: Return ONLY the JSON object, no other text.`,
                 .eq('id', currentCycle.id);
         }
 
+        // ── Log usage and cost ──
+        await logUsageAndCost(supabase, {
+            userId: user.id, tier: ctx.tier, endpoint: '/api/weekly-checkin/summary',
+            inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            latencyMs, isDegradeMode: ctx.isDegradeMode,
+        });
+
         return NextResponse.json({ summary });
     } catch (error) {
+        if (error instanceof GuardError) {
+            return NextResponse.json(guardErrorResponse(error), { status: error.statusCode });
+        }
         console.error('Summary generation error:', error);
         return NextResponse.json(
             { error: 'Failed to generate summary' },

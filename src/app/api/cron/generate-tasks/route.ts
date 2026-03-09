@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
+import { ThinkingLevel } from '@google/genai';
+import { TIER_CONFIG, calculateEstimatedCost, getCurrentMonthStart } from '@/lib/ai-config';
+import type { Tier } from '@/lib/ai-config';
 
 export const maxDuration = 300; // 5 min max for cron jobs
 export const dynamic = 'force-dynamic';
@@ -163,11 +166,28 @@ Return ONLY a JSON array:
 ]`;
 
             try {
+                // Lookup user's tier for token cap
+                const { data: sub } = await supabase
+                    .from('subscriptions')
+                    .select('tier')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+                const tier = (sub?.tier || 'brother') as Tier;
+                const maxOutputTokens = TIER_CONFIG[tier].max_output_tokens;
+
+                const startTime = Date.now();
                 const response = await ai.models.generateContent({
                     model: GEMINI_MODEL,
-                    config: { systemInstruction: DEREK_FULL_PROMPT },
+                    config: {
+                        systemInstruction: DEREK_FULL_PROMPT,
+                        maxOutputTokens,
+                        thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
+                    },
                     contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 });
+                const latencyMs = Date.now() - startTime;
 
                 const raw = response.text || '';
                 const jsonMatch = raw.match(/\[[\s\S]*\]/);
@@ -201,6 +221,22 @@ Return ONLY a JSON array:
                 });
 
                 await supabase.from('tasks').insert(taskRows);
+
+                // Log usage for this user
+                const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
+                const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+                const cost = calculateEstimatedCost(inputTokens, outputTokens);
+                await supabase.from('request_logs').insert({
+                    user_id: userId, model: GEMINI_MODEL,
+                    input_tokens: inputTokens, output_tokens: outputTokens,
+                    latency_ms: latencyMs, estimated_cost: cost.budgeted,
+                    endpoint: '/api/cron/generate-tasks', tier: tier, degrade_mode: false,
+                });
+                await supabase.rpc('increment_monthly_usage', {
+                    p_user_id: userId, p_month_start: getCurrentMonthStart(),
+                    p_tokens: inputTokens + outputTokens, p_prompts: 1, p_cost: cost.budgeted, p_is_regen: false,
+                });
+
                 generated++;
             } catch (err) {
                 console.error(`Cron: failed to generate tasks for user ${userId}`, err);

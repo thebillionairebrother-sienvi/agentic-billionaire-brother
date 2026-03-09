@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
+import { ThinkingLevel } from '@google/genai';
+import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
 
 // Allow up to 60s for strategy generation on Vercel
 export const maxDuration = 60;
@@ -37,6 +39,18 @@ export async function POST(request: Request) {
 
         const body = await request.json();
         const businessProfileId = body.business_profile_id;
+
+        // ── Guardrail Gate ──
+        const ctx = await buildAiContext(supabase, user);
+
+        // Block heavy workflow in degrade mode
+        if (ctx.isDegradeMode) {
+            return NextResponse.json({
+                error_code: 'DEGRADE_MODE',
+                user_message: "You're approaching your sprint budget. Focus on execution.",
+                retry_allowed: false,
+            }, { status: 429 });
+        }
 
         // Dedupe check — no generation within 5 min window
         const { data: recentJob } = await supabase
@@ -208,16 +222,29 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
 
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
+                const startTime = Date.now();
                 const response = await ai.models.generateContent({
                     model: GEMINI_MODEL,
                     config: {
                         systemInstruction: DEREK_FULL_PROMPT,
                         responseMimeType: 'application/json',
+                        maxOutputTokens: ctx.maxOutputTokens,
+                        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
                     },
                     contents: [{ role: 'user', parts: [{ text: strategyPrompt }] }],
                 });
+                const latencyMs = Date.now() - startTime;
 
                 rawText = response.text || '';
+
+                // Log usage
+                await logUsageAndCost(supabase, {
+                    userId: user.id, tier: ctx.tier, endpoint: '/api/strategies/generate',
+                    inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+                    outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+                    latencyMs, isDegradeMode: ctx.isDegradeMode,
+                });
+
                 break;
             } catch (err) {
                 console.error(`Strategy generation failed (attempt ${attempt}/${MAX_ATTEMPTS}):`, err);
@@ -287,6 +314,9 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
             success: true,
         });
     } catch (error) {
+        if (error instanceof GuardError) {
+            return NextResponse.json(guardErrorResponse(error), { status: error.statusCode });
+        }
         console.error('Strategy generation error:', error);
         return NextResponse.json(
             { error: 'Failed to generate strategies. Please try again.' },

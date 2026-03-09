@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
+import { ThinkingLevel } from '@google/genai';
+import { TIER_CONFIG, calculateEstimatedCost, getCurrentMonthStart } from '@/lib/ai-config';
+import type { Tier } from '@/lib/ai-config';
 
 /**
  * Extracts a JSON object from text that may contain conversational wrapping.
@@ -163,6 +166,17 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
         let rawText = '';
         const MAX_ATTEMPTS = 2;
 
+        // Lookup user tier for token cap
+        const { data: sub } = await supabase
+            .from('subscriptions')
+            .select('tier')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+        const tier = (sub?.tier || 'brother') as Tier;
+        const maxOutputTokens = TIER_CONFIG[tier].max_output_tokens;
+
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 const response = await ai.models.generateContent({
@@ -170,6 +184,8 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
                     config: {
                         systemInstruction: DEREK_FULL_PROMPT,
                         responseMimeType: 'application/json',
+                        maxOutputTokens,
+                        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
                     },
                     contents: [{ role: 'user', parts: [{ text: strategyPrompt }] }],
                 });
@@ -238,6 +254,21 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
                 completed_at: new Date().toISOString(),
             })
             .eq('id', jobId);
+
+        // Log usage for this user (log entire generation as one call)
+        const inputTokens = 0; // Token counts not available across retry loop
+        const outputTokens = rawText.length; // Rough estimate from output length
+        const cost = calculateEstimatedCost(inputTokens, outputTokens);
+        await supabase.from('request_logs').insert({
+            user_id: userId, model: GEMINI_MODEL,
+            input_tokens: inputTokens, output_tokens: outputTokens,
+            latency_ms: 0, estimated_cost: cost.budgeted,
+            endpoint: '/api/workers/strategy-generator', tier, degrade_mode: false,
+        });
+        await supabase.rpc('increment_monthly_usage', {
+            p_user_id: userId, p_month_start: getCurrentMonthStart(),
+            p_tokens: inputTokens + outputTokens, p_prompts: 1, p_cost: cost.budgeted, p_is_regen: false,
+        });
 
         return NextResponse.json({ success: true });
     } catch (error) {

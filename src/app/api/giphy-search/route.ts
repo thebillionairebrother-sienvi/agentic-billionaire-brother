@@ -1,14 +1,5 @@
 import { NextResponse } from 'next/server';
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-export async function OPTIONS() {
-    return new Response(null, { headers: corsHeaders });
-}
-
 export async function POST(request: Request) {
     try {
         const GIPHY_API_KEY = process.env.GIPHY_API_KEY;
@@ -30,15 +21,13 @@ export async function POST(request: Request) {
         const data = await response.json();
         const gifUrl = data.data?.[0]?.images?.fixed_height?.url || null;
 
-        return NextResponse.json(
-            { gifUrl },
-            { headers: corsHeaders }
-        );
+        return NextResponse.json({ gifUrl });
     } catch (error) {
         console.error('Giphy search error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Unknown error', gifUrl: null },
-            { status: 500, headers: corsHeaders }
+            { status: 500 }
         );
     }
 }
+

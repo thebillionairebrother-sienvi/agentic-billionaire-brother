@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
+import { ThinkingLevel } from '@google/genai';
+import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
 
 export async function POST(
     _request: Request,
@@ -44,6 +46,9 @@ export async function POST(
                 { status: 400 }
             );
         }
+
+        // ── Guardrail Gate ──
+        const ctx = await buildAiContext(supabase, user);
 
         // Get business context
         const { data: businessProfile } = await supabase
@@ -100,11 +105,17 @@ INSTRUCTIONS:
 
 FORMAT: Output in clean Markdown. Start with a title using # heading.`;
 
+        const startTime = Date.now();
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
-            config: { systemInstruction: DEREK_FULL_PROMPT },
+            config: {
+                systemInstruction: DEREK_FULL_PROMPT,
+                maxOutputTokens: ctx.maxOutputTokens,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
+            },
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
         });
+        const latencyMs = Date.now() - startTime;
 
         const output = response.text || '';
 
@@ -114,12 +125,23 @@ FORMAT: Output in clean Markdown. Start with a title using # heading.`;
             .update({ status: 'done' })
             .eq('id', taskId);
 
+        // ── Log usage and cost ──
+        await logUsageAndCost(supabase, {
+            userId: user.id, tier: ctx.tier, endpoint: '/api/tasks/derek',
+            inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            latencyMs, isDegradeMode: ctx.isDegradeMode,
+        });
+
         return NextResponse.json({
             output,
             task_id: taskId,
             completed: true,
         });
     } catch (error) {
+        if (error instanceof GuardError) {
+            return NextResponse.json(guardErrorResponse(error), { status: error.statusCode });
+        }
         console.error('Derek task error:', error);
         return NextResponse.json(
             { error: 'Derek ran into an issue. Try again later.' },

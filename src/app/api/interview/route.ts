@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
-import { Type } from '@google/genai';
+import { Type, ThinkingLevel } from '@google/genai';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
+import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
 
 /**
  * Parse AI response that should be JSON with { reaction, response }.
@@ -125,6 +126,9 @@ export async function POST(request: Request) {
             messageCount?: number;
         };
 
+        // ── Guardrail Gate ──
+        const ctx = await buildAiContext(supabase, user);
+
         // Build Gemini message history
         const geminiContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
@@ -135,6 +139,7 @@ export async function POST(request: Request) {
                 parts: [{ text: 'Now greet the founder and ask your first question. Remember to respond in the JSON format with reaction and response fields.' }],
             });
 
+            const startTime = Date.now();
             const response = await ai.models.generateContent({
                 model: GEMINI_MODEL,
                 config: {
@@ -148,12 +153,22 @@ export async function POST(request: Request) {
                         },
                         required: ['reaction', 'response'],
                     },
+                    maxOutputTokens: ctx.maxOutputTokens,
+                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
                 },
                 contents: geminiContents,
             });
+            const latencyMs = Date.now() - startTime;
 
             const rawText = response.text || '';
             const parsed = parseAssistantResponse(rawText);
+
+            await logUsageAndCost(supabase, {
+                userId: user.id, tier: ctx.tier, endpoint: '/api/interview',
+                inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+                outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+                latencyMs, isDegradeMode: ctx.isDegradeMode,
+            });
 
             return NextResponse.json({
                 reply: parsed.response,
@@ -186,6 +201,7 @@ export async function POST(request: Request) {
 
         const systemPrompt = INTERVIEW_SYSTEM_PROMPT + additionalContext;
 
+        const startTime2 = Date.now();
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
             config: {
@@ -199,9 +215,12 @@ export async function POST(request: Request) {
                     },
                     required: ['reaction', 'response'],
                 },
+                maxOutputTokens: ctx.maxOutputTokens,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
             },
             contents: geminiContents,
         });
+        const latencyMs2 = Date.now() - startTime2;
 
         const rawText = response.text || '';
         const parsed = parseAssistantResponse(rawText);
@@ -224,6 +243,14 @@ export async function POST(request: Request) {
         const looksLikeSignoff = messageCount >= 6 && signoffPatterns.some(p => p.test(parsed.response));
 
         if (hasCompletionMarker || looksLikeSignoff) {
+            // Log usage for the main conversation call (BEFORE early return)
+            await logUsageAndCost(supabase, {
+                userId: user.id, tier: ctx.tier, endpoint: '/api/interview',
+                inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+                outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+                latencyMs: latencyMs2, isDegradeMode: ctx.isDegradeMode,
+            });
+
             let extractedData = null;
 
             // Always use the dedicated extraction call for reliability
@@ -240,6 +267,7 @@ export async function POST(request: Request) {
                     }],
                 });
 
+                const extractStartTime = Date.now();
                 const extractResponse = await ai.models.generateContent({
                     model: GEMINI_MODEL,
                     config: {
@@ -268,8 +296,19 @@ export async function POST(request: Request) {
                             },
                             required: ['business_name', 'business_state', 'industry'],
                         },
+                        maxOutputTokens: ctx.maxOutputTokens,
+                        thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
                     },
                     contents: extractContents,
+                });
+                const extractLatency = Date.now() - extractStartTime;
+
+                // Log extraction call usage
+                await logUsageAndCost(supabase, {
+                    userId: user.id, tier: ctx.tier, endpoint: '/api/interview/extract',
+                    inputTokens: extractResponse.usageMetadata?.promptTokenCount ?? 0,
+                    outputTokens: extractResponse.usageMetadata?.candidatesTokenCount ?? 0,
+                    latencyMs: extractLatency, isDegradeMode: ctx.isDegradeMode,
                 });
 
                 const rawJson = (extractResponse.text || '').trim();
@@ -295,12 +334,23 @@ export async function POST(request: Request) {
             });
         }
 
+        // Log usage for the main conversation call
+        await logUsageAndCost(supabase, {
+            userId: user.id, tier: ctx.tier, endpoint: '/api/interview',
+            inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            latencyMs: latencyMs2, isDegradeMode: ctx.isDegradeMode,
+        });
+
         return NextResponse.json({
             reply: parsed.response,
             reaction: parsed.reaction,
             complete: false,
         });
     } catch (error) {
+        if (error instanceof GuardError) {
+            return NextResponse.json(guardErrorResponse(error), { status: error.statusCode });
+        }
         console.error('Interview error:', error);
         return NextResponse.json(
             { error: 'Interview failed. Please try again.' },

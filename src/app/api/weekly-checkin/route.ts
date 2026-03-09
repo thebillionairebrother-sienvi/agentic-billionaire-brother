@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
-import { Type } from '@google/genai';
+import { Type, ThinkingLevel } from '@google/genai';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
+import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
 
 function parseDerekResponse(raw: string): { reaction: string; response: string } {
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -32,6 +33,9 @@ export async function POST(request: Request) {
             message?: string;
             chatHistory?: Array<{ role: string; content: string }>;
         };
+
+        // ── Guardrail Gate ──
+        const ctx = await buildAiContext(supabase, user);
 
         // Gather weekly context
         const { data: contract } = await supabase
@@ -145,10 +149,13 @@ REACTION RULES:
             }
         }
 
+        const startTime = Date.now();
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
             config: {
-                systemInstruction,
+                systemInstruction: ctx.isDegradeMode
+                    ? systemInstruction + '\n\nIMPORTANT: Keep responses very SHORT (1-2 sentences max). User is in sprint-save mode.'
+                    : systemInstruction,
                 responseMimeType: 'application/json',
                 responseSchema: {
                     type: Type.OBJECT,
@@ -158,9 +165,12 @@ REACTION RULES:
                     },
                     required: ['reaction', 'response'],
                 },
+                maxOutputTokens: ctx.maxOutputTokens,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
             },
             contents: geminiContents,
         });
+        const latencyMs = Date.now() - startTime;
 
         const rawText = response.text || '';
         const parsed = parseDerekResponse(rawText);
@@ -170,12 +180,23 @@ REACTION RULES:
         const isComplete = responseText.includes('%%CHECKIN_COMPLETE%%');
         responseText = responseText.replace(/%%CHECKIN_COMPLETE%%/g, '').trim();
 
+        // ── Log usage and cost ──
+        await logUsageAndCost(supabase, {
+            userId: user.id, tier: ctx.tier, endpoint: '/api/weekly-checkin',
+            inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            latencyMs, isDegradeMode: ctx.isDegradeMode,
+        });
+
         return NextResponse.json({
             response: responseText,
             reaction: parsed.reaction,
             isComplete,
         });
     } catch (error) {
+        if (error instanceof GuardError) {
+            return NextResponse.json(guardErrorResponse(error), { status: error.statusCode });
+        }
         console.error('Weekly check-in error:', error);
         return NextResponse.json(
             { error: 'Failed to process check-in' },
