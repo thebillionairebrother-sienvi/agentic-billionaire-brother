@@ -127,7 +127,28 @@ export async function POST(request: Request) {
         };
 
         // ── Guardrail Gate ──
-        const ctx = await buildAiContext(supabase, user);
+        // Interview is critical onboarding — never block it with 429
+        let ctx;
+        try {
+            ctx = await buildAiContext(supabase, user);
+        } catch (err) {
+            if (err instanceof GuardError) {
+                console.warn('[interview] Guardrail would block, but interview is exempt:', err.code);
+                // Provide a fallback context so onboarding always works
+                ctx = {
+                    userId: user.id,
+                    email: user.email ?? '',
+                    tier: 'brother' as const,
+                    subscriptionStatus: 'active',
+                    maxOutputTokens: 2048,
+                    isDegradeMode: true,
+                    isHardStop: false,
+                    requestId: crypto.randomUUID(),
+                };
+            } else {
+                throw err;
+            }
+        }
 
         // Build Gemini message history
         const geminiContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];

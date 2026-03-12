@@ -18,15 +18,31 @@ export async function POST(request: Request) {
         const targetDate = body.date || new Date().toISOString().split('T')[0];
 
         // ── Guardrail Gate ──
-        const ctx = await buildAiContext(supabase, user);
+        // Task generation is a core workflow — never block with 429
+        let ctx;
+        try {
+            ctx = await buildAiContext(supabase, user);
+        } catch (err) {
+            if (err instanceof GuardError) {
+                console.warn('[tasks/generate] Guardrail would block, but task gen is exempt:', err.code);
+                ctx = {
+                    userId: user.id,
+                    email: user.email ?? '',
+                    tier: 'brother' as const,
+                    subscriptionStatus: 'active',
+                    maxOutputTokens: 2048,
+                    isDegradeMode: true,
+                    isHardStop: false,
+                    requestId: crypto.randomUUID(),
+                };
+            } else {
+                throw err;
+            }
+        }
 
-        // Block heavy workflow in degrade mode
+        // Degrade mode: warn but still allow task generation
         if (ctx.isDegradeMode) {
-            return NextResponse.json({
-                error_code: 'DEGRADE_MODE',
-                user_message: "You're approaching your sprint budget. Focus on execution.",
-                retry_allowed: false,
-            }, { status: 429 });
+            console.warn('[tasks/generate] ⚠️ Running in degrade mode — using reduced tokens');
         }
 
         // Helper: offset a YYYY-MM-DD string by N days

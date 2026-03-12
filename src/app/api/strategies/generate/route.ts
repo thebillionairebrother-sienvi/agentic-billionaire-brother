@@ -50,15 +50,33 @@ export async function POST(request: Request) {
         const businessProfileId = body.business_profile_id;
 
         // ── Guardrail Gate ──
-        const ctx = await buildAiContext(supabase, user);
+        // Strategy generation is critical — never block with 429
+        let ctx;
+        try {
+            ctx = await buildAiContext(supabase, user);
+        } catch (err) {
+            if (err instanceof GuardError) {
+                console.warn('[strategies/generate] Guardrail would block, but strategy gen is exempt:', err.code);
+                ctx = {
+                    userId: user.id,
+                    email: user.email ?? '',
+                    tier: 'brother' as const,
+                    subscriptionStatus: 'active',
+                    maxOutputTokens: 2048,
+                    isDegradeMode: true,
+                    isHardStop: false,
+                    requestId: crypto.randomUUID(),
+                };
+            } else {
+                throw err;
+            }
+        }
         console.log('[strategies/generate] Guardrails OK. Tier:', ctx.tier, 'Degrade:', ctx.isDegradeMode);
 
         if (ctx.isDegradeMode) {
-            return NextResponse.json({
-                error_code: 'DEGRADE_MODE',
-                user_message: "You're approaching your sprint budget. Focus on execution.",
-                retry_allowed: false,
-            }, { status: 429 });
+            // Degrade mode: warn but still allow strategy generation
+            // This is a critical one-time action — don't block it
+            console.warn('[strategies/generate] ⚠️ Running in degrade mode — using reduced tokens');
         }
 
         // ── Dedupe: skip only if there's a RECENT ACTIVE job (not failed/completed) ──
