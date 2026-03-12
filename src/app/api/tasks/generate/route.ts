@@ -170,23 +170,8 @@ Return ONLY a JSON array:
   }
 ]`;
 
-        const startTime = Date.now();
-        const response = await ai.models.generateContent({
-            model: GEMINI_MODEL,
-            config: {
-                systemInstruction: DEREK_FULL_PROMPT,
-                maxOutputTokens: ctx.maxOutputTokens,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
-            },
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        });
-        const latencyMs = Date.now() - startTime;
-
-        const raw = response.text || '';
-
-        // Parse JSON from response
-        const jsonMatch = raw.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) throw new Error('No JSON array in response');
+        // Enforce minimum token budget — task gen needs at least 4096 for 5-8 tasks with steps
+        const maxOutputTokens = Math.max(ctx.maxOutputTokens ?? 2048, 4096);
 
         interface GeneratedTask {
             title: string;
@@ -198,6 +183,48 @@ Return ONLY a JSON array:
             tips: string;
             ai_doable: boolean;
         }
+
+
+        const MAX_ATTEMPTS = 3;
+        let raw = '';
+        let response;
+        const startTime = Date.now();
+
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                response = await ai.models.generateContent({
+                    model: GEMINI_MODEL,
+                    config: {
+                        systemInstruction: DEREK_FULL_PROMPT,
+                        responseMimeType: 'application/json',
+                        maxOutputTokens,
+                        thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
+                    },
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                });
+
+                raw = response.text || '';
+
+                // Validate JSON parses before proceeding
+                const jsonMatch = raw.match(/\[[\s\S]*\]/);
+                if (!jsonMatch) throw new Error('No JSON array in response');
+                JSON.parse(jsonMatch[0]);
+                console.log(`[tasks/generate] ✅ Attempt ${attempt} succeeded (${raw.length} chars)`);
+                break;
+            } catch (err) {
+                console.error(`[tasks/generate] Attempt ${attempt}/${MAX_ATTEMPTS} failed:`, err instanceof Error ? err.message : err);
+                if (attempt < MAX_ATTEMPTS) {
+                    await new Promise((r) => setTimeout(r, 2000 * attempt));
+                    continue;
+                }
+                throw err;
+            }
+        }
+        const latencyMs = Date.now() - startTime;
+
+        // Parse JSON from response
+        const jsonMatch = raw.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) throw new Error('No JSON array in response');
 
         const generatedTasks: GeneratedTask[] = JSON.parse(jsonMatch[0]);
 
@@ -233,8 +260,8 @@ Return ONLY a JSON array:
         // ── Log usage and cost ──
         await logUsageAndCost(supabase, {
             userId: user.id, tier: ctx.tier, endpoint: '/api/tasks/generate',
-            inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            inputTokens: response?.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: response?.usageMetadata?.candidatesTokenCount ?? 0,
             latencyMs, isDegradeMode: ctx.isDegradeMode,
         });
 
