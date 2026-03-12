@@ -1,0 +1,581 @@
+.page {
+    animation: fadeInUp var(--duration-slow) var(--ease-out);
+}
+
+.header {
+    margin-bottom: var(--space-8);
+}
+
+.header h1 {
+    margin-bottom: var(--space-2);
+}
+
+/* ─── Error Banner ─── */
+.errorBanner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-md);
+    color: #fca5a5;
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-6);
+}
+
+.errorBanner button {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #fca5a5;
+    cursor: pointer;
+    font-size: var(--text-lg);
+    line-height: 1;
+}
+
+/* ─── Platform Card ─── */
+.platformCard {
+    background: var(--bg-secondary);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+.platformHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+.platformInfo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.platformIcon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: rgba(29, 155, 240, 0.12);
+    color: #1d9bf0;
+}
+
+.platformName {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.connectedBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-xs);
+    color: var(--accent-green);
+    font-weight: 600;
+}
+
+.disconnectedBadge {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+}
+
+.connectBtn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    background: #1d9bf0;
+    color: white;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all var(--duration-fast);
+}
+
+.connectBtn:hover {
+    background: #1a8cd8;
+    transform: translateY(-1px);
+}
+
+.disconnectBtn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: rgba(239, 68, 68, 0.08);
+    color: #f87171;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+}
+
+.disconnectBtn:hover {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.connectPrompt {
+    margin-top: var(--space-5);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--surface-border);
+}
+
+.connectPrompt p {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    margin-bottom: var(--space-3);
+}
+
+.connectPrompt ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.connectPrompt li {
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+    padding: var(--space-1) 0;
+}
+
+.connectPrompt li::before {
+    content: '✦ ';
+    color: var(--gold-500);
+}
+
+/* ─── Credential Section ─── */
+.credentialSection {
+    margin-top: var(--space-5);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--surface-border);
+}
+
+.credentialInfo {
+    display: flex;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+    color: var(--gold-400);
+}
+
+.credentialInfo strong {
+    display: block;
+    font-size: var(--text-sm);
+    margin-bottom: 2px;
+}
+
+.credentialInfo p {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    margin: 0;
+}
+
+.credentialInfo a {
+    color: var(--gold-400);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.credentialForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.credentialField label {
+    display: block;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.secretInput {
+    position: relative;
+}
+
+.secretInput input {
+    padding-right: 40px;
+}
+
+.toggleSecret {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+}
+
+.toggleSecret:hover {
+    color: var(--text-primary);
+}
+
+.setupSteps {
+    margin-top: var(--space-5);
+    padding: var(--space-4);
+    background: rgba(251, 191, 36, 0.04);
+    border: 1px solid rgba(251, 191, 36, 0.1);
+    border-radius: var(--radius-md);
+}
+
+.setupSteps p {
+    font-size: var(--text-xs);
+    color: var(--gold-400);
+    margin: 0 0 var(--space-2);
+}
+
+.setupSteps ol {
+    margin: 0;
+    padding-left: var(--space-5);
+}
+
+.setupSteps li {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    padding: 2px 0;
+    line-height: 1.6;
+}
+
+.setupSteps a {
+    color: var(--gold-400);
+    text-decoration: underline;
+}
+
+.setupSteps code {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 1px 4px;
+    background: rgba(168, 85, 247, 0.12);
+    border-radius: 3px;
+    color: #c084fc;
+}
+
+.pendingBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-xs);
+    color: var(--gold-400);
+    font-weight: 600;
+}
+
+.headerActions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+/* ─── Generator Card ─── */
+.generatorCard {
+    margin-bottom: var(--space-6);
+}
+
+.generateForm {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.generateForm input {
+    flex: 1;
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ─── Queue Section ─── */
+.queueSection {
+    margin-bottom: var(--space-8);
+}
+
+.queueHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+}
+
+.queueStats {
+    display: flex;
+    gap: var(--space-3);
+}
+
+.statDraft {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--gold-400);
+    padding: 2px var(--space-2);
+    background: rgba(251, 191, 36, 0.08);
+    border-radius: var(--radius-sm);
+}
+
+.statPosted {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--accent-green);
+    padding: 2px var(--space-2);
+    background: rgba(52, 211, 153, 0.08);
+    border-radius: var(--radius-sm);
+}
+
+/* ─── Post Cards ─── */
+.postsList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.postCard {
+    display: flex;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: var(--bg-secondary);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    transition: all var(--duration-fast);
+}
+
+.postCard:hover {
+    border-color: var(--surface-border-hover);
+}
+
+.postStatus_posted {
+    opacity: 0.6;
+    border-color: rgba(52, 211, 153, 0.2);
+}
+
+.postStatus_failed {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.postContent {
+    flex: 1;
+    min-width: 0;
+}
+
+.tweetText {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    margin-bottom: var(--space-2);
+}
+
+.rationale {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-1);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+    font-style: italic;
+}
+
+.rationale svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: rgba(168, 85, 247, 0.5);
+}
+
+/* ─── Post Actions ─── */
+.postActions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    flex-shrink: 0;
+}
+
+.postBtn,
+.editBtn,
+.deleteBtn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all var(--duration-fast);
+}
+
+.postBtn {
+    background: rgba(29, 155, 240, 0.12);
+    color: #1d9bf0;
+    border-color: rgba(29, 155, 240, 0.2);
+}
+
+.postBtn:hover:not(:disabled) {
+    background: rgba(29, 155, 240, 0.25);
+    transform: scale(1.05);
+}
+
+.postBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.editBtn {
+    background: rgba(251, 191, 36, 0.08);
+    color: var(--gold-400);
+    border-color: rgba(251, 191, 36, 0.15);
+}
+
+.editBtn:hover {
+    background: rgba(251, 191, 36, 0.15);
+}
+
+.deleteBtn {
+    background: rgba(239, 68, 68, 0.06);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.15);
+}
+
+.deleteBtn:hover {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.postedLabel {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--accent-green);
+    white-space: nowrap;
+}
+
+.failedLabel {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: #f87171;
+    white-space: nowrap;
+}
+
+.retryBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: var(--space-2);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-sm);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.retryBtn:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+/* ─── Edit Area ─── */
+.editArea {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.editArea textarea {
+    resize: none;
+    font-size: var(--text-sm);
+    line-height: 1.6;
+}
+
+.editActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.charCount {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    margin-right: auto;
+}
+
+/* ─── Empty State ─── */
+.emptyQueue {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--space-16) var(--space-6);
+    gap: var(--space-4);
+    color: var(--text-tertiary);
+}
+
+.emptyQueue svg {
+    opacity: 0.2;
+}
+
+.emptyQueue p {
+    font-size: var(--text-sm);
+    max-width: 320px;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .platformHeader {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .generateForm {
+        flex-direction: column;
+    }
+
+    .postCard {
+        flex-direction: column;
+    }
+
+    .postActions {
+        flex-direction: row;
+    }
+}
