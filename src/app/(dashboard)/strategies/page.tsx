@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { GenerationProgress } from '@/components/GenerationProgress';
-import { Crown, ArrowRight, AlertTriangle, TrendingUp, Clock, Target } from 'lucide-react';
+import { Crown, ArrowRight, AlertTriangle, TrendingUp, Clock, Target, RefreshCcw } from 'lucide-react';
 import { ScoreBreakdownPopup } from '@/components/ScoreBreakdownPopup';
 import type { StrategyOption, Decision } from '@/lib/types';
 import styles from './strategies.module.css';
@@ -76,6 +76,7 @@ export default function StrategiesPage() {
     const [loading, setLoading] = useState(true);
     const [jobId, setJobId] = useState<string | null>(null);
     const [generating, setGenerating] = useState(false);
+    const [regenerating, setRegenerating] = useState(false);
     const router = useRouter();
     const supabase = createClient();
 
@@ -99,10 +100,27 @@ export default function StrategiesPage() {
             .single();
 
         if (pendingJob) {
-            setJobId(pendingJob.id);
-            setGenerating(true);
-            setLoading(false);
-            return;
+            // If the job is older than 2 minutes, it's stale — mark it failed
+            const jobAge = Date.now() - new Date(pendingJob.created_at).getTime();
+            const TWO_MINUTES = 2 * 60 * 1000;
+
+            if (jobAge > TWO_MINUTES) {
+                console.warn('[strategies] Stale job detected:', pendingJob.id, `(${Math.round(jobAge / 1000)}s old). Marking as timed_out.`);
+                await supabase
+                    .from('generation_jobs')
+                    .update({
+                        status: 'failed',
+                        error_message: 'Generation timed out. Please try again.',
+                        completed_at: new Date().toISOString(),
+                    })
+                    .eq('id', pendingJob.id);
+                // Fall through to load strategies or show empty state
+            } else {
+                setJobId(pendingJob.id);
+                setGenerating(true);
+                setLoading(false);
+                return;
+            }
         }
 
         // Load latest decision with strategies
@@ -165,7 +183,37 @@ export default function StrategiesPage() {
                 <Crown size={48} className={styles.emptyIcon} />
                 <h2 className="heading-lg">No strategies yet</h2>
                 <p className="text-secondary">Complete the questionnaire to generate your 3 ranked strategy paths.</p>
-                <a href="/onboard" className="btn btn-primary btn-lg">Start Questionnaire</a>
+                <div style={{ display: 'flex', gap: 'var(--space-3)', flexDirection: 'column', alignItems: 'center' }}>
+                    <a href="/onboard" className="btn btn-primary btn-lg">Start Questionnaire</a>
+                    <button
+                        className="btn btn-secondary"
+                        disabled={regenerating}
+                        onClick={async () => {
+                            setRegenerating(true);
+                            try {
+                                const res = await fetch('/api/strategies/generate', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({}),
+                                });
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    if (data.jobId) {
+                                        setJobId(data.jobId);
+                                        setGenerating(true);
+                                    }
+                                }
+                            } catch (err) {
+                                console.error('Regenerate failed:', err);
+                            } finally {
+                                setRegenerating(false);
+                            }
+                        }}
+                    >
+                        <RefreshCcw size={16} />
+                        {regenerating ? 'Starting...' : 'Regenerate Strategies'}
+                    </button>
+                </div>
             </div>
         );
     }

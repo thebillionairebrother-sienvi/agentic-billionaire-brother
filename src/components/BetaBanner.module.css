@@ -1,0 +1,75 @@
+/* ─── Beta Banner — Scrolling Marquee ─── */
+.banner {
+    position: relative;
+    width: 100%;
+    background: linear-gradient(90deg, rgba(234, 179, 8, 0.12), rgba(168, 85, 247, 0.12), rgba(234, 179, 8, 0.12));
+    border-bottom: 1px solid rgba(234, 179, 8, 0.2);
+    overflow: hidden;
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+.marqueeTrack {
+    overflow: hidden;
+    padding: 8px 40px 8px 0;
+}
+
+.marquee {
+    display: inline-flex;
+    white-space: nowrap;
+    animation: scroll 60s linear infinite;
+}
+
+.marquee:hover {
+    animation-play-state: paused;
+}
+
+.message {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gold-400);
+    letter-spacing: 0.02em;
+}
+
+.separator {
+    display: inline-block;
+    margin: 0 24px;
+    color: rgba(168, 85, 247, 0.5);
+    font-size: 8px;
+    vertical-align: middle;
+}
+
+.closeBtn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+    z-index: 2;
+}
+
+.closeBtn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+}
+
+/* Seamless infinite scroll */
+@keyframes scroll {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}

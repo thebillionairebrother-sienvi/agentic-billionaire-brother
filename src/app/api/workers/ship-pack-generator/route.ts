@@ -124,22 +124,44 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
             .limit(1)
             .single();
         const tier = (sub?.tier || 'brother') as Tier;
-        const maxOutputTokens = TIER_CONFIG[tier].max_output_tokens;
+        // Ship pack needs more tokens than normal chat — enforce a minimum of 4096
+        const maxOutputTokens = Math.max(TIER_CONFIG[tier].max_output_tokens, 4096);
 
+        const MAX_ATTEMPTS = 3;
+        let rawText = '';
+        let response;
         const startTime = Date.now();
-        const response = await ai.models.generateContent({
-            model: GEMINI_MODEL,
-            config: {
-                systemInstruction: DEREK_FULL_PROMPT,
-                responseMimeType: 'application/json',
-                maxOutputTokens,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-            },
-            contents: [{ role: 'user', parts: [{ text: shipPackPrompt }] }],
-        });
-        const latencyMs = Date.now() - startTime;
 
-        const rawText = response.text || '';
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                response = await ai.models.generateContent({
+                    model: GEMINI_MODEL,
+                    config: {
+                        systemInstruction: DEREK_FULL_PROMPT,
+                        responseMimeType: 'application/json',
+                        maxOutputTokens,
+                        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+                    },
+                    contents: [{ role: 'user', parts: [{ text: shipPackPrompt }] }],
+                });
+
+                rawText = response.text || '';
+
+                // Validate JSON parses before proceeding
+                extractJSON(rawText);
+                console.log(`[ship-pack] ✅ Gemini attempt ${attempt} succeeded (${rawText.length} chars)`);
+                break;
+            } catch (err) {
+                console.error(`[ship-pack] Attempt ${attempt}/${MAX_ATTEMPTS} failed:`, err instanceof Error ? err.message : err);
+                if (attempt < MAX_ATTEMPTS) {
+                    await new Promise((r) => setTimeout(r, 2000 * attempt));
+                    continue;
+                }
+                throw err;
+            }
+        }
+
+        const latencyMs = Date.now() - startTime;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const parsed = extractJSON(rawText) as any;
 
@@ -185,8 +207,8 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
             .eq('id', jobId);
 
         // Log usage for this user
-        const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
-        const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+        const inputTokens = response?.usageMetadata?.promptTokenCount ?? 0;
+        const outputTokens = response?.usageMetadata?.candidatesTokenCount ?? 0;
         const cost = calculateEstimatedCost(inputTokens, outputTokens);
         await supabase.from('request_logs').insert({
             user_id: userId, model: GEMINI_MODEL,

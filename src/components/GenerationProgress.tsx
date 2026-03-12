@@ -7,6 +7,7 @@ import styles from './GenerationProgress.module.css';
 interface GenerationProgressProps {
     jobId: string;
     onComplete: () => void;
+    onTimeout?: () => void;
     title?: string;
 }
 
@@ -17,13 +18,17 @@ const STEPS = [
     { label: 'Preparing results...', icon: CheckCircle },
 ];
 
-export function GenerationProgress({ jobId, onComplete, title = 'Generating Your Strategies' }: GenerationProgressProps) {
+const TIMEOUT_MS = 90_000; // 90 seconds
+
+export function GenerationProgress({ jobId, onComplete, onTimeout, title = 'Generating Your Strategies' }: GenerationProgressProps) {
     const [currentStep, setCurrentStep] = useState(0);
     const [error, setError] = useState<string | null>(null);
+    const [timedOut, setTimedOut] = useState(false);
     const step2Scheduled = useRef(false);
     const completeCalled = useRef(false);
     const onCompleteRef = useRef(onComplete);
     onCompleteRef.current = onComplete;
+    const startTimeRef = useRef(Date.now());
 
     const pollJob = useCallback(async () => {
         try {
@@ -35,6 +40,14 @@ export function GenerationProgress({ jobId, onComplete, title = 'Generating Your
                 if (!step2Scheduled.current) {
                     step2Scheduled.current = true;
                     setTimeout(() => setCurrentStep((prev) => Math.max(prev, 2)), 8000);
+                }
+
+                // Check for timeout
+                if (Date.now() - startTimeRef.current > TIMEOUT_MS) {
+                    setTimedOut(true);
+                    setError('Generation is taking longer than expected. Please try again.');
+                    onTimeout?.();
+                    return true;
                 }
             }
 
@@ -109,6 +122,16 @@ export function GenerationProgress({ jobId, onComplete, title = 'Generating Your
                         <AlertCircle size={18} />
                         <span>{error}</span>
                     </div>
+                )}
+
+                {timedOut && (
+                    <button
+                        className="btn btn-primary"
+                        style={{ marginTop: 'var(--space-4)' }}
+                        onClick={() => window.location.reload()}
+                    >
+                        Try Again
+                    </button>
                 )}
             </div>
         </div>

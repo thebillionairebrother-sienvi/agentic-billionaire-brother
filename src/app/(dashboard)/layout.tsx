@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { BetaBanner } from '@/components/BetaBanner';
 import styles from './dashboard.module.css';
 
 export default async function DashboardLayout({
@@ -23,13 +24,16 @@ export default async function DashboardLayout({
         .single();
 
     return (
-        <div className={styles.shell}>
-            <DashboardSidebar user={profile} />
-            <main className={styles.main}>
-                <div className={styles.content}>
-                    {children}
-                </div>
-            </main>
-        </div>
+        <>
+            <BetaBanner />
+            <div className={styles.shell}>
+                <DashboardSidebar user={profile} />
+                <main className={styles.main}>
+                    <div className={styles.content}>
+                        {children}
+                    </div>
+                </main>
+            </div>
+        </>
     );
 }

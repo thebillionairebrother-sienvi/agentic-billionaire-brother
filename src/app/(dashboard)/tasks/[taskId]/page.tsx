@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle, Circle, Clock, Lightbulb, ChevronRight, Sparkles, Download, Bot } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import styles from './task-detail.module.css';
 
 interface TaskDetail {
@@ -39,31 +40,7 @@ function parseDescription(desc: string): ParsedDetail {
     }
 }
 
-/** Lightweight markdown → HTML (no external dependency) */
-function simpleMarkdown(md: string): string {
-    return md
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        // headings
-        .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-        .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-        .replace(/^# (.+)$/gm, '<h2>$1</h2>')
-        // bold & italic
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        // unordered list items
-        .replace(/^- (.+)$/gm, '<li>$1</li>')
-        // numbered list items
-        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-        // paragraphs (double newline)
-        .replace(/\n\n/g, '</p><p>')
-        // single newlines
-        .replace(/\n/g, '<br/>')
-        // wrap
-        .replace(/^/, '<p>')
-        .replace(/$/, '</p>');
-}
+
 
 export default function TaskDetailPage({ params }: { params: Promise<{ taskId: string }> }) {
     const [task, setTask] = useState<TaskDetail | null>(null);
@@ -278,10 +255,9 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                             Download .md
                         </button>
                     </div>
-                    <div
-                        className={styles.derekOutputBody}
-                        dangerouslySetInnerHTML={{ __html: simpleMarkdown(derekOutput) }}
-                    />
+                    <div className={styles.derekOutputBody}>
+                        <ReactMarkdown>{derekOutput}</ReactMarkdown>
+                    </div>
                 </div>
             )}
 

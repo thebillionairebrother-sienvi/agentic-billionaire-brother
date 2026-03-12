@@ -18,6 +18,54 @@ function getStrategyImage(archetype: string): string {
     return '/images/strategies/strategy-growth.png';
 }
 
+/** Suggest weekly deliverables based on the selected KPI */
+function getSuggestedDeliverables(kpi: string): string[] {
+    const k = kpi.toLowerCase();
+
+    if (/conversion|convert|free.to.paid|trial/i.test(k)) return [
+        '1 onboarding email sequence iteration + conversion test',
+        '1 landing page A/B test + 2 follow-up emails',
+        '1 demo video + 1 case study draft + 1 pricing experiment',
+    ];
+    if (/revenue|income|mrr|arr|sales|profit/i.test(k)) return [
+        '1 new sales outreach campaign + 3 follow-up touches',
+        '1 upsell offer test + 1 pricing page update',
+        '2 sales calls booked + 1 proposal sent',
+    ];
+    if (/user|signup|sign.up|registration|acquisition/i.test(k)) return [
+        '1 lead magnet + 3 distribution posts across channels',
+        '1 landing page + 1 ad campaign launch',
+        '2 partnership outreach emails + 1 referral incentive test',
+    ];
+    if (/engagement|retention|active|dau|mau|churn/i.test(k)) return [
+        '1 feature improvement + 1 user feedback survey',
+        '1 onboarding flow update + 2 re-engagement emails',
+        '1 community post + 1 product update announcement',
+    ];
+    if (/lead|prospect|pipeline|funnel/i.test(k)) return [
+        '1 lead magnet asset + 3 social posts to drive traffic',
+        '1 webinar/live session + 1 follow-up email sequence',
+        '2 cold outreach campaigns + 1 referral ask',
+    ];
+    if (/traffic|visit|page.view|seo|impression/i.test(k)) return [
+        '1 SEO blog post + 3 social media repurposed pieces',
+        '1 guest post pitch + 2 community forum answers',
+        '1 video tutorial + 1 Reddit/forum thread + 1 newsletter',
+    ];
+    if (/content|post|video|blog|newsletter/i.test(k)) return [
+        '1 long-form content piece + 3 short-form reposts',
+        '2 blog posts + 1 email newsletter',
+        '1 video + 1 blog post + 2 social clips',
+    ];
+
+    // Default general suggestions
+    return [
+        '1 key task shipped + 1 progress update to audience',
+        '1 product/feature improvement + 1 marketing action',
+        '1 experiment launched + 1 customer conversation',
+    ];
+}
+
 export default function CommitPage() {
     const [strategy, setStrategy] = useState<StrategyOption | null>(null);
     const [lockedKpi, setLockedKpi] = useState('');
@@ -162,14 +210,27 @@ export default function CommitPage() {
                     <div>
                         <label className="label">Weekly Deliverable</label>
                         <p className="text-tertiary" style={{ fontSize: 'var(--text-xs)', marginBottom: 'var(--space-2)' }}>
-                            What you commit to shipping every week.
+                            What you commit to shipping every week. Suggested based on your KPI:
                         </p>
-                        <input
+                        <select
                             className="input"
-                            placeholder="e.g. 1 pillar post + 3 repurposed pieces"
                             value={weeklyDeliverable}
                             onChange={(e) => setWeeklyDeliverable(e.target.value)}
-                        />
+                        >
+                            <option value="">Select a deliverable...</option>
+                            {getSuggestedDeliverables(lockedKpi).map((d) => (
+                                <option key={d} value={d}>{d}</option>
+                            ))}
+                            <option value="custom">Custom...</option>
+                        </select>
+                        {weeklyDeliverable === 'custom' && (
+                            <input
+                                className="input"
+                                style={{ marginTop: 'var(--space-2)' }}
+                                placeholder="Describe what you'll ship every week..."
+                                onChange={(e) => setWeeklyDeliverable(e.target.value)}
+                            />
+                        )}
                     </div>
 
                     <div>

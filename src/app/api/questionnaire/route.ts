@@ -151,21 +151,23 @@ export async function POST(request: Request) {
             .update({ onboarding_complete: true })
             .eq('id', user.id);
 
-        // Auto-trigger strategy generation
-        const genRes = await fetch(new URL('/api/strategies/generate', request.url).toString(), {
+        // Fire-and-forget strategy generation — don't block the questionnaire response
+        // The frontend will poll /api/jobs/[jobId] to track progress
+        const generateUrl = new URL('/api/strategies/generate', request.url).toString();
+        fetch(generateUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Cookie': request.headers.get('cookie') || '',
             },
             body: JSON.stringify({ business_profile_id: profileId }),
+        }).catch((err) => {
+            console.error('[questionnaire] Fire-and-forget strategy generation failed:', err);
         });
-
-        const genData = await genRes.json();
 
         return NextResponse.json({
             profileId,
-            jobId: genData.jobId,
+            success: true,
         });
     } catch (error) {
         console.error('Questionnaire error:', error);
