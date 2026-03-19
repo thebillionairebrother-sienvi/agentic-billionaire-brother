@@ -37,16 +37,19 @@ export default function OnboardPage() {
                     body: JSON.stringify({ message: '' }),
                 });
 
-                if (!res.ok) throw new Error('Failed to start interview');
+                const data = await res.json();
 
-                const data: InterviewResponse = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || data.user_message || `Interview failed (${res.status})`);
+                }
+
                 setMessages([{
                     role: 'assistant',
                     content: data.reply,
                     reaction: data.reaction,
                 }]);
-            } catch {
-                setError('Failed to start the interview. Please refresh the page.');
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to start the interview. Please refresh the page.');
             } finally {
                 setInitializing(false);
             }
