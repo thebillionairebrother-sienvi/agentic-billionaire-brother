@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         const shipPackPrompt = `
 You are a JSON-only API. Do NOT include any conversational text, greetings, or explanations outside the JSON.
 
-TASK: Generate Week 1 Ship Pack
+TASK: Generate Week 1 Action Steps
 
 LOCKED STRATEGY: ${strategy!.archetype}
 THESIS: ${strategy!.thesis}
@@ -80,7 +80,7 @@ CALENDAR BLOCKS: ${contract!.calendar_blocks}
 HOURS/WEEK: ${businessProfile?.hours_per_week || 10}
 TEAM: ${businessProfile?.team_size || 'solo'}
 
-Generate a ship pack with exactly:
+Generate action steps with exactly:
 - 2 big deliverables (substantial assets from departments)
 - 5 small tasks (quick wins, setup tasks)
 
@@ -124,7 +124,7 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
             .limit(1)
             .single();
         const tier = (sub?.tier || 'brother') as Tier;
-        // Ship pack needs more tokens than normal chat — enforce a minimum of 4096
+        // Action steps need more tokens than normal chat — enforce a minimum of 4096
         const maxOutputTokens = Math.max(TIER_CONFIG[tier].max_output_tokens, 4096);
 
         const MAX_ATTEMPTS = 3;
@@ -223,12 +223,12 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Ship pack worker error:', error);
+        console.error('Action steps worker error:', error);
         await supabase
             .from('generation_jobs')
             .update({ status: 'failed', error_message: error instanceof Error ? error.message : 'Unknown error' })
             .eq('id', jobId);
 
-        return NextResponse.json({ error: 'Ship pack generation failed' }, { status: 500 });
+        return NextResponse.json({ error: 'Action steps generation failed' }, { status: 500 });
     }
 }

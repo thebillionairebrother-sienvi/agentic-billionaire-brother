@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, User, ArrowRight, Crown } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Crown, Tag } from 'lucide-react';
 import styles from './auth.module.css';
 
 export default function AuthPage() {
@@ -19,6 +19,7 @@ function AuthPageInner() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
+    const [promoCode, setPromoCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
@@ -36,14 +37,31 @@ function AuthPageInner() {
 
         try {
             if (mode === 'signup') {
+                // Validate promo code client-side first
+                const validCodes: Record<string, string> = {
+                    'BILLIONAIREBROTHER2026': 'brother',
+                    'BILLIONAIRETEAM2026': 'team',
+                };
+                const tier = validCodes[promoCode.toUpperCase().trim()];
+                if (!tier) {
+                    setError('Invalid promo code. Please check and try again.');
+                    setLoading(false);
+                    return;
+                }
+
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
-                        data: { display_name: displayName },
+                        data: { display_name: displayName, tier, promo_code: promoCode.toUpperCase().trim() },
                     },
                 });
                 if (error) throw error;
+
+                // Set tier via API (will run after email confirmation when user logs in)
+                // For now store the promo code so we can set tier on first login
+                sessionStorage.setItem('pending_promo_code', promoCode.toUpperCase().trim());
+
                 setMessage('Check your email for a confirmation link!');
             } else {
                 const { error } = await supabase.auth.signInWithPassword({
@@ -51,6 +69,22 @@ function AuthPageInner() {
                     password,
                 });
                 if (error) throw error;
+
+                // Check if there's a pending promo code from signup
+                const pendingPromo = sessionStorage.getItem('pending_promo_code');
+                if (pendingPromo) {
+                    try {
+                        await fetch('/api/auth/set-tier', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ promoCode: pendingPromo }),
+                        });
+                        sessionStorage.removeItem('pending_promo_code');
+                    } catch {
+                        // Non-blocking — tier can be set later
+                    }
+                }
+
                 router.push(redirect);
                 router.refresh();
             }
@@ -70,12 +104,12 @@ function AuthPageInner() {
                     </div>
                     <h1 className={styles.brandTitle}>The Billionaire Brother</h1>
                     <p className={styles.brandTagline}>
-                        3 ranked paths. One choice. Weekly shipping.
+                        Your business strategist. Built to execute.
                     </p>
                     <div className={styles.features}>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />
-                            <span>AI-powered strategy generation</span>
+                            <span>Strategy built by your Brother</span>
                         </div>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />
@@ -83,11 +117,11 @@ function AuthPageInner() {
                         </div>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />
-                            <span>Weekly Ship Packs with actionable tasks</span>
+                            <span>Weekly Action Steps with actionable tasks</span>
                         </div>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />
-                            <span>Kill / Keep / Double board meetings</span>
+                            <span>Weekly check-ins that keep you honest</span>
                         </div>
                     </div>
                 </div>
@@ -122,6 +156,27 @@ function AuthPageInner() {
                                         placeholder="Derek Junior"
                                         value={displayName}
                                         onChange={(e) => setDisplayName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {mode === 'signup' && (
+                            <div className={styles.field}>
+                                <label className="label" htmlFor="promoCode">
+                                    Promo Code
+                                </label>
+                                <div className={styles.inputWrapper}>
+                                    <Tag size={18} className={styles.inputIcon} />
+                                    <input
+                                        id="promoCode"
+                                        type="text"
+                                        className="input"
+                                        style={{ paddingLeft: '2.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                                        placeholder="Enter your promo code"
+                                        value={promoCode}
+                                        onChange={(e) => setPromoCode(e.target.value)}
                                         required
                                     />
                                 </div>

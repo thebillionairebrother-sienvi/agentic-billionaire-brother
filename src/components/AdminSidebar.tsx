@@ -7,6 +7,7 @@ import {
     Shield,
     Users,
     BarChart3,
+    DollarSign,
     LogOut,
     ChevronLeft,
     Menu,
@@ -21,6 +22,7 @@ interface AdminSidebarProps {
 
 const navItems = [
     { href: '/admin', icon: BarChart3, label: 'Overview' },
+    { href: '/admin/costs', icon: DollarSign, label: 'Cost Monitor' },
 ];
 
 export function AdminSidebar({ email }: AdminSidebarProps) {

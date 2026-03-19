@@ -1,0 +1,132 @@
+# Billionaire Brother — Costing Guardrails Summary
+
+> Status: **Active & Enforced** • Model: **Gemini 3 Pro Preview** • Last Updated: March 2026
+
+---
+
+## Tier Entitlements
+
+| Guard | Brother ($39→$49) | Team ($99→$129) |
+|:---|:---:|:---:|
+| **Daily Prompts** | 40 | 100 |
+| **Max Output Tokens** | 4,096 | 8,192 |
+| **Degrade Output Tokens** | 2,048 | 4,096 |
+| **Workflow Steps** | 6 | 10 |
+| **Weekly Regenerations** | 2 | 4 |
+| **Monthly Dollar Cap** (budget) | $50.00 | $150.00 |
+| **Web Search** | ❌ | ❌ (Phase 2+) |
+| **Tool Calls** | ❌ | ❌ (Phase 2+) |
+
+---
+
+## Per-Request Guardrails
+
+| Control | Value |
+|:---|:---|
+| **Output token hard cap** | Enforced via `maxOutputTokens` in Gemini SDK |
+| **Max retries per step** | 2 (fail fast + diagnostics) |
+| **Retry delay** | 1s → 2s → 4s (exponential backoff) |
+| **Tool calls per request** | 0 (disabled Phase 1) |
+| **ThinkingConfig** | HIGH (strategy/ship-pack) · MEDIUM (tasks/checkin) · LOW (chat/interview) |
+
+---
+
+## Circuit Breakers
+
+| Threshold | % of Cap | Brother Trigger | Team Trigger | System Response |
+|:---|:---:|:---:|:---:|:---|
+| **Warning** | 60% | $30.00 | $90.00 | Alert logged (deduplicated monthly) |
+| **Degrade** | 80% | $40.00 | $120.00 | Halve output tokens, block regens, user banner |
+| **Hard Stop** | 100% | $50.00 | $150.00 | Block all AI requests until billing reset |
+
+User-facing messaging:
+- **80%**: "You're approaching your sprint budget. Focus on execution."
+- **95%**: "Sprint budget almost reached. Responses will be simplified."
+- **100%**: "Sprint budget reached. Resets [date]. Focus on execution."
+
+---
+
+## Cost Estimation Engine
+
+| Pricing Layer | Input / 1M Tokens | Output / 1M Tokens | Purpose |
+|:---|:---:|:---:|:---|
+| **Actual** | $1.25 | $10.00 | Financial reporting |
+| **Budget (2.5× safety)** | $3.125 | $25.00 | Cap enforcement & alerts |
+
+Every AI request logs: model, input tokens, output tokens, latency, endpoint, tier, degrade mode, estimated cost.
+
+---
+
+## Metering Layers
+
+| Layer | Table | Tracked |
+|:---|:---|:---|
+| **Per-request** | `request_logs` | model, tokens, latency, cost, endpoint, tier |
+| **Per-user daily** | `usage_daily_user` | prompt count, tokens, regens, workflows, cost |
+| **Per-user weekly** | `usage_weekly_user` | regen count |
+| **Per-workspace monthly** | `usage_monthly_workspace` | total tokens, prompts, cost, regen usage |
+| **Alerts** | `cost_alerts` | type, threshold %, values, resolution |
+
+All counters use **atomic PL/pgSQL upsert RPCs** to prevent race conditions.
+
+---
+
+## Bounded Workflow Engine
+
+| Workflow | Max Steps | Retry/Step | Tools |
+|:---|:---:|:---:|:---:|
+| Revenue Bottleneck Diagnosis | 3 | 2 | None |
+| Revenue Path Ranking | 4 | 2 | None |
+| Sprint Pack Builder | 6 | 2 | None |
+| KPI Spec Generator | 3 | 2 | None |
+| Kill/Keep/Double | 4 | 2 | None |
+
+Budget exceeded → `"Workflow exceeded sprint budget. Simplify request."`
+
+---
+
+## Kill Switches
+
+| Switch | Scope |
+|:---|:---|
+| `ai_layer` | All AI requests globally |
+| `workflows` | All multi-step workflows |
+| `tools` | All tool/search calls |
+
+Checked **before every AI request** via the middleware pipeline.
+
+---
+
+## Middleware Pipeline (compose.ts)
+
+```
+Request → Kill Switch → Subscription Lookup → Usage Guard → Token Budget → AI Call → Meter Logger → Response
+```
+
+If any gate fails → `GuardError` with user-friendly message + HTTP 429.
+
+---
+
+## Financial Projections
+
+| Metric | Value |
+|:---|:---|
+| Blended revenue/user | ~$73/month |
+| Budget safety margin | 2.5× actual pricing |
+| Target gross margin | ≥ 85% |
+| At 10,000 users: Revenue | ~$730k/month |
+| At 10,000 users: Max AI cost | ~$60k/month |
+| At 10,000 users: Margin | ~92% |
+
+---
+
+## What We Don't Build
+
+- ❌ Autonomous "run my business" loops
+- ❌ Open-ended multi-hour workflows
+- ❌ Unrestricted research scraping
+- ❌ Unlimited regeneration
+- ❌ Free text mega-prompts
+- ❌ Unmetered tool calls
+
+**Margin > ego. Always.**

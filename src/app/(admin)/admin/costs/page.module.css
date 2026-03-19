@@ -1,0 +1,391 @@
+.page {
+    animation: fadeInUp var(--duration-slow) var(--ease-out);
+}
+
+.header {
+    margin-bottom: var(--space-8);
+}
+
+.headerMeta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+}
+
+/* ─── Loading / Error ─── */
+.loadingState,
+.errorState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: var(--space-4);
+    color: var(--text-secondary);
+}
+
+.spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--surface-border);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ─── Stats Grid ─── */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.statCard {
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.statCard:hover {
+    border-color: var(--surface-border-hover);
+}
+
+.statIcon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.statValue {
+    display: block;
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    font-family: var(--font-mono);
+    letter-spacing: -0.02em;
+}
+
+.statLabel {
+    display: block;
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+
+/* ─── Charts Section ─── */
+.chartSection {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+.chartCard {
+    min-height: 220px;
+}
+
+/* ─── Tier Donut ─── */
+.donutContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-6);
+    padding: var(--space-4);
+}
+
+.donut {
+    width: 140px;
+    height: 140px;
+}
+
+.legendList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+}
+
+.legendDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.legendValue {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    margin-left: var(--space-1);
+}
+
+/* ─── Endpoint Bars ─── */
+.barList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+}
+
+.barItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.barLabel {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+
+.barLabelName {
+    font-family: var(--font-mono);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+}
+
+.barLabelValue {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.barTrack {
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--bg-tertiary);
+    overflow: hidden;
+}
+
+.barFill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    transition: width 0.6s ease;
+    min-width: 2px;
+}
+
+/* ─── Users Table ─── */
+.tableCard {
+    overflow: hidden;
+    margin-bottom: var(--space-6);
+}
+
+.tableWrapper {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+
+.table th {
+    text-align: left;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--surface-border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    vertical-align: middle;
+}
+
+.tableRow {
+    transition: background var(--duration-fast) var(--ease-out);
+}
+
+.tableRow:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* ─── Usage Bar ─── */
+.usageBar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.usageTrack {
+    width: 60px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--bg-tertiary);
+    overflow: hidden;
+}
+
+.usageFill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 0.4s ease;
+}
+
+.usagePct {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    min-width: 32px;
+}
+
+/* ─── Alerts Section ─── */
+.alertsCard {
+    margin-bottom: var(--space-6);
+}
+
+.alertsList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.alertItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+}
+
+.alertWarning {
+    background: rgba(234, 179, 8, 0.08);
+    border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.alertDegrade {
+    background: rgba(249, 115, 22, 0.08);
+    border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
+.alertHardStop {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.alertMeta {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.alertEmail {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.alertDetail {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+}
+
+.emptyAlerts {
+    text-align: center;
+    padding: var(--space-6);
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+}
+
+/* ─── Margin Card ─── */
+.marginCard {
+    margin-bottom: var(--space-6);
+}
+
+.marginGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+}
+
+.marginItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    text-align: center;
+}
+
+.marginLabel {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.marginValue {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.marginGood {
+    color: var(--accent-green);
+}
+
+.marginWarn {
+    color: var(--gold-400);
+}
+
+.marginBad {
+    color: #ef4444;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1024px) {
+    .statsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .chartSection {
+        grid-template-columns: 1fr;
+    }
+
+    .marginGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .marginGrid {
+        grid-template-columns: 1fr;
+    }
+}

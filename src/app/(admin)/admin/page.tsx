@@ -8,6 +8,9 @@ interface UserData {
     id: string;
     email: string;
     display_name: string | null;
+    tier: string;
+    promo_code: string | null;
+    subscription_active: boolean;
     onboarding_complete: boolean;
     subscription_status: string;
     created_at: string;
@@ -32,6 +35,8 @@ interface Stats {
     totalTasksDone: number;
     totalCost: number;
     onboardedUsers: number;
+    brotherUsers: number;
+    teamUsers: number;
 }
 
 export default function AdminDashboard() {
@@ -145,6 +150,26 @@ export default function AdminDashboard() {
                         <span className={styles.statLabel}>Onboarded</span>
                     </div>
                 </div>
+
+                <div className={styles.statCard}>
+                    <div className={styles.statIcon} style={{ background: 'rgba(59, 130, 246, 0.12)' }}>
+                        <Users size={20} style={{ color: 'var(--accent-blue)' }} />
+                    </div>
+                    <div>
+                        <span className={styles.statValue}>{stats?.brotherUsers || 0}</span>
+                        <span className={styles.statLabel}>Brother</span>
+                    </div>
+                </div>
+
+                <div className={styles.statCard}>
+                    <div className={styles.statIcon} style={{ background: 'rgba(139, 92, 246, 0.12)' }}>
+                        <Users size={20} style={{ color: 'var(--accent-purple)' }} />
+                    </div>
+                    <div>
+                        <span className={styles.statValue}>{stats?.teamUsers || 0}</span>
+                        <span className={styles.statLabel}>Team</span>
+                    </div>
+                </div>
             </div>
 
             {/* Performance Overview */}
@@ -191,6 +216,7 @@ export default function AdminDashboard() {
                         <thead>
                             <tr>
                                 <th>User</th>
+                                <th>Tier</th>
                                 <th>Business</th>
                                 <th>Strategy</th>
                                 <th>Tasks</th>
@@ -216,6 +242,18 @@ export default function AdminDashboard() {
                                                     <div className={styles.userName}>{u.display_name || 'No name'}</div>
                                                     <div className={styles.userEmail}>{u.email}</div>
                                                 </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span className={`badge ${u.tier === 'team' ? 'badge-purple' : 'badge-blue'}`} style={{ textTransform: 'capitalize' }}>
+                                                    {u.tier}
+                                                </span>
+                                                {u.promo_code && (
+                                                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                                                        {u.promo_code}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td>

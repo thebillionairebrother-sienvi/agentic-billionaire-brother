@@ -49,6 +49,11 @@ export async function GET() {
             .from('decisions')
             .select('id, user_id, status, created_at');
 
+        // Fetch subscriptions for promo codes
+        const { data: subscriptions } = await admin
+            .from('subscriptions')
+            .select('user_id, tier, status, promo_code, charter_pricing, started_at');
+
         // Build per-user data
         const enrichedUsers = (users || []).map(user => {
             const profile = (profiles || []).find(p => p.user_id === user.id);
@@ -56,6 +61,7 @@ export async function GET() {
             const userTasks = (tasks || []).filter(t => t.user_id === user.id);
             const userCycles = (cycles || []).filter(c => c.user_id === user.id);
             const userDecisions = (decisions || []).filter(d => d.user_id === user.id);
+            const userSub = (subscriptions || []).find(s => s.user_id === user.id);
 
             const tasksDone = userTasks.filter(t => t.status === 'done').length;
             const tasksTotal = userTasks.length;
@@ -88,6 +94,9 @@ export async function GET() {
                 id: user.id,
                 email: user.email,
                 display_name: user.display_name,
+                tier: userSub?.tier || user.tier || 'brother',
+                promo_code: userSub?.promo_code || null,
+                subscription_active: userSub?.status === 'active',
                 onboarding_complete: user.onboarding_complete,
                 subscription_status: user.subscription_status,
                 created_at: user.created_at,
@@ -103,7 +112,7 @@ export async function GET() {
                 tasks_in_progress: userTasks.filter(t => t.status === 'in_progress').length,
                 current_week: latestCycle?.week_number || 0,
                 total_weeks: userCycles.length,
-                estimated_cost: Math.round(estimatedCost * 10000) / 10000, // 4 decimal places
+                estimated_cost: Math.round(estimatedCost * 10000) / 10000,
             };
         });
 
@@ -121,6 +130,8 @@ export async function GET() {
                 totalTasksDone,
                 totalCost: Math.round(totalCost * 10000) / 10000,
                 onboardedUsers: enrichedUsers.filter(u => u.onboarding_complete).length,
+                brotherUsers: enrichedUsers.filter(u => u.tier === 'brother').length,
+                teamUsers: enrichedUsers.filter(u => u.tier === 'team').length,
             },
         });
     } catch (err) {

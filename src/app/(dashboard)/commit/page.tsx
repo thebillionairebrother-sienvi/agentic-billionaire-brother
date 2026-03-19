@@ -280,7 +280,7 @@ export default function CommitPage() {
                     disabled={!agreed || !lockedKpi || !weeklyDeliverable || loading}
                     onClick={handleCommit}
                 >
-                    {loading ? 'Locking Strategy...' : 'Lock Strategy & Generate Ship Pack'}
+                    {loading ? 'Locking Strategy...' : 'Lock Strategy & Generate Action Steps'}
                     {!loading && <ArrowRight size={18} />}
                 </button>
             </div>

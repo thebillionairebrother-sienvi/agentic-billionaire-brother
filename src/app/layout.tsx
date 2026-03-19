@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { FloatingDerekChat } from '@/components/FloatingDerekChat';
 
 export const metadata: Metadata = {
-  title: 'The Billionaire Brother — 3 Ranked Paths. One Choice. Weekly Shipping.',
+  title: 'The Billionaire Brother — Your Business Strategist',
   description:
-    'Your AI-powered business strategist. Get 3 ranked strategy paths with Decision Scores, commit to one, and receive weekly Ship Packs to execute.',
+    'Meet Derek — your Billionaire Brother. He interviews you, builds your strategy, and gives you weekly Action Steps to execute.',
   keywords: ['business strategy', 'AI consultant', 'execution', 'startup'],
 };
 
@@ -17,6 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
+        <FloatingDerekChat />
       </body>
     </html>
   );

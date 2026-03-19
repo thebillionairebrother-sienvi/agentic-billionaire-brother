@@ -13,7 +13,6 @@ import {
     LogOut,
     ChevronLeft,
     Menu,
-    MessageCircle,
     Share2,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -26,8 +25,7 @@ interface DashboardSidebarProps {
 
 const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/chat', icon: MessageCircle, label: 'Talk to Derek' },
-    { href: '/ship-pack', icon: Package, label: 'Ship Pack' },
+    { href: '/ship-pack', icon: Package, label: 'Action Steps' },
     { href: '/board-meeting', icon: CalendarCheck, label: 'Weekly Check-in' },
     { href: '/brief', icon: FileText, label: 'Strategy Brief' },
     { href: '/social', icon: Share2, label: 'Social Media' },

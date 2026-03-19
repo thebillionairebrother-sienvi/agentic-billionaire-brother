@@ -8,7 +8,7 @@ const testimonials = [
         role: 'E-commerce Founder',
         avatar: 'M',
         rating: 5,
-        quote: 'Derek called out every excuse I was making and gave me a real plan. Within 2 weeks, I went from spinning my wheels to actually shipping. The weekly Ship Packs keep me accountable — no more "I\'ll do it tomorrow."',
+        quote: 'Derek called out every excuse I was making and gave me a real plan. Within 2 weeks, I went from spinning my wheels to actually shipping. The weekly Action Steps keep me accountable — no more "I\'ll do it tomorrow."',
         highlight: 'Went from spinning wheels to shipping in 2 weeks',
         color: 'var(--gold-400)',
     },
@@ -53,7 +53,7 @@ const testimonials = [
         role: 'Coaching Business Owner',
         avatar: 'N',
         rating: 5,
-        quote: 'Most AI tools give you generic advice. Derek actually understands context — my constraints, my budget, my strengths. The strategies it generated were better than what I got from a $5K consultant.',
+        quote: 'Most tools give you generic advice. Derek actually understands context — my constraints, my budget, my strengths. The strategies he generated were better than what I got from a $5K consultant.',
         highlight: 'Better strategies than a $5K consultant',
         color: 'var(--accent-blue)',
     },
@@ -146,7 +146,7 @@ export default function TestimonialsPage() {
                     <h2 className="heading-lg">Ready to Stop Guessing?</h2>
                     <p className="text-secondary" style={{ maxWidth: 480, margin: '0 auto', marginTop: 'var(--space-4)' }}>
                         Join founders who are shipping with clarity instead of chaos.
-                        10 minutes. 3 strategies. One commitment.
+                        10 minutes. One strategy. Real execution.
                     </p>
                     <Link href="/auth" className="btn btn-primary btn-lg" style={{ marginTop: 'var(--space-6)' }}>
                         Start Free Questionnaire <ArrowRight size={18} />

@@ -66,7 +66,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Execution contract not found' }, { status: 404 });
         }
 
-        // Kick off next week's ship pack generation
+        // Kick off next week's action steps generation
         const { data: job, error: jobError } = await serviceClient
             .from('generation_jobs')
             .insert({

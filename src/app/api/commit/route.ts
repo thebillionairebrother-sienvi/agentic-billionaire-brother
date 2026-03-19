@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
         if (cycleError) throw cycleError;
 
-        // Create ship pack generation job
+        // Create action steps generation job
         const { data: job } = await serviceClient
             .from('generation_jobs')
             .insert({
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
             .select('id')
             .single();
 
-        // Trigger async ship pack generation
+        // Trigger async action steps generation
         const workerUrl = new URL('/api/workers/ship-pack-generator', request.url);
         fetch(workerUrl.toString(), {
             method: 'POST',

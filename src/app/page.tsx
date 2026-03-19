@@ -30,19 +30,19 @@ export default function LandingPage() {
       <section className={styles.hero}>
         <div className={styles.heroBadge}>
           <Zap size={14} />
-          <span>AI-Powered Business Strategy</span>
+          <span>Business Strategy That Ships</span>
         </div>
         <h1 className={styles.heroTitle}>
-          3 Ranked Paths.
+          Your Strategy.
           <br />
-          <span className={styles.heroGold}>One Choice.</span>
+          <span className={styles.heroGold}>Your Action Steps.</span>
           <br />
-          Weekly Shipping.
+          Built by Your Brother.
         </h1>
         <p className={styles.heroSub}>
-          Your AI Billionaire Brother generates 3 ranked strategy archetypes with transparent
-          Decision Scores. Pick one, commit, and get weekly Ship Packs with actionable
-          deliverables — not fluff.
+          Meet Derek — your Billionaire Brother. He interviews you, diagnoses your
+          revenue bottlenecks, builds your strategy, and gives you weekly Action Steps
+          so you actually ship — not just plan.
         </p>
         <div className={styles.heroCTA}>
           <Link href="/auth" className="btn btn-primary btn-lg">
@@ -66,17 +66,17 @@ export default function LandingPage() {
           <div className={styles.stepArrow}>→</div>
           <div className={styles.step}>
             <div className={styles.stepNumber}>02</div>
-            <h3 className="heading-sm">3 Ranked Strategies</h3>
+            <h3 className="heading-sm">Strategy & KPIs</h3>
             <p className="text-secondary">
-              AI generates 3 strategy archetypes with Decision Scores, risks, and KPIs.
+              Derek builds your strategy with Decision Scores, risks, and a locked KPI to track.
             </p>
           </div>
           <div className={styles.stepArrow}>→</div>
           <div className={styles.step}>
             <div className={styles.stepNumber}>03</div>
-            <h3 className="heading-sm">Commit & Ship</h3>
+            <h3 className="heading-sm">Execute & Ship</h3>
             <p className="text-secondary">
-              Pick one, lock your KPI, and get weekly Ship Packs with capped deliverables.
+              Get weekly Action Steps with capped deliverables. Check in, adjust, repeat.
             </p>
           </div>
         </div>
@@ -95,7 +95,7 @@ export default function LandingPage() {
           </div>
           <div className={`card ${styles.featureCard}`}>
             <TrendingUp size={24} className={styles.featureIcon} />
-            <h3 className="heading-sm">Weekly Ship Packs</h3>
+            <h3 className="heading-sm">Weekly Action Steps</h3>
             <p className="text-secondary">
               2 big deliverables + 5 small tasks, each week. Capped to your hours-per-week budget.
               Never too much, never too vague.
@@ -105,7 +105,7 @@ export default function LandingPage() {
             <Shield size={24} className={styles.featureIcon} />
             <h3 className="heading-sm">Red Team QA</h3>
             <p className="text-secondary">
-              Every AI output is adversarially reviewed before you see it. No unrealistic claims,
+              Every output is adversarially reviewed before you see it. No unrealistic claims,
               no illegal advice, no missing assumptions.
             </p>
           </div>
@@ -123,10 +123,10 @@ export default function LandingPage() {
             <span className={styles.pricePeriod}>/mo</span>
           </div>
           <ul className={styles.pricingFeatures}>
-            <li>✓ 3 ranked strategy archetypes</li>
+            <li>✓ Strategy diagnosis by your Brother</li>
             <li>✓ Decision Scores with full breakdown</li>
             <li>✓ Locked Strategy Brief</li>
-            <li>✓ Weekly Ship Packs (2 big + 5 small)</li>
+            <li>✓ Weekly Action Steps (2 big + 5 small)</li>
             <li>✓ Weekly Board Meetings (Kill/Keep/Double)</li>
             <li>✓ Red Team QA on all outputs</li>
             <li>✓ Cancel anytime</li>
