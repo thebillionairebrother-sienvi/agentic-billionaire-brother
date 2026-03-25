@@ -6,7 +6,7 @@
  */
 
 // ─── Tier Types ───
-export type Tier = 'brother' | 'team';
+export type Tier = 'free' | 'brother' | 'team';
 
 // ─── Tier Entitlements ───
 export interface TierEntitlements {
@@ -21,6 +21,16 @@ export interface TierEntitlements {
 }
 
 export const TIER_CONFIG: Record<Tier, TierEntitlements> = {
+    free: {
+        daily_prompt_cap: 10,
+        max_output_tokens: 2048,
+        max_workflow_steps: 3,
+        weekly_regen_cap: 1,
+        monthly_dollar_cap: 5.0,
+        degrade_output_tokens: 1024,
+        tools_enabled: false,
+        search_enabled: false,
+    },
     brother: {
         daily_prompt_cap: 40,
         max_output_tokens: 4096,
@@ -134,8 +144,8 @@ export const WORKFLOW_POLICIES: Record<string, WorkflowPolicy> = {
 // ─── Tool Policy (future — everything disabled Phase 1) ───
 export const TOOL_POLICY = {
     max_tool_calls_per_request: 2,
-    monthly_tool_quota: { brother: 20, team: 50 } as Record<Tier, number>,
-    daily_tool_burst_cap: { brother: 5, team: 10 } as Record<Tier, number>,
+    monthly_tool_quota: { free: 5, brother: 20, team: 50 } as Record<Tier, number>,
+    daily_tool_burst_cap: { free: 2, brother: 5, team: 10 } as Record<Tier, number>,
     enabled_tools: [] as string[],
 };
 

@@ -25,9 +25,9 @@ export async function getSubscriptionInfo(
         .single();
 
     if (!data) {
-        // No subscription record — default to brother tier (free/onboarding state)
+        // No subscription record — default to free tier
         return {
-            tier: 'brother' as Tier,
+            tier: 'free' as Tier,
             status: 'active' as SubscriptionInfo['status'],
         };
     }

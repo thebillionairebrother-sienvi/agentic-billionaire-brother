@@ -37,30 +37,38 @@ function AuthPageInner() {
 
         try {
             if (mode === 'signup') {
-                // Validate promo code client-side first
+                // Validate promo code if provided (optional field)
                 const validCodes: Record<string, string> = {
                     'BILLIONAIREBROTHER2026': 'brother',
                     'BILLIONAIRETEAM2026': 'team',
                 };
-                const tier = validCodes[promoCode.toUpperCase().trim()];
-                if (!tier) {
-                    setError('Invalid promo code. Please check and try again.');
-                    setLoading(false);
-                    return;
+                const trimmedPromo = promoCode.toUpperCase().trim();
+                let tier = 'free';
+
+                if (trimmedPromo) {
+                    const matchedTier = validCodes[trimmedPromo];
+                    if (!matchedTier) {
+                        setError('Invalid promo code. Please check and try again.');
+                        setLoading(false);
+                        return;
+                    }
+                    tier = matchedTier;
                 }
 
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
-                        data: { display_name: displayName, tier, promo_code: promoCode.toUpperCase().trim() },
+                        data: { display_name: displayName, tier, promo_code: trimmedPromo || null },
                     },
                 });
                 if (error) throw error;
 
-                // Set tier via API (will run after email confirmation when user logs in)
-                // For now store the promo code so we can set tier on first login
-                sessionStorage.setItem('pending_promo_code', promoCode.toUpperCase().trim());
+                // Store tier info so we can set it on first login
+                if (trimmedPromo) {
+                    sessionStorage.setItem('pending_promo_code', trimmedPromo);
+                }
+                sessionStorage.setItem('pending_tier', tier);
 
                 setMessage('Check your email for a confirmation link!');
             } else {
@@ -70,16 +78,18 @@ function AuthPageInner() {
                 });
                 if (error) throw error;
 
-                // Check if there's a pending promo code from signup
+                // Check if there's a pending tier from signup
                 const pendingPromo = sessionStorage.getItem('pending_promo_code');
-                if (pendingPromo) {
+                const pendingTier = sessionStorage.getItem('pending_tier');
+                if (pendingTier) {
                     try {
                         await fetch('/api/auth/set-tier', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ promoCode: pendingPromo }),
+                            body: JSON.stringify({ promoCode: pendingPromo || null, tier: pendingTier }),
                         });
                         sessionStorage.removeItem('pending_promo_code');
+                        sessionStorage.removeItem('pending_tier');
                     } catch {
                         // Non-blocking — tier can be set later
                     }
@@ -165,7 +175,7 @@ function AuthPageInner() {
                         {mode === 'signup' && (
                             <div className={styles.field}>
                                 <label className="label" htmlFor="promoCode">
-                                    Promo Code
+                                    Promo Code <span className="text-tertiary" style={{ fontWeight: 400 }}>(optional)</span>
                                 </label>
                                 <div className={styles.inputWrapper}>
                                     <Tag size={18} className={styles.inputIcon} />
@@ -174,10 +184,9 @@ function AuthPageInner() {
                                         type="text"
                                         className="input"
                                         style={{ paddingLeft: '2.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
-                                        placeholder="Enter your promo code"
+                                        placeholder="Have a code? Enter it here"
                                         value={promoCode}
                                         onChange={(e) => setPromoCode(e.target.value)}
-                                        required
                                     />
                                 </div>
                             </div>

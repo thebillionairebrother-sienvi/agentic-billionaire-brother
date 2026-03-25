@@ -121,3 +121,94 @@
         max-width: 480px;
     }
 }
+
+/* ─── Locked Cards (Free Tier) ─── */
+.lockedCard {
+    position: relative;
+    pointer-events: none;
+    user-select: none;
+}
+
+.lockedCard .cardTop,
+.lockedCard .archetype,
+.lockedCard .meta,
+.lockedCard .confidence,
+.lockedCard .risks,
+.lockedCard > p {
+    opacity: 0.25;
+    filter: blur(1.5px);
+}
+
+.lockedCard:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.lockOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(
+        135deg,
+        rgba(var(--surface-primary-rgb, 15, 15, 20), 0.85),
+        rgba(var(--surface-primary-rgb, 15, 15, 20), 0.7)
+    );
+    backdrop-filter: blur(2px);
+    border-radius: inherit;
+    pointer-events: all;
+}
+
+.lockContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-2);
+    padding: var(--space-6);
+}
+
+.lockContent svg {
+    color: var(--gold-500);
+    opacity: 0.8;
+}
+
+.lockLabel {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--gold-500);
+    letter-spacing: -0.01em;
+}
+
+.lockText {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    max-width: 220px;
+    line-height: 1.5;
+}
+
+/* ─── Upgrade Banner ─── */
+.upgradeBanner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    background: rgba(var(--gold-500-rgb, 212, 175, 55), 0.08);
+    border: 1px solid rgba(var(--gold-500-rgb, 212, 175, 55), 0.2);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.upgradeBanner svg {
+    color: var(--gold-500);
+    flex-shrink: 0;
+}
+
+.upgradeBanner a {
+    margin-left: auto;
+    flex-shrink: 0;
+}

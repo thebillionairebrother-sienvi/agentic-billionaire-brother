@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { GenerationProgress } from '@/components/GenerationProgress';
-import { Crown, ArrowRight, AlertTriangle, TrendingUp, Clock, Target, RefreshCcw } from 'lucide-react';
+import { Crown, ArrowRight, AlertTriangle, TrendingUp, Clock, Target, RefreshCcw, Lock } from 'lucide-react';
 import { ScoreBreakdownPopup } from '@/components/ScoreBreakdownPopup';
 import type { StrategyOption, Decision } from '@/lib/types';
 import styles from './strategies.module.css';
@@ -18,9 +18,22 @@ function ScoreBadge({ score }: { score: number }) {
     );
 }
 
-function StrategyCard({ strategy, onSelect }: { strategy: StrategyOption; onSelect: () => void }) {
+function StrategyCard({ strategy, onSelect, isLocked }: { strategy: StrategyOption; onSelect: () => void; isLocked: boolean }) {
     return (
-        <div className={`card ${styles.strategyCard}`}>
+        <div className={`card ${styles.strategyCard} ${isLocked ? styles.lockedCard : ''}`}>
+            {isLocked && (
+                <div className={styles.lockOverlay}>
+                    <div className={styles.lockContent}>
+                        <Lock size={28} />
+                        <span className={styles.lockLabel}>Premium Strategy</span>
+                        <p className={styles.lockText}>Upgrade to unlock this higher-ranked strategy path</p>
+                        <a href="/billing" className="btn btn-primary" style={{ marginTop: 'var(--space-3)' }}>
+                            Upgrade Now <ArrowRight size={14} />
+                        </a>
+                    </div>
+                </div>
+            )}
+
             <div className={styles.cardTop}>
                 <div className={styles.rankBadge}>#{strategy.rank}</div>
                 <ScoreBreakdownPopup breakdown={strategy.score_breakdown} totalScore={strategy.decision_score}>
@@ -59,13 +72,15 @@ function StrategyCard({ strategy, onSelect }: { strategy: StrategyOption; onSele
                 </div>
             )}
 
-            <button
-                className="btn btn-primary"
-                style={{ width: '100%', marginTop: 'var(--space-4)' }}
-                onClick={onSelect}
-            >
-                Choose This Strategy <ArrowRight size={16} />
-            </button>
+            {!isLocked && (
+                <button
+                    className="btn btn-primary"
+                    style={{ width: '100%', marginTop: 'var(--space-4)' }}
+                    onClick={onSelect}
+                >
+                    Choose This Strategy <ArrowRight size={16} />
+                </button>
+            )}
         </div>
     );
 }
@@ -77,6 +92,7 @@ export default function StrategiesPage() {
     const [jobId, setJobId] = useState<string | null>(null);
     const [generating, setGenerating] = useState(false);
     const [regenerating, setRegenerating] = useState(false);
+    const [userTier, setUserTier] = useState<string>('free');
     const router = useRouter();
     const supabase = createClient();
 
@@ -87,6 +103,19 @@ export default function StrategiesPage() {
     const loadStrategies = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        // Fetch user tier
+        const { data: subData } = await supabase
+            .from('subscriptions')
+            .select('tier')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (subData?.tier) {
+            setUserTier(subData.tier);
+        }
 
         // Check for pending generation job
         const { data: pendingJob } = await supabase
@@ -151,6 +180,8 @@ export default function StrategiesPage() {
     const handleSelect = (strategy: StrategyOption) => {
         router.push(`/commit?decision=${decision?.id}&strategy=${strategy.id}`);
     };
+
+    const isFreeTier = userTier === 'free';
 
     if (loading) {
         return (
@@ -225,6 +256,13 @@ export default function StrategiesPage() {
                 <p className="text-secondary">
                     Pick the path that fits your constraints. Each strategy has a transparent Decision Score showing exactly how we scored it.
                 </p>
+                {isFreeTier && (
+                    <div className={styles.upgradeBanner}>
+                        <Lock size={16} />
+                        <span>You&apos;re on the <strong>Free</strong> plan. Upgrade to unlock all strategies.</span>
+                        <a href="/billing" className="btn btn-primary btn-sm">Upgrade</a>
+                    </div>
+                )}
             </header>
 
             <div className={styles.grid}>
@@ -233,6 +271,7 @@ export default function StrategiesPage() {
                         key={strategy.id}
                         strategy={strategy}
                         onSelect={() => handleSelect(strategy)}
+                        isLocked={isFreeTier && strategy.rank <= 2}
                     />
                 ))}
             </div>
@@ -247,3 +286,4 @@ export default function StrategiesPage() {
         </div>
     );
 }
+
