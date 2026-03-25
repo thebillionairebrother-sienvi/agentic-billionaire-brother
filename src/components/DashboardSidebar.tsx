@@ -13,7 +13,6 @@ import {
     LogOut,
     ChevronLeft,
     Menu,
-    Share2,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { User } from '@/lib/types';
@@ -28,7 +27,6 @@ const navItems = [
     { href: '/ship-pack', icon: Package, label: 'Action Steps' },
     { href: '/board-meeting', icon: CalendarCheck, label: 'Weekly Check-in' },
     { href: '/brief', icon: FileText, label: 'Strategy Brief' },
-    { href: '/social', icon: Share2, label: 'Social Media' },
     { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
