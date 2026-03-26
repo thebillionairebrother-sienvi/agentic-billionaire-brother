@@ -13,7 +13,7 @@ export interface TierEntitlements {
     daily_prompt_cap: number;
     max_output_tokens: number;
     max_workflow_steps: number;
-    weekly_regen_cap: number;
+    daily_regen_cap: number;
     monthly_dollar_cap: number;
     degrade_output_tokens: number;
     tools_enabled: boolean;
@@ -25,7 +25,7 @@ export const TIER_CONFIG: Record<Tier, TierEntitlements> = {
         daily_prompt_cap: 10,
         max_output_tokens: 2048,
         max_workflow_steps: 3,
-        weekly_regen_cap: 1,
+        daily_regen_cap: 1,
         monthly_dollar_cap: 5.0,
         degrade_output_tokens: 1024,
         tools_enabled: false,
@@ -35,7 +35,7 @@ export const TIER_CONFIG: Record<Tier, TierEntitlements> = {
         daily_prompt_cap: 40,
         max_output_tokens: 4096,
         max_workflow_steps: 6,
-        weekly_regen_cap: 2,
+        daily_regen_cap: 2,
         monthly_dollar_cap: 50.0,
         degrade_output_tokens: 2048,
         tools_enabled: false,
@@ -45,7 +45,7 @@ export const TIER_CONFIG: Record<Tier, TierEntitlements> = {
         daily_prompt_cap: 100,
         max_output_tokens: 8192,
         max_workflow_steps: 10,
-        weekly_regen_cap: 4,
+        daily_regen_cap: 4,
         monthly_dollar_cap: 150.0,
         degrade_output_tokens: 4096,
         tools_enabled: false,

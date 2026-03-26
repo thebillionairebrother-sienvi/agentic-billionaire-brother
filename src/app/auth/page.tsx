@@ -119,7 +119,7 @@ function AuthPageInner() {
                     <div className={styles.features}>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />
-                            <span>Strategy built by your Brother</span>
+                            <span>Strategy built by your Brother Derek</span>
                         </div>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />

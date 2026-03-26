@@ -4,10 +4,10 @@
  * This is the core entitlement enforcement layer.
  */
 import { SupabaseClient } from '@supabase/supabase-js';
-import { TIER_CONFIG, THRESHOLDS, getTodayDate, getCurrentWeekStart, getCurrentMonthStart, getNextResetDate } from '@/lib/ai-config';
+import { TIER_CONFIG, THRESHOLDS, getTodayDate, getCurrentMonthStart, getNextResetDate } from '@/lib/ai-config';
 import type { Tier } from '@/lib/ai-config';
 import { GuardError } from './types';
-import type { DailyUsage, WeeklyUsage, MonthlyUsage } from './types';
+import type { DailyUsage, MonthlyUsage } from './types';
 
 interface UsageCheckResult {
     isDegradeMode: boolean;
@@ -35,20 +35,6 @@ async function getDailyUsage(supabase: SupabaseClient, userId: string): Promise<
         workflow_count: 0,
         estimated_cost: 0,
     };
-}
-
-/**
- * Get or initialize weekly usage row.
- */
-async function getWeeklyUsage(supabase: SupabaseClient, userId: string): Promise<WeeklyUsage> {
-    const { data } = await supabase
-        .from('usage_weekly_user')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('week_start', getCurrentWeekStart())
-        .single();
-
-    return data ?? { regen_count: 0 };
 }
 
 /**
@@ -81,10 +67,9 @@ export async function checkUsageGuard(
 ): Promise<UsageCheckResult> {
     const config = TIER_CONFIG[tier];
 
-    // Fetch all usage counters in parallel
-    const [daily, weekly, monthly] = await Promise.all([
+    // Fetch daily and monthly usage counters in parallel
+    const [daily, monthly] = await Promise.all([
         getDailyUsage(supabase, userId),
-        getWeeklyUsage(supabase, userId),
         getMonthlyUsage(supabase, userId),
     ]);
 
@@ -110,11 +95,11 @@ export async function checkUsageGuard(
         );
     }
 
-    // Weekly regen cap (only if this is a regen request)
-    if (options.isRegen && weekly.regen_count >= config.weekly_regen_cap) {
+    // Daily regen cap (only if this is a regen request)
+    if (options.isRegen && daily.regen_count >= config.daily_regen_cap) {
         throw new GuardError(
             'REGEN_CAP_EXCEEDED',
-            'Weekly regeneration limit reached. Try again next week.',
+            'Daily regeneration limit reached. Come back tomorrow.',
             429,
             false
         );
@@ -133,4 +118,4 @@ export async function checkUsageGuard(
     };
 }
 
-export { getDailyUsage, getWeeklyUsage, getMonthlyUsage };
+export { getDailyUsage, getMonthlyUsage };

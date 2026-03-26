@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Crown, Plus, Lock, Target, TrendingUp, Calendar } from 'lucide-react';
+import { ScoreBreakdownPopup } from '@/components/ScoreBreakdownPopup';
 import styles from './office.module.css';
 
 export default async function OfficePage() {
@@ -100,9 +101,11 @@ export default async function OfficePage() {
                                 <div className={styles.rankBadge}>
                                     <Crown size={16} />
                                 </div>
-                                <div className={`score-badge score-${(contract.strategy?.decision_score || 0) >= 70 ? 'high' : (contract.strategy?.decision_score || 0) >= 45 ? 'medium' : 'low'}`}>
-                                    {contract.strategy?.decision_score || '—'}
-                                </div>
+                                <ScoreBreakdownPopup breakdown={contract.strategy?.score_breakdown} totalScore={contract.strategy?.decision_score || 0}>
+                                    <div className={`score-badge score-${(contract.strategy?.decision_score || 0) >= 70 ? 'high' : (contract.strategy?.decision_score || 0) >= 45 ? 'medium' : 'low'}`}>
+                                        {contract.strategy?.decision_score || '—'}
+                                    </div>
+                                </ScoreBreakdownPopup>
                             </div>
 
                             <h3 className={styles.archetype}>

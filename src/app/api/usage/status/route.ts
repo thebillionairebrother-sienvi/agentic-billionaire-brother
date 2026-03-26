@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { TIER_CONFIG, THRESHOLDS, getTodayDate, getCurrentMonthStart, getCurrentWeekStart, getNextResetDate } from '@/lib/ai-config';
+import { TIER_CONFIG, THRESHOLDS, getTodayDate, getCurrentMonthStart, getNextResetDate } from '@/lib/ai-config';
 import type { Tier } from '@/lib/ai-config';
 
 export async function GET() {
@@ -23,7 +23,7 @@ export async function GET() {
         const config = TIER_CONFIG[tier];
 
         // Parallel fetch usage
-        const [{ data: daily }, { data: monthly }, { data: weekly }] = await Promise.all([
+        const [{ data: daily }, { data: monthly }] = await Promise.all([
             supabase
                 .from('usage_daily_user')
                 .select('prompt_count, regen_count, estimated_cost')
@@ -36,12 +36,6 @@ export async function GET() {
                 .eq('user_id', user.id)
                 .eq('month_start', getCurrentMonthStart())
                 .single(),
-            supabase
-                .from('usage_weekly_user')
-                .select('regen_count')
-                .eq('user_id', user.id)
-                .eq('week_start', getCurrentWeekStart())
-                .single(),
         ]);
 
         const promptsUsed = daily?.prompt_count || 0;
@@ -52,8 +46,8 @@ export async function GET() {
         const monthlyCap = config.monthly_dollar_cap;
         const costPct = Math.round((monthlyCost / monthlyCap) * 100);
 
-        const regensUsed = weekly?.regen_count || 0;
-        const regenCap = config.weekly_regen_cap;
+        const regensUsed = daily?.regen_count || 0;
+        const regenCap = config.daily_regen_cap;
 
         // Degrade mode: 80%+ on cost OR prompts
         const isDegradeMode =

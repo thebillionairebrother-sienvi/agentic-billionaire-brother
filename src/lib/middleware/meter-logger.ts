@@ -4,7 +4,7 @@
  * This runs AFTER the Gemini call completes, BEFORE the response is returned.
  */
 import { SupabaseClient } from '@supabase/supabase-js';
-import { calculateEstimatedCost, getCurrentMonthStart, getCurrentWeekStart, TIER_CONFIG } from '@/lib/ai-config';
+import { calculateEstimatedCost, getCurrentMonthStart, TIER_CONFIG } from '@/lib/ai-config';
 import type { Tier } from '@/lib/ai-config';
 import { GEMINI_MODEL } from '@/lib/gemini';
 
@@ -62,15 +62,7 @@ export async function logUsageAndCost(
             p_is_regen: entry.isRegen ?? false,
         });
 
-        // 4. If regen, increment weekly regen counter
-        if (entry.isRegen) {
-            await supabase.rpc('increment_weekly_regen', {
-                p_user_id: entry.userId,
-                p_week_start: getCurrentWeekStart(),
-            });
-        }
-
-        // 5. Check if cost alert should be created
+        // 4. Check if cost alert should be created
         const cap = TIER_CONFIG[entry.tier].monthly_dollar_cap;
         const { data: monthlyData } = await supabase
             .from('usage_monthly_workspace')

@@ -134,6 +134,7 @@ export function ScoreBreakdownPopup({ breakdown, totalScore, children }: ScoreBr
                 onMouseLeave={() => setVisible(false)}
             >
                 {children}
+                <span className={styles.hoverHint}>Hover for breakdown</span>
             </div>
             {popupContent && createPortal(popupContent, document.body)}
         </>
