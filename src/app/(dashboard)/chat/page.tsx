@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Sparkles, RefreshCw, MessageSquare, Plus, ChevronDown } from 'lucide-react';
+import { Send, Sparkles, RefreshCw, MessageSquare, Plus, ChevronDown, Minimize2, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { GifBubble } from '@/components/GifBubble';
 import type { ChatConversation } from '@/lib/types';
@@ -32,6 +33,28 @@ export default function ChatPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const supabase = createClient();
+    const router = useRouter();
+
+    const handleMinimize = () => {
+        const returnUrl = sessionStorage.getItem('derek_chat_return_url') || '/';
+        sessionStorage.setItem('open_derek_chat', 'true');
+        router.push(returnUrl);
+    };
+
+    const deleteConversation = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+
+        setConversations(prev => prev.filter(c => c.id !== id));
+        if (activeConversationId === id) {
+            setActiveConversationId(null);
+            setMessages([]);
+        }
+
+        await supabase
+            .from('chat_conversations')
+            .delete()
+            .eq('id', id);
+    };
 
     // Load contracts and conversations on mount
     useEffect(() => {
@@ -263,17 +286,26 @@ export default function ChatPage() {
                         </div>
                     ) : (
                         conversations.map(conv => (
-                            <button
-                                key={conv.id}
-                                className={`${styles.conversationItem} ${conv.id === activeConversationId ? styles.conversationActive : ''}`}
-                                onClick={() => loadConversation(conv.id)}
-                            >
-                                <MessageSquare size={14} />
-                                <span className={styles.conversationTitle}>{conv.title}</span>
-                                <span className={styles.conversationDate}>
-                                    {new Date(conv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                </span>
-                            </button>
+                            <div key={conv.id} className={styles.conversationItemWrapper}>
+                                <button
+                                    className={`${styles.conversationItem} ${conv.id === activeConversationId ? styles.conversationActive : ''}`}
+                                    onClick={() => loadConversation(conv.id)}
+                                >
+                                    <MessageSquare size={14} />
+                                    <span className={styles.conversationTitle}>{conv.title}</span>
+                                    <span className={styles.conversationDate}>
+                                        {new Date(conv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </span>
+                                </button>
+                                <button
+                                    className={styles.deleteConvBtn}
+                                    onClick={(e) => deleteConversation(e, conv.id)}
+                                    title="Delete conversation"
+                                    aria-label="Delete conversation"
+                                >
+                                    <Trash2 size={13} />
+                                </button>
+                            </div>
                         ))
                     )}
                 </div>
@@ -297,23 +329,35 @@ export default function ChatPage() {
                         </div>
                     </div>
 
-                    {/* Strategy Selector */}
-                    {contracts.length > 0 && (
-                        <div className={styles.strategySelector}>
-                            <ChevronDown size={14} />
-                            <select
-                                className={styles.strategySelect}
-                                value={selectedContractId || ''}
-                                onChange={(e) => setSelectedContractId(e.target.value)}
-                            >
-                                {contracts.map(c => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.archetype}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
+                    <div className={styles.headerRight}>
+                        {/* Strategy Selector */}
+                        {contracts.length > 0 && (
+                            <div className={styles.strategySelector}>
+                                <ChevronDown size={14} />
+                                <select
+                                    className={styles.strategySelect}
+                                    value={selectedContractId || ''}
+                                    onChange={(e) => setSelectedContractId(e.target.value)}
+                                >
+                                    {contracts.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.archetype}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {/* Minimize Button */}
+                        <button
+                            className={styles.minimizeBtn}
+                            onClick={handleMinimize}
+                            title="Back to floating chat"
+                            aria-label="Minimize to floating chat"
+                        >
+                            <Minimize2 size={18} />
+                        </button>
+                    </div>
                 </header>
 
                 {/* Messages */}

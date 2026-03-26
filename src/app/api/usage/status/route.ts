@@ -19,7 +19,7 @@ export async function GET() {
             .eq('user_id', user.id)
             .single();
 
-        const tier: Tier = (sub?.tier as Tier) || 'brother';
+        const tier: Tier = (sub?.tier as Tier) || 'free';
         const config = TIER_CONFIG[tier];
 
         // Parallel fetch usage

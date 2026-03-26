@@ -67,6 +67,20 @@ export async function POST(request: Request) {
             .limit(1)
             .single();
 
+        // Lookup user tier
+        const { data: sub } = await supabase
+            .from('subscriptions')
+            .select('tier')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+        const tier = (sub?.tier || 'free') as Tier;
+
+        const isFreeTier = tier === 'free';
+        const bigCount = isFreeTier ? 1 : 2;
+        const smallCount = isFreeTier ? 3 : 5;
+
         const shipPackPrompt = `
 You are a JSON-only API. Do NOT include any conversational text, greetings, or explanations outside the JSON.
 
@@ -81,8 +95,8 @@ HOURS/WEEK: ${businessProfile?.hours_per_week || 10}
 TEAM: ${businessProfile?.team_size || 'solo'}
 
 Generate action steps with exactly:
-- 2 big deliverables (substantial assets from departments)
-- 5 small tasks (quick wins, setup tasks)
+- ${bigCount} big deliverables (substantial assets from departments)
+- ${smallCount} small tasks (quick wins, setup tasks)
 
 Each deliverable must have a department assignment from: competitive_intel, copy_conversion, seo_demand, business_plan, content_distribution
 
@@ -115,17 +129,9 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
   ]
 }`;
 
-        // Lookup user tier for token cap
-        const { data: sub } = await supabase
-            .from('subscriptions')
-            .select('tier')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-        const tier = (sub?.tier || 'brother') as Tier;
-        // Action steps need more tokens than normal chat — enforce a minimum of 4096
-        const maxOutputTokens = Math.max(TIER_CONFIG[tier].max_output_tokens, 4096);
+        // tier lookup moved up
+        // Action steps need tokens — if free let it default to full model capacity rather than clipping
+        const maxOutputTokens = isFreeTier ? undefined : Math.max(TIER_CONFIG[tier].max_output_tokens, 4096);
 
         const MAX_ATTEMPTS = 3;
         let rawText = '';

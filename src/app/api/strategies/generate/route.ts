@@ -62,7 +62,7 @@ export async function POST(request: Request) {
                     email: user.email ?? '',
                     tier: 'brother' as const,
                     subscriptionStatus: 'active',
-                    maxOutputTokens: 2048,
+                    maxOutputTokens: undefined,
                     isDegradeMode: true,
                     isHardStop: false,
                     requestId: crypto.randomUUID(),

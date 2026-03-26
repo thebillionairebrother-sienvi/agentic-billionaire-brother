@@ -91,6 +91,9 @@ export async function POST(request: Request) {
             return `${i + 1}. [${t.status.toUpperCase()}] "${t.title}" (ID: ${t.id}) — ${meta.summary || t.description || 'no description'}`;
         }).join('\n');
 
+        // ── Guardrail Gate ──
+        const ctx = await buildAiContext(supabase, user);
+
         const systemInstruction = `${DEREK_FULL_PROMPT}
 
 -------------------------------
@@ -117,7 +120,9 @@ YOUR PERSONALITY:
   %%TASK_STATUS:{"taskId":"<uuid>","status":"done"}%%
   %%TASK_STATUS:{"taskId":"<uuid>","status":"skipped"}%%
 - Only modify tasks when the user clearly wants changes. Don't modify unprompted.
-- Keep responses SHORT — 2-3 sentences max unless they need detailed advice.
+${ctx.tier === 'free' 
+    ? '- CRITICAL: Free Tier user. Your response MUST be extremely brief (max 2 sentences, under 40 words). Be punchy and fast.' 
+    : '- Keep responses SHORT — 2-3 sentences max unless they need detailed advice.'}
 - Reference their specific business and tasks by name.
 
 RESPONSE FORMAT:
@@ -153,9 +158,6 @@ REACTION RULES:
             parts: [{ text: message }],
         });
 
-        // ── Guardrail Gate ──
-        const ctx = await buildAiContext(supabase, user);
-
         const startTime = Date.now();
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
@@ -172,7 +174,8 @@ REACTION RULES:
                     },
                     required: ['reaction', 'response'],
                 },
-                maxOutputTokens: ctx.maxOutputTokens,
+                // Do not hard-truncate JSON, rely on prompt constraints for brevity
+                maxOutputTokens: ctx.tier === 'free' ? undefined : ctx.maxOutputTokens,
                 thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
             },
             contents: geminiHistory,

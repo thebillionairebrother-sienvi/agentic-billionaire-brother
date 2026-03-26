@@ -44,6 +44,7 @@ function parseDescription(desc: string): ParsedDetail {
 
 export default function TaskDetailPage({ params }: { params: Promise<{ taskId: string }> }) {
     const [task, setTask] = useState<TaskDetail | null>(null);
+    const [tier, setTier] = useState<string>('free');
     const [loading, setLoading] = useState(true);
     const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
     const [derekWorking, setDerekWorking] = useState(false);
@@ -58,6 +59,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
             if (res.ok) {
                 const data = await res.json();
                 setTask(data.task);
+                setTier(data.tier || 'free');
             }
             setLoading(false);
         };
@@ -216,23 +218,29 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
             {/* Have Derek Do It */}
             {detail.ai_doable !== false && task.status !== 'done' && !derekOutput && (
-                <button
-                    className={styles.derekBtn}
-                    onClick={handleDerekDoIt}
-                    disabled={derekWorking}
+                <div 
+                    title={tier === 'free' ? 'Upgrade to use this feature' : undefined}
+                    style={tier === 'free' ? { cursor: 'not-allowed' } : undefined}
                 >
-                    {derekWorking ? (
-                        <>
-                            <Sparkles size={18} className={styles.spinning} />
-                            Derek is working on it...
-                        </>
-                    ) : (
-                        <>
-                            <Bot size={18} />
-                            Have Derek Do It
-                        </>
-                    )}
-                </button>
+                    <button
+                        className={styles.derekBtn}
+                        onClick={handleDerekDoIt}
+                        disabled={derekWorking || tier === 'free'}
+                        style={tier === 'free' ? { pointerEvents: 'none' } : undefined}
+                    >
+                        {derekWorking ? (
+                            <>
+                                <Sparkles size={18} className={styles.spinning} />
+                                Derek is working on it...
+                            </>
+                        ) : (
+                            <>
+                                <Bot size={18} />
+                                Have Derek Do It
+                            </>
+                        )}
+                    </button>
+                </div>
             )}
 
             {derekError && (

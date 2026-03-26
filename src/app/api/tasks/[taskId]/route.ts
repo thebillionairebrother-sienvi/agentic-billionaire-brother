@@ -26,7 +26,16 @@ export async function GET(
             return NextResponse.json({ error: 'Task not found' }, { status: 404 });
         }
 
-        return NextResponse.json({ task });
+        const { data: sub } = await supabase
+            .from('subscriptions')
+            .select('tier')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+        const tier = sub?.tier || 'free';
+
+        return NextResponse.json({ task, tier });
     } catch (error) {
         console.error('Fetch task error:', error);
         return NextResponse.json(

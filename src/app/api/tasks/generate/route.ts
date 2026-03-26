@@ -110,6 +110,10 @@ export async function POST(request: Request) {
         const dateObj = new Date(targetDate + 'T00:00:00');
         const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
 
+        const isFreeTier = ctx.tier === 'free';
+        const taskCount = isFreeTier ? '3-5' : '5-8';
+        const stepCount = isFreeTier ? '1-2 brief steps (to save payload size)' : '3-5 clear, numbered STEPS';
+
         const prompt = `Generate action items starting from ${dayName}, ${targetDate} for this founder.
 
 FOUNDER CONTEXT:
@@ -132,11 +136,11 @@ ${currentCycle?.kpi_target ? `KPI target this week: ${currentCycle.kpi_target}` 
 
 TIME BUDGET: ${dailyMinutes} minutes per day (${hoursPerWeek} hrs/week total)
 
-GENERATE 5-8 tasks. Rules:
+GENERATE ${taskCount} tasks. Rules:
 1. Total time across all tasks MUST fit within ${hoursPerWeek} hours for the week
 2. Each task needs a CATEGORY from this list: "learn", "create", "outreach", "plan", "execute", "review"
 3. Be SPECIFIC and actionable — not "work on marketing" but "Write 3 Instagram captions for your pop-up event"
-4. Include 3-5 clear, numbered STEPS for how to complete each task
+4. Include ${stepCount} for how to complete each task
 5. Match the founder's current stage and skill level
 6. Build toward the weekly deliverable and KPI
 7. Each task should feel achievable in one sitting
@@ -171,7 +175,7 @@ Return ONLY a JSON array:
 ]`;
 
         // Enforce minimum token budget — task gen needs at least 4096 for 5-8 tasks with steps
-        const maxOutputTokens = Math.max(ctx.maxOutputTokens ?? 2048, 4096);
+        const maxOutputTokens = ctx.maxOutputTokens === undefined ? undefined : Math.max(ctx.maxOutputTokens, 4096);
 
         interface GeneratedTask {
             title: string;

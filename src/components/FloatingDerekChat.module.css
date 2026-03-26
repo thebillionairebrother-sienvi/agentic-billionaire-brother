@@ -116,20 +116,27 @@
     line-height: 1.2;
 }
 
-.closeBtn {
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.iconBtn {
     background: none;
     border: none;
     color: var(--text-tertiary);
     cursor: pointer;
-    padding: var(--space-1);
+    padding: var(--space-2);
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    text-decoration: none;
 }
 
-.closeBtn:hover {
+.iconBtn:hover {
     color: var(--text-primary);
     background: rgba(255, 255, 255, 0.05);
 }

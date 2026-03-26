@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageCircle, X, Send, Sparkles, ArrowRight } from 'lucide-react';
+import { MessageCircle, X, Send, Sparkles, ArrowRight, Maximize2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { GifBubble } from '@/components/GifBubble';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import styles from './FloatingDerekChat.module.css';
 
 const GUEST_PROMPT_KEY = 'derek_guest_prompts';
@@ -22,10 +23,40 @@ export function FloatingDerekChat() {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
     const [guestPromptCount, setGuestPromptCount] = useState(0);
     const [limitReached, setLimitReached] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    const pathname = usePathname();
+
+    const loadLatestConversation = useCallback(async (userId: string) => {
+        const supabase = createClient();
+        const { data: convs } = await supabase
+            .from('chat_conversations')
+            .select('id')
+            .eq('user_id', userId)
+            .order('updated_at', { ascending: false })
+            .limit(1);
+
+        if (convs && convs.length > 0) {
+            const convId = convs[0].id;
+            setActiveConversationId(convId);
+            const { data: msgs } = await supabase
+                .from('chat_messages')
+                .select('*')
+                .eq('conversation_id', convId)
+                .order('created_at', { ascending: true });
+
+            if (msgs && msgs.length > 0) {
+                setMessages(msgs.map(m => ({
+                    role: m.role as 'user' | 'derek',
+                    content: m.content,
+                    reaction: m.reaction || undefined,
+                })));
+            }
+        }
+    }, []);
 
     // Check auth state
     useEffect(() => {
@@ -33,9 +64,9 @@ export function FloatingDerekChat() {
         supabase.auth.getUser().then(({ data: { user } }) => {
             setIsAuthenticated(!!user);
             if (user) {
-                // Reset limit for authenticated users
                 setLimitReached(false);
                 setGuestPromptCount(0);
+                loadLatestConversation(user.id);
             }
         });
 
@@ -44,11 +75,12 @@ export function FloatingDerekChat() {
             if (session?.user) {
                 setLimitReached(false);
                 setGuestPromptCount(0);
+                loadLatestConversation(session.user.id);
             }
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [loadLatestConversation]);
 
     // Load guest prompt count from localStorage
     useEffect(() => {
@@ -65,6 +97,16 @@ export function FloatingDerekChat() {
             } catch { /* localStorage may be unavailable */ }
         }
     }, [isAuthenticated]);
+
+    // Check for minimize action from full chat page
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            if (sessionStorage.getItem('open_derek_chat') === 'true') {
+                setOpen(true);
+                sessionStorage.removeItem('open_derek_chat');
+            }
+        }
+    }, [pathname]);
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -97,7 +139,34 @@ export function FloatingDerekChat() {
         setMessages((prev) => [...prev, { role: 'user', content: msg }]);
         setLoading(true);
 
-        const newCount = guestPromptCount + 1;
+        let convId = activeConversationId;
+        const supabase = createClient();
+
+        if (isAuthenticated) {
+            if (!convId) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data: newConv } = await supabase
+                        .from('chat_conversations')
+                        .insert({
+                            user_id: user.id,
+                            title: msg.substring(0, 50),
+                        })
+                        .select()
+                        .single();
+                    if (newConv) {
+                        convId = newConv.id;
+                        setActiveConversationId(newConv.id);
+                    }
+                }
+            } else {
+                if (messages.length === 0) {
+                    await supabase.from('chat_conversations').update({ title: msg.substring(0, 50), updated_at: new Date().toISOString() }).eq('id', convId);
+                } else {
+                    await supabase.from('chat_conversations').update({ updated_at: new Date().toISOString() }).eq('id', convId);
+                }
+            }
+        }
 
         try {
             const chatHistory = messages.map(m => ({
@@ -105,14 +174,15 @@ export function FloatingDerekChat() {
                 content: m.content,
             }));
 
-            const res = await fetch('/api/chat/public', {
+            const endpoint = isAuthenticated ? '/api/chat' : '/api/chat/public';
+            const body = isAuthenticated
+                ? JSON.stringify({ message: msg, chatHistory, conversationId: convId })
+                : JSON.stringify({ message: msg, chatHistory, promptCount: guestPromptCount });
+
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: msg,
-                    chatHistory,
-                    promptCount: isAuthenticated ? undefined : guestPromptCount,
-                }),
+                body,
             });
 
             const data = await res.json();
@@ -130,8 +200,9 @@ export function FloatingDerekChat() {
                 },
             ]);
 
-            // Update guest prompt count
+            // Update guest prompt count only for unauthenticated users
             if (!isAuthenticated) {
+                const newCount = guestPromptCount + 1;
                 setGuestPromptCount(newCount);
                 try {
                     localStorage.setItem(GUEST_PROMPT_KEY, String(newCount));
@@ -161,6 +232,15 @@ export function FloatingDerekChat() {
         }
     };
 
+    if (pathname === '/chat') {
+        return null;
+    }
+
+    const handleMaximize = () => {
+        sessionStorage.setItem('derek_chat_return_url', pathname);
+        setOpen(false);
+    };
+
     return (
         <>
             {/* FAB Button */}
@@ -186,13 +266,18 @@ export function FloatingDerekChat() {
                                 <div className={styles.headerSub}>Your Billionaire Brother</div>
                             </div>
                         </div>
-                        <button
-                            className={styles.closeBtn}
-                            onClick={() => setOpen(false)}
-                            aria-label="Close chat"
-                        >
-                            <X size={18} />
-                        </button>
+                        <div className={styles.headerRight}>
+                            <Link href="/chat" onClick={handleMaximize} className={styles.iconBtn} aria-label="Full screen mode">
+                                <Maximize2 size={16} />
+                            </Link>
+                            <button
+                                className={styles.iconBtn}
+                                onClick={() => setOpen(false)}
+                                aria-label="Close chat"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Messages */}
