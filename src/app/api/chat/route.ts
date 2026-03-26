@@ -38,17 +38,31 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { message, chatHistory } = await request.json() as {
+        const { message, chatHistory, contractId, conversationId } = await request.json() as {
             message: string;
             chatHistory?: Array<{ role: string; content: string }>;
+            contractId?: string;
+            conversationId?: string;
         };
 
         if (!message) {
             return NextResponse.json({ error: 'Message is required' }, { status: 400 });
         }
 
-        // Fetch user context: tasks, profile, strategy
+        // Fetch user context: tasks, profile, strategy (scoped to contractId if provided)
         const today = new Date().toISOString().split('T')[0];
+
+        let contractQuery = supabase
+            .from('execution_contracts')
+            .select('*, strategy:strategy_options(*)')
+            .eq('user_id', user.id);
+
+        if (contractId) {
+            contractQuery = contractQuery.eq('id', contractId);
+        } else {
+            contractQuery = contractQuery.order('signed_at', { ascending: false }).limit(1);
+        }
+
         const [
             { data: todayTasks },
             { data: businessProfile },
@@ -67,13 +81,7 @@ export async function POST(request: Request) {
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single(),
-            supabase
-                .from('execution_contracts')
-                .select('*, strategy:strategy_options(*)')
-                .eq('user_id', user.id)
-                .order('signed_at', { ascending: false })
-                .limit(1)
-                .single(),
+            contractQuery.single(),
         ]);
 
         // Build task context for Derek
@@ -233,6 +241,24 @@ REACTION RULES:
             latencyMs,
             isDegradeMode: ctx.isDegradeMode,
         });
+
+        // ── Persist messages to DB if conversationId provided ──
+        if (conversationId) {
+            await Promise.all([
+                supabase.from('chat_messages').insert({
+                    conversation_id: conversationId,
+                    role: 'user',
+                    content: message,
+                }),
+                supabase.from('chat_messages').insert({
+                    conversation_id: conversationId,
+                    role: 'derek',
+                    content: responseText,
+                    reaction: parsed.reaction || null,
+                    task_updates: taskUpdates.length > 0 ? taskUpdates : null,
+                }),
+            ]);
+        }
 
         return NextResponse.json({
             response: responseText,

@@ -286,3 +286,24 @@ export interface InterviewResponse {
     complete: boolean;
     extractedData?: QuestionnairePayload;
 }
+
+// ─── Chat Conversations ───
+export interface ChatConversation {
+    id: string;
+    user_id: string;
+    execution_contract_id: string | null;
+    title: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ChatMessage {
+    id: string;
+    conversation_id: string;
+    role: 'user' | 'derek';
+    content: string;
+    reaction?: string | null;
+    task_updates?: string[] | null;
+    created_at: string;
+}
+

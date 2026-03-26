@@ -1,12 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { ProgressChart } from '@/components/ProgressChart';
 import { ResetStrategyButton } from '@/components/ResetStrategyButton';
 import { JourneyCalendar } from '@/components/JourneyCalendar';
 import { StrategyGantt } from '@/components/StrategyGantt';
+import { Briefcase } from 'lucide-react';
 import styles from './page.module.css';
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ strategy?: string }>;
+}) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -23,23 +29,38 @@ export default async function DashboardPage() {
         redirect('/onboard');
     }
 
-    // Get active execution contract + current week
-    const { data: contract } = await supabase
+    const params = await searchParams;
+    const strategyParam = params.strategy;
+
+    // Get execution contract — specific one if param provided, or latest
+    let contractQuery = supabase
         .from('execution_contracts')
         .select(`
       *,
       strategy:strategy_options(*),
       decision:decisions(*)
     `)
-        .eq('user_id', user.id)
-        .order('signed_at', { ascending: false })
-        .limit(1)
-        .single();
+        .eq('user_id', user.id);
+
+    if (strategyParam) {
+        contractQuery = contractQuery.eq('id', strategyParam);
+    } else {
+        contractQuery = contractQuery.order('signed_at', { ascending: false }).limit(1);
+    }
+
+    const { data: contract } = await contractQuery.single();
+
+    // Get total contracts count
+    const { count: totalContracts } = await supabase
+        .from('execution_contracts')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
 
     const { data: currentCycle } = await supabase
         .from('weekly_cycles')
         .select('*')
         .eq('user_id', user.id)
+        .eq('execution_contract_id', contract?.id || '')
         .order('week_number', { ascending: false })
         .limit(1)
         .single();
@@ -57,11 +78,18 @@ export default async function DashboardPage() {
                             : 'Welcome to The Billionaire Brother'}
                     </p>
                 </div>
-                {currentCycle && (
-                    <div className={styles.weekBadge}>
-                        <span>Week {currentCycle.week_number}</span>
-                    </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    {(totalContracts || 0) > 1 && (
+                        <Link href="/office" className="btn btn-ghost btn-sm">
+                            <Briefcase size={14} /> Switch Strategy
+                        </Link>
+                    )}
+                    {currentCycle && (
+                        <div className={styles.weekBadge}>
+                            <span>Week {currentCycle.week_number}</span>
+                        </div>
+                    )}
+                </div>
             </header>
 
             {!hasStrategy ? (
@@ -127,3 +155,4 @@ export default async function DashboardPage() {
         </div>
     );
 }
+

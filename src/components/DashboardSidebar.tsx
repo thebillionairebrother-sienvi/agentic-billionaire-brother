@@ -13,6 +13,7 @@ import {
     LogOut,
     ChevronLeft,
     Menu,
+    Briefcase,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { User } from '@/lib/types';
@@ -24,6 +25,7 @@ interface DashboardSidebarProps {
 
 const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/office', icon: Briefcase, label: 'Your Office' },
     { href: '/ship-pack', icon: Package, label: 'Action Steps' },
     { href: '/board-meeting', icon: CalendarCheck, label: 'Weekly Check-in' },
     { href: '/brief', icon: FileText, label: 'Strategy Brief' },

@@ -252,10 +252,44 @@ export default function StrategiesPage() {
     return (
         <div className={styles.page}>
             <header className={styles.header}>
-                <h1 className="heading-lg">Your 3 Ranked Strategies</h1>
-                <p className="text-secondary">
-                    Pick the path that fits your constraints. Each strategy has a transparent Decision Score showing exactly how we scored it.
-                </p>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%' }}>
+                    <div>
+                        <h1 className="heading-lg">Your 3 Ranked Strategies</h1>
+                        <p className="text-secondary">
+                            Pick the path that fits your constraints. Each strategy has a transparent Decision Score showing exactly how we scored it.
+                        </p>
+                    </div>
+                    {!isFreeTier && (
+                        <button
+                            className="btn btn-secondary"
+                            disabled={regenerating}
+                            onClick={async () => {
+                                setRegenerating(true);
+                                try {
+                                    const res = await fetch('/api/strategies/generate', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({}),
+                                    });
+                                    if (res.ok) {
+                                        const data = await res.json();
+                                        if (data.jobId) {
+                                            setJobId(data.jobId);
+                                            setGenerating(true);
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.error('Generate new strategy failed:', err);
+                                } finally {
+                                    setRegenerating(false);
+                                }
+                            }}
+                        >
+                            <RefreshCcw size={16} />
+                            {regenerating ? 'Starting...' : 'Generate New Strategy'}
+                        </button>
+                    )}
+                </div>
                 {isFreeTier && (
                     <div className={styles.upgradeBanner}>
                         <Lock size={16} />
