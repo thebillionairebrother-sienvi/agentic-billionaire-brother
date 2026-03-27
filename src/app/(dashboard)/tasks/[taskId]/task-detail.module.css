@@ -286,6 +286,248 @@
     cursor: not-allowed;
 }
 
+.derekBtnLocked {
+    border-color: rgba(168, 85, 247, 0.25);
+    opacity: 0.85;
+    cursor: pointer !important;
+}
+
+.derekBtnLocked:hover {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(96, 165, 250, 0.12));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(168, 85, 247, 0.15);
+}
+
+.lockIcon {
+    margin-left: var(--space-1);
+    color: var(--gold-400);
+    opacity: 0.9;
+}
+
+/* ─── Upgrade Modal ─── */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    animation: fadeIn var(--duration-base) var(--ease-out);
+}
+
+.modal {
+    position: relative;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    border-radius: var(--radius-xl);
+    padding: var(--space-8);
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7), 0 0 60px rgba(168, 85, 247, 0.08);
+    animation: fadeInUp var(--duration-slow) var(--ease-out);
+}
+
+.modalClose {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--surface-border);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+}
+
+.modalClose:hover {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border-color: var(--surface-border-hover);
+}
+
+.modalHeader {
+    text-align: center;
+    margin-bottom: var(--space-6);
+}
+
+.modalIcon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-xl);
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(168, 85, 247, 0.1));
+    border: 1px solid rgba(234, 179, 8, 0.25);
+    color: var(--gold-400);
+    margin-bottom: var(--space-4);
+    animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+.modalTitle {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.modalSubtitle {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 360px;
+    margin: 0 auto;
+}
+
+/* ─── Plan Comparison ─── */
+.planComparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+}
+
+.planCard {
+    position: relative;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+}
+
+.planCardPro {
+    background: linear-gradient(160deg, rgba(168, 85, 247, 0.08), rgba(96, 165, 250, 0.06));
+    border-color: rgba(168, 85, 247, 0.3);
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.08);
+}
+
+.planBadge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+    color: var(--text-inverse);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px var(--space-3);
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+}
+
+.planName {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: var(--space-2);
+}
+
+.planCardPro .planName {
+    color: #c084fc;
+}
+
+.planPrice {
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: var(--space-4);
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+}
+
+.planCardPro .planPrice {
+    color: #e9d5ff;
+}
+
+.planPer {
+    font-size: var(--text-sm);
+    font-weight: 400;
+    color: var(--text-tertiary);
+}
+
+.planFeatures {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.planFeatures li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+}
+
+.featureIncluded {
+    color: var(--text-secondary);
+}
+
+.featureIncluded svg {
+    color: var(--accent-green);
+    flex-shrink: 0;
+}
+
+.featureExcluded {
+    color: var(--text-tertiary);
+    opacity: 0.6;
+}
+
+.featureExcluded svg {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+/* ─── Upgrade CTA ─── */
+.upgradeBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-4);
+    background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+    color: var(--text-inverse);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: var(--text-base);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--duration-base) var(--ease-out);
+    box-shadow: 0 0 30px rgba(234, 179, 8, 0.2);
+    text-decoration: none;
+    margin-bottom: var(--space-3);
+}
+
+.upgradeBtn:hover {
+    background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(234, 179, 8, 0.35);
+}
+
+.modalDisclaimer {
+    text-align: center;
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+}
+
 .spinning {
     animation: spin 1s linear infinite;
 }

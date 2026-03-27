@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle, Circle, Clock, Lightbulb, ChevronRight, Sparkles, Download, Bot } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Clock, Lightbulb, ChevronRight, Sparkles, Download, Bot, Lock, Zap, X, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import styles from './task-detail.module.css';
 
@@ -50,6 +50,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
     const [derekWorking, setDerekWorking] = useState(false);
     const [derekOutput, setDerekOutput] = useState<string | null>(null);
     const [derekError, setDerekError] = useState<string | null>(null);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -218,28 +219,81 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
             {/* Have Derek Do It */}
             {detail.ai_doable !== false && task.status !== 'done' && !derekOutput && (
-                <div 
-                    title={tier === 'free' ? 'Upgrade to use this feature' : undefined}
-                    style={tier === 'free' ? { cursor: 'not-allowed' } : undefined}
+                <button
+                    className={`${styles.derekBtn} ${tier === 'free' ? styles.derekBtnLocked : ''}`}
+                    onClick={tier === 'free' ? () => setShowUpgradeModal(true) : handleDerekDoIt}
+                    disabled={derekWorking}
                 >
-                    <button
-                        className={styles.derekBtn}
-                        onClick={handleDerekDoIt}
-                        disabled={derekWorking || tier === 'free'}
-                        style={tier === 'free' ? { pointerEvents: 'none' } : undefined}
-                    >
-                        {derekWorking ? (
-                            <>
-                                <Sparkles size={18} className={styles.spinning} />
-                                Derek is working on it...
-                            </>
-                        ) : (
-                            <>
-                                <Bot size={18} />
-                                Have Derek Do It
-                            </>
-                        )}
-                    </button>
+                    {derekWorking ? (
+                        <>
+                            <Sparkles size={18} className={styles.spinning} />
+                            Derek is working on it...
+                        </>
+                    ) : (
+                        <>
+                            <Bot size={18} />
+                            Have Derek Do It
+                            {tier === 'free' && <Lock size={14} className={styles.lockIcon} />}
+                        </>
+                    )}
+                </button>
+            )}
+
+            {/* Upgrade Modal */}
+            {showUpgradeModal && (
+                <div className={styles.modalOverlay} onClick={() => setShowUpgradeModal(false)}>
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                        <button className={styles.modalClose} onClick={() => setShowUpgradeModal(false)}>
+                            <X size={18} />
+                        </button>
+
+                        <div className={styles.modalHeader}>
+                            <div className={styles.modalIcon}>
+                                <Zap size={28} />
+                            </div>
+                            <h2 className={styles.modalTitle}>Unlock Derek&apos;s AI Power</h2>
+                            <p className={styles.modalSubtitle}>
+                                Let Derek autonomously complete tasks for you — research, drafts, strategy, and more.
+                            </p>
+                        </div>
+
+                        <div className={styles.planComparison}>
+                            {/* Free Plan */}
+                            <div className={styles.planCard}>
+                                <div className={styles.planName}>Free</div>
+                                <div className={styles.planPrice}><span>$0</span><span className={styles.planPer}>/mo</span></div>
+                                <ul className={styles.planFeatures}>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Daily task generation</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Strategy roadmap</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Progress tracking</li>
+                                    <li className={styles.featureExcluded}><Lock size={14} /> Have Derek Do It</li>
+                                    <li className={styles.featureExcluded}><Lock size={14} /> AI deliverable downloads</li>
+                                    <li className={styles.featureExcluded}><Lock size={14} /> Priority task execution</li>
+                                </ul>
+                            </div>
+
+                            {/* Pro Plan */}
+                            <div className={`${styles.planCard} ${styles.planCardPro}`}>
+                                <div className={styles.planBadge}>Most Popular</div>
+                                <div className={styles.planName}>Pro</div>
+                                <div className={styles.planPrice}><span>$99.99</span><span className={styles.planPer}>/mo</span></div>
+                                <ul className={styles.planFeatures}>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Daily task generation</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Strategy roadmap</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Progress tracking</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Have Derek Do It</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> AI deliverable downloads</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Priority task execution</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <a href="/settings" className={styles.upgradeBtn}>
+                            <Zap size={16} />
+                            Upgrade to Pro
+                        </a>
+                        <p className={styles.modalDisclaimer}>Cancel anytime. No hidden fees.</p>
+                    </div>
                 </div>
             )}
 
