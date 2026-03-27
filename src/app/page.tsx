@@ -119,7 +119,7 @@ export default function LandingPage() {
           <div className={styles.pricingBadge}>Founder Plan</div>
           <div className={styles.pricingPrice}>
             <span className={styles.priceCurrency}>$</span>
-            <span className={styles.priceAmount}>79</span>
+            <span className={styles.priceAmount}>99.99</span>
             <span className={styles.pricePeriod}>/mo</span>
           </div>
           <ul className={styles.pricingFeatures}>
