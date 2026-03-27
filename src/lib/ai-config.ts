@@ -217,10 +217,10 @@ export function getTodayDate(): string {
 }
 
 /**
- * Get the next billing reset date (1st of next month).
+ * Get the next daily reset date (tomorrow at midnight UTC).
  */
 export function getNextResetDate(): string {
     const now = new Date();
-    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    return next.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    return tomorrow.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 }
