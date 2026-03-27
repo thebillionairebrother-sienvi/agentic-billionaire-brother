@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Crown, ArrowRight, Zap, Target, TrendingUp, Shield } from 'lucide-react';
+import { Crown, ArrowRight, Zap, Target, TrendingUp, Shield, Check, Users } from 'lucide-react';
 import styles from './page.module.css';
 
 export default function LandingPage() {
@@ -115,25 +115,73 @@ export default function LandingPage() {
       {/* Pricing */}
       <section className={styles.section}>
         <h2 className={`heading-lg ${styles.sectionTitle}`}>Simple Pricing</h2>
-        <div className={styles.pricingCard}>
-          <div className={styles.pricingBadge}>Founder Plan</div>
-          <div className={styles.pricingPrice}>
-            <span className={styles.priceCurrency}>$</span>
-            <span className={styles.priceAmount}>99.99</span>
-            <span className={styles.pricePeriod}>/mo</span>
+        <div className={styles.pricingGrid}>
+
+          {/* Free */}
+          <div className={styles.pricingCard}>
+            <div className={styles.pricingBadge}>Free</div>
+            <div className={styles.pricingPrice}>
+              <span className={styles.priceCurrency}>$</span>
+              <span className={styles.priceAmount}>0</span>
+              <span className={styles.pricePeriod}>/mo</span>
+            </div>
+            <ul className={styles.pricingFeatures}>
+              <li><Check size={14} /> Strategy diagnosis</li>
+              <li><Check size={14} /> Decision Scores</li>
+              <li><Check size={14} /> 10 AI prompts / day</li>
+              <li><Check size={14} /> Progress tracking</li>
+              <li className={styles.featureLocked}><span className={styles.lockDash}>✕</span> Have Derek Do It</li>
+              <li className={styles.featureLocked}><span className={styles.lockDash}>✕</span> Team seats</li>
+            </ul>
+            <Link href="/auth" className="btn btn-secondary" style={{ width: '100%' }}>
+              Get Started Free
+            </Link>
           </div>
-          <ul className={styles.pricingFeatures}>
-            <li>✓ Strategy diagnosis by your Brother</li>
-            <li>✓ Decision Scores with full breakdown</li>
-            <li>✓ Locked Strategy Brief</li>
-            <li>✓ Weekly Action Steps (2 big + 5 small)</li>
-            <li>✓ Weekly Board Meetings (Kill/Keep/Double)</li>
-            <li>✓ Red Team QA on all outputs</li>
-            <li>✓ Cancel anytime</li>
-          </ul>
-          <Link href="/auth" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-            Get Started <ArrowRight size={18} />
-          </Link>
+
+          {/* Brother */}
+          <div className={`${styles.pricingCard} ${styles.pricingCardFeatured}`}>
+            <div className={`${styles.pricingBadge} ${styles.pricingBadgeFeatured}`}>Most Popular</div>
+            <div className={styles.pricingPrice}>
+              <span className={styles.priceCurrency}>$</span>
+              <span className={styles.priceAmount}>99.99</span>
+              <span className={styles.pricePeriod}>/mo</span>
+            </div>
+            <p className={styles.pricingPlanName}>Brother Plan</p>
+            <ul className={styles.pricingFeatures}>
+              <li><Check size={14} /> Strategy diagnosis</li>
+              <li><Check size={14} /> Decision Scores</li>
+              <li><Check size={14} /> 40 AI prompts / day</li>
+              <li><Check size={14} /> Have Derek Do It</li>
+              <li><Check size={14} /> AI deliverable downloads</li>
+              <li className={styles.featureLocked}><span className={styles.lockDash}>✕</span> Team seats</li>
+            </ul>
+            <Link href="/auth" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
+              Get Started <ArrowRight size={18} />
+            </Link>
+          </div>
+
+          {/* Team */}
+          <div className={`${styles.pricingCard} ${styles.pricingCardTeam}`}>
+            <div className={`${styles.pricingBadge} ${styles.pricingBadgeTeam}`}><Users size={12} /> Team</div>
+            <div className={styles.pricingPrice}>
+              <span className={styles.priceCurrency}>$</span>
+              <span className={styles.priceAmount}>199</span>
+              <span className={styles.pricePeriod}>/mo</span>
+            </div>
+            <p className={styles.pricingPlanName}>Team Plan</p>
+            <ul className={styles.pricingFeatures}>
+              <li><Check size={14} /> Strategy diagnosis</li>
+              <li><Check size={14} /> Decision Scores</li>
+              <li><Check size={14} /> 100 AI prompts / day</li>
+              <li><Check size={14} /> Have Derek Do It</li>
+              <li><Check size={14} /> AI deliverable downloads</li>
+              <li><Check size={14} /> Team seats</li>
+            </ul>
+            <Link href="/auth" className="btn btn-secondary" style={{ width: '100%' }}>
+              Get Team Access <ArrowRight size={18} />
+            </Link>
+          </div>
+
         </div>
       </section>
 

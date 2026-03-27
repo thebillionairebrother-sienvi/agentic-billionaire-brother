@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle, Circle, Clock, Lightbulb, ChevronRight, Sparkles, Download, Bot, Lock, Zap, X, Check } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Clock, Lightbulb, ChevronRight, Sparkles, Download, Bot, Lock, Zap, X, Check, Users } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import styles from './task-detail.module.css';
 
@@ -51,6 +51,10 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
     const [derekOutput, setDerekOutput] = useState<string | null>(null);
     const [derekError, setDerekError] = useState<string | null>(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [promoInput, setPromoInput] = useState('');
+    const [promoApplying, setPromoApplying] = useState(false);
+    const [promoError, setPromoError] = useState<string | null>(null);
+    const [promoSuccess, setPromoSuccess] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -108,6 +112,34 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
             setDerekError('Failed to reach Derek. Try again later.');
         }
         setDerekWorking(false);
+    };
+
+    const handleApplyPromo = async () => {
+        if (!promoInput.trim()) return;
+        setPromoApplying(true);
+        setPromoError(null);
+        try {
+            const res = await fetch('/api/auth/set-tier', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ promoCode: promoInput.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setPromoError(data.error || 'Invalid promo code. Please check and try again.');
+            } else {
+                setPromoSuccess(true);
+                setTier(data.tier);
+                setTimeout(() => {
+                    setShowUpgradeModal(false);
+                    setPromoSuccess(false);
+                    setPromoInput('');
+                }, 1500);
+            }
+        } catch {
+            setPromoError('Something went wrong. Please try again.');
+        }
+        setPromoApplying(false);
     };
 
     const downloadMarkdown = () => {
@@ -251,7 +283,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                             <div className={styles.modalIcon}>
                                 <Zap size={28} />
                             </div>
-                            <h2 className={styles.modalTitle}>Unlock Derek&apos;s AI Power</h2>
+                            <h2 className={styles.modalTitle}>Unlock Derek&apos;s Full Potential</h2>
                             <p className={styles.modalSubtitle}>
                                 Let Derek autonomously complete tasks for you — research, drafts, strategy, and more.
                             </p>
@@ -265,32 +297,80 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                                 <ul className={styles.planFeatures}>
                                     <li className={styles.featureIncluded}><Check size={14} /> Daily task generation</li>
                                     <li className={styles.featureIncluded}><Check size={14} /> Strategy roadmap</li>
-                                    <li className={styles.featureIncluded}><Check size={14} /> Progress tracking</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> 10 AI prompts / day</li>
                                     <li className={styles.featureExcluded}><Lock size={14} /> Have Derek Do It</li>
-                                    <li className={styles.featureExcluded}><Lock size={14} /> AI deliverable downloads</li>
-                                    <li className={styles.featureExcluded}><Lock size={14} /> Priority task execution</li>
+                                    <li className={styles.featureExcluded}><Lock size={14} /> AI deliverables</li>
+                                    <li className={styles.featureExcluded}><Lock size={14} /> Team seats</li>
                                 </ul>
                             </div>
 
-                            {/* Pro Plan */}
+                            {/* Brother (Pro) Plan */}
                             <div className={`${styles.planCard} ${styles.planCardPro}`}>
                                 <div className={styles.planBadge}>Most Popular</div>
-                                <div className={styles.planName}>Pro</div>
+                                <div className={styles.planName}>Brother</div>
                                 <div className={styles.planPrice}><span>$99.99</span><span className={styles.planPer}>/mo</span></div>
                                 <ul className={styles.planFeatures}>
                                     <li className={styles.featureIncluded}><Check size={14} /> Daily task generation</li>
                                     <li className={styles.featureIncluded}><Check size={14} /> Strategy roadmap</li>
-                                    <li className={styles.featureIncluded}><Check size={14} /> Progress tracking</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> 40 AI prompts / day</li>
                                     <li className={styles.featureIncluded}><Check size={14} /> Have Derek Do It</li>
-                                    <li className={styles.featureIncluded}><Check size={14} /> AI deliverable downloads</li>
-                                    <li className={styles.featureIncluded}><Check size={14} /> Priority task execution</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> AI deliverables</li>
+                                    <li className={styles.featureExcluded}><Lock size={14} /> Team seats</li>
+                                </ul>
+                            </div>
+
+                            {/* Team Plan */}
+                            <div className={`${styles.planCard} ${styles.planCardTeam}`}>
+                                <div className={`${styles.planBadge} ${styles.planBadgeTeam}`}><Users size={10} /> Team</div>
+                                <div className={styles.planName}>Team</div>
+                                <div className={styles.planPrice}><span>$199</span><span className={styles.planPer}>/mo</span></div>
+                                <ul className={styles.planFeatures}>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Daily task generation</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Strategy roadmap</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> 100 AI prompts / day</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Have Derek Do It</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> AI deliverables</li>
+                                    <li className={styles.featureIncluded}><Check size={14} /> Team seats</li>
                                 </ul>
                             </div>
                         </div>
 
+                        {/* Promo Code Entry */}
+                        <div className={styles.promoSection}>
+                            <p className={styles.promoLabel}>
+                                Have a promo code? Enter it below to unlock instantly — no payment needed.
+                            </p>
+                            <div className={styles.promoInputRow}>
+                                <input
+                                    id="upgrade-promo-code"
+                                    type="text"
+                                    className={`input ${styles.promoInput}`}
+                                    placeholder="e.g. BILLIONAIREBROTHER2026"
+                                    value={promoInput}
+                                    onChange={(e) => { setPromoInput(e.target.value); setPromoError(null); }}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleApplyPromo()}
+                                    style={{ textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}
+                                    disabled={promoApplying || promoSuccess}
+                                    aria-label="Promo code"
+                                />
+                                <button
+                                    id="upgrade-apply-promo-btn"
+                                    className={`btn btn-primary ${styles.promoApplyBtn}`}
+                                    onClick={handleApplyPromo}
+                                    disabled={promoApplying || promoSuccess || !promoInput.trim()}
+                                >
+                                    {promoSuccess ? <><Check size={16} /> Unlocked!</> : promoApplying ? 'Applying...' : 'Apply & Unlock'}
+                                </button>
+                            </div>
+                            {promoError && <p className={styles.promoError}>{promoError}</p>}
+                            {promoSuccess && <p className={styles.promoSuccessMsg}>🎉 Access unlocked! Redirecting...</p>}
+                        </div>
+
+                        <div className={styles.modalDivider}><span>or</span></div>
+
                         <a href="/settings" className={styles.upgradeBtn}>
                             <Zap size={16} />
-                            Upgrade to Pro
+                            View Billing Options
                         </a>
                         <p className={styles.modalDisclaimer}>Cancel anytime. No hidden fees.</p>
                     </div>

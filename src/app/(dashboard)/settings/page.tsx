@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { CreditCard, User, LogOut, TestTube2, Zap } from 'lucide-react';
+import { CreditCard, User, LogOut, TestTube2, Zap, Tag } from 'lucide-react';
 
 interface UsageStatus {
     tier: string;
@@ -33,6 +33,9 @@ function SettingsInner() {
     const [loading, setLoading] = useState(true);
     const [billingMessage, setBillingMessage] = useState<string | null>(null);
     const [usage, setUsage] = useState<UsageStatus | null>(null);
+    const [settingsPromoCode, setSettingsPromoCode] = useState('');
+    const [settingsPromoStatus, setSettingsPromoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [settingsPromoMessage, setSettingsPromoMessage] = useState<string | null>(null);
     const supabase = createClient();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -76,6 +79,33 @@ function SettingsInner() {
         await supabase.auth.signOut();
         router.push('/');
         router.refresh();
+    };
+
+    const handleSettingsPromoApply = async () => {
+        if (!settingsPromoCode.trim()) return;
+        setSettingsPromoStatus('loading');
+        setSettingsPromoMessage(null);
+        try {
+            const res = await fetch('/api/auth/set-tier', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ promoCode: settingsPromoCode.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setSettingsPromoStatus('error');
+                setSettingsPromoMessage(data.error || 'Invalid promo code. Please check and try again.');
+            } else {
+                setSettingsPromoStatus('success');
+                setSettingsPromoMessage(`🎉 Access unlocked! You're now on the ${data.tier === 'brother' ? 'Brother' : 'Team'} plan.`);
+                // Refresh usage to reflect updated tier
+                await fetchUsage();
+                await loadProfile();
+            }
+        } catch {
+            setSettingsPromoStatus('error');
+            setSettingsPromoMessage('Something went wrong. Please try again.');
+        }
     };
 
     if (loading) {
@@ -186,6 +216,54 @@ function SettingsInner() {
                     {isTestMode ? 'Manage Billing (Test Mode)' : 'Manage Billing'}
                 </button>
             </div>
+
+            {/* Promo Code — only for free tier users */}
+            {usage?.tier === 'free' && settingsPromoStatus !== 'success' && (
+                <div className={`card ${styles.section}`}>
+                    <h3 className="heading-md">
+                        <Tag size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} /> Have a Promo Code?
+                    </h3>
+                    <p className="text-secondary" style={{ fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', lineHeight: 1.5 }}>
+                        Got a code from us? Enter it below to unlock the full Brother experience instantly — no payment required.
+                    </p>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'stretch' }}>
+                        <input
+                            id="settings-promo-code"
+                            type="text"
+                            className="input"
+                            placeholder="Enter your promo code"
+                            value={settingsPromoCode}
+                            onChange={(e) => { setSettingsPromoCode(e.target.value); setSettingsPromoStatus('idle'); setSettingsPromoMessage(null); }}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSettingsPromoApply()}
+                            disabled={settingsPromoStatus === 'loading'}
+                            style={{ flex: 1, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 'var(--text-sm)' }}
+                            aria-label="Promo code"
+                        />
+                        <button
+                            id="settings-apply-promo-btn"
+                            className="btn btn-primary"
+                            onClick={handleSettingsPromoApply}
+                            disabled={settingsPromoStatus === 'loading' || !settingsPromoCode.trim()}
+                            style={{ flexShrink: 0 }}
+                        >
+                            {settingsPromoStatus === 'loading' ? 'Applying...' : 'Apply'}
+                        </button>
+                    </div>
+                    {settingsPromoMessage && (() => {
+                        const isErr = settingsPromoStatus === 'error';
+                        return (
+                            <p style={{
+                                marginTop: 'var(--space-3)',
+                                fontSize: 'var(--text-sm)',
+                                color: isErr ? '#fca5a5' : 'var(--accent-green)',
+                                fontWeight: isErr ? 400 : 600,
+                            }}>
+                                {settingsPromoMessage}
+                            </p>
+                        );
+                    })()}
+                </div>
+            )}
 
             <div className={`card ${styles.section}`}>
                 <button className="btn btn-danger" onClick={handleSignOut}>
