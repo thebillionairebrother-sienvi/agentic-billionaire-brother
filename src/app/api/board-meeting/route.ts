@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
 import type { BoardMeetingPayload } from '@/lib/types';
 
 export async function POST(request: Request) {
     try {
-        const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const { supabase, user } = await createMobileAwareClient(request);
 
-        if (authError || !user) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
