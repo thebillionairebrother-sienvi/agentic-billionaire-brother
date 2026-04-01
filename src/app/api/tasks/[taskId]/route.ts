@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createMobileAwareClient } from '@/lib/supabase/server';
 
 export async function GET(
-    _request: Request,
+    request: Request,
     { params }: { params: Promise<{ taskId: string }> }
 ) {
     try {
-        const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const { supabase, user } = await createMobileAwareClient(request);
 
-        if (authError || !user) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 

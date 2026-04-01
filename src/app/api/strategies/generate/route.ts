@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { ThinkingLevel } from '@google/genai';
@@ -37,11 +37,10 @@ export async function POST(request: Request) {
 
     try {
         console.log('[strategies/generate] ── Starting strategy generation ──');
-        const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const { supabase, user } = await createMobileAwareClient(request);
 
-        if (authError || !user) {
-            console.error('[strategies/generate] Auth failed:', authError);
+        if (!user) {
+            console.error('[strategies/generate] Auth failed: no user');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
         console.log('[strategies/generate] User:', user.id);

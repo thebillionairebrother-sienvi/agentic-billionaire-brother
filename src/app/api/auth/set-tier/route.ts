@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
 
 /**
  * POST /api/auth/set-tier
@@ -14,10 +14,9 @@ const PROMO_CODES: Record<string, string> = {
 
 export async function POST(request: Request) {
     try {
-        const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const { supabase: _sb, user } = await createMobileAwareClient(request);
 
-        if (authError || !user) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
