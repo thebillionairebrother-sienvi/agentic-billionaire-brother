@@ -246,19 +246,22 @@ REACTION RULES:
 
         // ── Persist messages to DB if conversationId provided ──
         if (conversationId) {
-            await Promise.all([
-                supabase.from('chat_messages').insert({
+            const now = Date.now();
+            await supabase.from('chat_messages').insert([
+                {
                     conversation_id: conversationId,
                     role: 'user',
                     content: message,
-                }),
-                supabase.from('chat_messages').insert({
+                    created_at: new Date(now).toISOString(),
+                },
+                {
                     conversation_id: conversationId,
                     role: 'derek',
                     content: responseText,
                     reaction: parsed.reaction || null,
                     task_updates: taskUpdates.length > 0 ? taskUpdates : null,
-                }),
+                    created_at: new Date(now + 1000).toISOString(), // 1 second later to ensure strict ordering
+                }
             ]);
         }
 
