@@ -161,13 +161,9 @@ export default function ShipPackPage() {
     const isToday = viewDate === todayStr;
     const completedCount = tasks.filter(t => t.status === 'done').length;
 
-    // Group nearby day tasks for the sidebar timeline
+    // Always show exactly 5 days with selected date in middle
     const nearbyDates = [-2, -1, 0, 1, 2]
-        .map(offset => getDateStr(offset, viewDate))
-        .filter(d => {
-            const dayTasks = allTasks.filter(t => t.due_date === d);
-            return dayTasks.length > 0 || d === viewDate;
-        });
+        .map(offset => getDateStr(offset, viewDate));
 
     if (loading) {
         return (
@@ -198,20 +194,43 @@ export default function ShipPackPage() {
                 </div>
             )}
 
-            {/* Day Navigation */}
-            <div className={styles.dayNav}>
-                <button onClick={prevDay} className={styles.dayNavBtn}>
-                    <ChevronLeft size={18} />
+            {/* Day Navigation - Pagination Block */}
+            <div className={styles.paginationBlock}>
+                <button onClick={prevDay} className={styles.navArrowBtn}>
+                    <ChevronLeft size={20} />
                 </button>
-                <div className={styles.dayNavCenter}>
-                    <Calendar size={16} />
-                    <span className={styles.dayNavDate}>
-                        {isToday ? 'Today' : formatDate(viewDate)}
-                    </span>
-                    <span className={styles.dayNavFull}>{viewDate}</span>
+                
+                <div className={styles.timelineDays}>
+                    {nearbyDates.map((d) => {
+                        const dayTasks = allTasks.filter(t => t.due_date === d);
+                        const dayDone = dayTasks.filter(t => t.status === 'done').length;
+                        const isActive = d === viewDate;
+
+                        return (
+                            <button
+                                key={d}
+                                className={`${styles.timelineDay} ${isActive ? styles.timelineActive : ''}`}
+                                onClick={() => {
+                                    setViewDate(d);
+                                    router.push(`/ship-pack?date=${d}`, { scroll: false });
+                                }}
+                            >
+                                <span className={styles.timelineDateLabel}>
+                                    {d === todayStr ? 'Today' : formatDate(d)}
+                                </span>
+                                <span className={styles.timelineCount}>
+                                    {dayTasks.length > 0
+                                        ? `${dayDone}/${dayTasks.length}`
+                                        : '—'
+                                    }
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
-                <button onClick={nextDay} className={styles.dayNavBtn}>
-                    <ChevronRight size={18} />
+
+                <button onClick={nextDay} className={styles.navArrowBtn}>
+                    <ChevronRight size={20} />
                 </button>
             </div>
 
@@ -294,40 +313,7 @@ export default function ShipPackPage() {
                 </div>
             )}
 
-            {/* Nearby Days Timeline */}
-            {nearbyDates.length > 1 && (
-                <div className={styles.timeline}>
-                    <h3 className={styles.timelineTitle}>Nearby Days</h3>
-                    <div className={styles.timelineDays}>
-                        {nearbyDates.map((d) => {
-                            const dayTasks = allTasks.filter(t => t.due_date === d);
-                            const dayDone = dayTasks.filter(t => t.status === 'done').length;
-                            const isActive = d === viewDate;
 
-                            return (
-                                <button
-                                    key={d}
-                                    className={`${styles.timelineDay} ${isActive ? styles.timelineActive : ''}`}
-                                    onClick={() => {
-                                        setViewDate(d);
-                                        router.push(`/ship-pack?date=${d}`, { scroll: false });
-                                    }}
-                                >
-                                    <span className={styles.timelineDateLabel}>
-                                        {d === todayStr ? 'Today' : formatDate(d)}
-                                    </span>
-                                    <span className={styles.timelineCount}>
-                                        {dayTasks.length > 0
-                                            ? `${dayDone}/${dayTasks.length}`
-                                            : '—'
-                                        }
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

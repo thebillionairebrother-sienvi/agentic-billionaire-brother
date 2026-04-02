@@ -71,52 +71,32 @@
     color: var(--gold-400);
 }
 
-/* ─── Day Navigation ─── */
-.dayNav {
+/* ─── Day Pagination ─── */
+.paginationBlock {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: var(--space-3) var(--space-4);
-    background: var(--bg-secondary);
-    border: 1px solid var(--surface-border);
-    border-radius: var(--radius-lg);
-    margin-bottom: var(--space-4);
+    justify-content: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
 }
 
-.dayNavBtn {
-    background: none;
+.navArrowBtn {
+    background: var(--bg-secondary);
     border: 1px solid var(--surface-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     padding: var(--space-2);
     color: var(--text-tertiary);
     cursor: pointer;
     display: flex;
     align-items: center;
     transition: all var(--duration-fast);
+    height: 100%;
 }
 
-.dayNavBtn:hover {
+.navArrowBtn:hover {
     color: var(--gold-400);
     border-color: var(--gold-400);
-}
-
-.dayNavCenter {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    color: var(--text-tertiary);
-}
-
-.dayNavDate {
-    font-size: var(--text-base);
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.dayNavFull {
-    font-size: var(--text-xs);
-    font-family: var(--font-mono);
-    color: var(--text-tertiary);
+    background: rgba(234, 179, 8, 0.04);
 }
 
 /* ─── Day Summary ─── */
@@ -270,21 +250,7 @@
     animation: spin 1.5s linear infinite;
 }
 
-/* ─── Nearby Days Timeline ─── */
-.timeline {
-    margin-top: var(--space-8);
-    padding-top: var(--space-6);
-    border-top: 1px solid var(--surface-border);
-}
-
-.timelineTitle {
-    font-size: var(--text-xs);
-    font-weight: 600;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: var(--space-3);
-}
+/* ─── Timeline Pagination Days ─── */
 
 .timelineDays {
     display: flex;
@@ -366,8 +332,12 @@
         flex-direction: column;
     }
 
-    .dayNav {
-        padding: var(--space-2) var(--space-3);
+    .paginationBlock {
+        gap: var(--space-2);
+    }
+    
+    .navArrowBtn {
+        padding: var(--space-1);
     }
 
     .timelineDays {
