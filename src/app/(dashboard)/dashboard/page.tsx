@@ -5,6 +5,7 @@ import { ProgressChart } from '@/components/ProgressChart';
 import { ResetStrategyButton } from '@/components/ResetStrategyButton';
 import { JourneyCalendar } from '@/components/JourneyCalendar';
 import { StrategyGantt } from '@/components/StrategyGantt';
+import { UserRealityLayer } from '@/components/dashboard/UserRealityLayer';
 import { Briefcase } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -104,8 +105,10 @@ export default async function DashboardPage({
                     </a>
                 </div>
             ) : (
-                <div className={styles.grid}>
-                    {/* Strategy Overview — full width */}
+                <>
+                    <UserRealityLayer />
+                    <div className={styles.grid}>
+                        {/* Strategy Overview — full width */}
                     <div className={`card ${styles.strategyCard}`}>
                         <div className={styles.cardHeader}>
                             <h3 className="heading-sm">Active Strategy</h3>
@@ -144,6 +147,7 @@ export default async function DashboardPage({
                     {/* Journey Calendar */}
                     <JourneyCalendar />
                 </div>
+                </>
             )}
 
             <div className="disclaimer" style={{ marginTop: 'var(--space-8)' }}>

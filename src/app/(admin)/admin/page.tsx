@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Users, Target, CheckCircle, DollarSign, UserCheck } from 'lucide-react';
+import { ExecutiveMetricsGrid } from '@/components/admin/ExecutiveMetricsGrid';
 import styles from './page.module.css';
 
 interface UserData {
@@ -99,78 +100,8 @@ export default function AdminDashboard() {
                 </div>
             </header>
 
-            {/* Summary Stats */}
-            <div className={styles.statsGrid}>
-                <div className={styles.statCard}>
-                    <div className={styles.statIcon} style={{ background: 'rgba(59, 130, 246, 0.12)' }}>
-                        <Users size={20} style={{ color: 'var(--accent-blue)' }} />
-                    </div>
-                    <div>
-                        <span className={styles.statValue}>{stats?.totalUsers || 0}</span>
-                        <span className={styles.statLabel}>Total Users</span>
-                    </div>
-                </div>
-
-                <div className={styles.statCard}>
-                    <div className={styles.statIcon} style={{ background: 'rgba(234, 179, 8, 0.12)' }}>
-                        <Target size={20} style={{ color: 'var(--gold-400)' }} />
-                    </div>
-                    <div>
-                        <span className={styles.statValue}>{stats?.activeStrategies || 0}</span>
-                        <span className={styles.statLabel}>Active Strategies</span>
-                    </div>
-                </div>
-
-                <div className={styles.statCard}>
-                    <div className={styles.statIcon} style={{ background: 'rgba(34, 197, 94, 0.12)' }}>
-                        <CheckCircle size={20} style={{ color: 'var(--accent-green)' }} />
-                    </div>
-                    <div>
-                        <span className={styles.statValue}>{stats?.totalTasksDone || 0}</span>
-                        <span className={styles.statLabel}>Tasks Completed</span>
-                    </div>
-                </div>
-
-                <div className={styles.statCard}>
-                    <div className={styles.statIcon} style={{ background: 'rgba(139, 92, 246, 0.12)' }}>
-                        <DollarSign size={20} style={{ color: 'var(--accent-purple)' }} />
-                    </div>
-                    <div>
-                        <span className={styles.statValue}>${stats?.totalCost?.toFixed(4) || '0.00'}</span>
-                        <span className={styles.statLabel}>Est. Total Cost</span>
-                    </div>
-                </div>
-
-                <div className={styles.statCard}>
-                    <div className={styles.statIcon} style={{ background: 'rgba(34, 197, 94, 0.12)' }}>
-                        <UserCheck size={20} style={{ color: 'var(--accent-green)' }} />
-                    </div>
-                    <div>
-                        <span className={styles.statValue}>{stats?.onboardedUsers || 0}</span>
-                        <span className={styles.statLabel}>Onboarded</span>
-                    </div>
-                </div>
-
-                <div className={styles.statCard}>
-                    <div className={styles.statIcon} style={{ background: 'rgba(59, 130, 246, 0.12)' }}>
-                        <Users size={20} style={{ color: 'var(--accent-blue)' }} />
-                    </div>
-                    <div>
-                        <span className={styles.statValue}>{stats?.brotherUsers || 0}</span>
-                        <span className={styles.statLabel}>Brother</span>
-                    </div>
-                </div>
-
-                <div className={styles.statCard}>
-                    <div className={styles.statIcon} style={{ background: 'rgba(139, 92, 246, 0.12)' }}>
-                        <Users size={20} style={{ color: 'var(--accent-purple)' }} />
-                    </div>
-                    <div>
-                        <span className={styles.statValue}>{stats?.teamUsers || 0}</span>
-                        <span className={styles.statLabel}>Team</span>
-                    </div>
-                </div>
-            </div>
+            {/* Summary Stats / Executive Metrics */}
+            <ExecutiveMetricsGrid />
 
             {/* Performance Overview */}
             <div className={styles.chartSection}>
@@ -227,9 +158,8 @@ export default function AdminDashboard() {
                         </thead>
                         <tbody>
                             {users.map((u) => (
-                                <>
+                                <React.Fragment key={u.id}>
                                     <tr
-                                        key={u.id}
                                         className={styles.tableRow}
                                         onClick={() => setExpandedUser(expandedUser === u.id ? null : u.id)}
                                     >
@@ -340,7 +270,7 @@ export default function AdminDashboard() {
                                             </td>
                                         </tr>
                                     )}
-                                </>
+                                </React.Fragment>
                             ))}
                         </tbody>
                     </table>
