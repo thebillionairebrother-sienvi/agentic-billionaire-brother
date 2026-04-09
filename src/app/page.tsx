@@ -44,6 +44,17 @@ export default function LandingPage() {
           revenue bottlenecks, builds your strategy, and gives you weekly Action Steps
           so you actually ship — not just plan.
         </p>
+
+        {/* VSL Placeholder */}
+        <div className={styles.vslContainer}>
+          <div className={styles.vslPlaceholder}>
+            <div className={styles.playButton}>
+              <div className={styles.playButtonTriangle}></div>
+            </div>
+            <p className={styles.vslText}>Video Placeholder</p>
+          </div>
+        </div>
+
         <div className={styles.heroCTA}>
           <Link href="/auth" className="btn btn-primary btn-lg">
             Start Free Questionnaire <ArrowRight size={18} />
