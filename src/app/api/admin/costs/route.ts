@@ -109,8 +109,16 @@ export async function GET() {
         const avgCostPerUser = activeUsers > 0 ? totalAISpend / activeUsers : 0;
         const totalUsers = (users || []).length;
 
-        // Margin projection (assume blended $73/user/month revenue)
-        const estimatedMonthlyRevenue = totalUsers * 73;
+        // Margin projection
+        let estimatedMonthlyRevenue = 0;
+        (subscriptions || []).forEach(sub => {
+            if (sub.status === 'active' || sub.status === 'trialing') {
+                let price = sub.tier === 'team' ? 199 : 99.99;
+                if (sub.charter_pricing) price = price * 0.8;
+                estimatedMonthlyRevenue += price;
+            }
+        });
+
         const projectedMargin = estimatedMonthlyRevenue > 0
             ? ((estimatedMonthlyRevenue - totalAISpend) / estimatedMonthlyRevenue) * 100
             : 100;

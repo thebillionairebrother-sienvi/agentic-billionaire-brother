@@ -25,8 +25,7 @@ export async function GET(request: Request) {
         // 1. Fetch Subscription Data for MRR
         const todayStr = new Date().toISOString().split('T')[0]; // Simple YYYY-MM-DD
         
-        // This is a naive MRR calculation assuming 'brother' is $3,000/yr ($250/mo target)
-        // A real system would pull this live from Stripe via API, but we'll approximate from DB
+        // This is an MRR calculation waiting for actual receipt values from Stripe API
         const { data: subscriptions } = await supabase
             .from('subscriptions')
             .select('status, tier, charter_pricing, created_at, updated_at');
@@ -36,9 +35,9 @@ export async function GET(request: Request) {
             let activeCount = 0;
             subscriptions.forEach((sub: any) => {
                 if (sub.status === 'active' || sub.status === 'trialing') {
-                    // Approximate prices
-                    let price = sub.tier === 'team' ? 500 : 250;
-                    if (sub.charter_pricing) price = Math.round(price * 0.8); // 20% off
+                    // Start with base price
+                    let price = sub.tier === 'team' ? 199 : 99.99;
+                    if (sub.charter_pricing) price = price * 0.8; // 20% off
                     totalMonthlyRevenue += price;
                     activeCount++;
 
@@ -90,10 +89,14 @@ export async function GET(request: Request) {
             .select('estimated_cost')
             .gte('month_start', currentMonthStart.toISOString().split('T')[0]);
             
+        let totalAICost = 0;
         if (usageData && usageData.length > 0) {
-            const totalCost = usageData.reduce((acc, row) => acc + Number(row.estimated_cost || 0), 0);
-            aiCostPerUser = Number((totalCost / usageData.length).toFixed(4));
+            totalAICost = usageData.reduce((acc, row) => acc + Number(row.estimated_cost || 0), 0);
+            aiCostPerUser = Number((totalAICost / usageData.length).toFixed(4));
         }
+
+        // Calculate Gross Margin dynamically
+        const grossMargin = mrr > 0 ? Math.round(((mrr - totalAICost) / mrr) * 100) : 100;
 
         // 5. Sprint Completion %
         const { data: weeklyCycles } = await supabase
@@ -116,7 +119,7 @@ export async function GET(request: Request) {
                 timeToRevenueAvgDays,
                 aiCostPerUser,
                 sprintCompletionPercentage,
-                grossMargin: 92, // Placeholder hardcode
+                grossMargin,
                 emailToPaidPercentage: 14 // Placeholder hardcode (From Sienvi)
             }
         });
