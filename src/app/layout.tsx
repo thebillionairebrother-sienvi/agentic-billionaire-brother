@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { FloatingDerekChat } from '@/components/FloatingDerekChat';
+import { GoogleAnalytics } from '@/components/GoogleAnalytics';
 
 export const metadata: Metadata = {
   title: 'The Billionaire Brother — Your Business Strategist',
@@ -17,9 +18,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <GoogleAnalytics />
         {children}
         <FloatingDerekChat />
       </body>
     </html>
   );
 }
+
