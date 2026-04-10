@@ -1,0 +1,136 @@
+.page {
+    animation: fadeInUp var(--duration-default) var(--ease-out);
+    max-width: 800px;
+    margin: 0 auto;
+    padding-bottom: var(--space-20);
+}
+
+.header {
+    margin-bottom: var(--space-8);
+    text-align: center;
+}
+
+.header h1 {
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    margin-bottom: var(--space-2);
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--gold-300) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.header p {
+    color: var(--text-secondary);
+    font-size: var(--text-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.timeline {
+    position: relative;
+    padding-left: var(--space-8);
+    margin-top: var(--space-12);
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: calc(var(--space-8) / 2);
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--gold-500) 0%, var(--gold-800) 50%, transparent 100%);
+}
+
+.step {
+    position: relative;
+    margin-bottom: var(--space-12);
+}
+
+.stepIcon {
+    position: absolute;
+    left: calc(var(--space-8) * -1);
+    top: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-card);
+    border: 2px solid var(--gold-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold-400);
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+.stepContent {
+    background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.stepContent:hover {
+    transform: translateY(-2px);
+    border-color: rgba(234, 179, 8, 0.4);
+}
+
+.stepContent h2 {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.stepContent p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: var(--space-4);
+}
+
+.proTip {
+    background: rgba(234, 179, 8, 0.05);
+    border-left: 3px solid var(--gold-500);
+    padding: var(--space-4);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    margin-top: var(--space-4);
+}
+
+.proTipType {
+    display: block;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--gold-400);
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-1);
+}
+
+.proTipText {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+    .timeline {
+        padding-left: var(--space-6);
+    }
+    
+    .stepIcon {
+        left: calc(var(--space-6) * -1);
+        width: 24px;
+        height: 24px;
+    }
+    
+    .stepContent {
+        padding: var(--space-4);
+    }
+}

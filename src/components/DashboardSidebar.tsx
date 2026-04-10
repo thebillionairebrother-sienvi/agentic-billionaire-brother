@@ -14,6 +14,7 @@ import {
     ChevronLeft,
     Menu,
     Briefcase,
+    BookOpen,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { User } from '@/lib/types';
@@ -29,6 +30,7 @@ const navItems = [
     { href: '/ship-pack', icon: Package, label: 'Action Steps' },
     { href: '/board-meeting', icon: CalendarCheck, label: 'Weekly Check-in' },
     { href: '/brief', icon: FileText, label: 'Strategy Brief' },
+    { href: '/playbook', icon: BookOpen, label: 'Playbook' },
     { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
