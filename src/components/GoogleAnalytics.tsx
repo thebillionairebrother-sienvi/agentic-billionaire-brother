@@ -12,7 +12,7 @@ const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
  */
 function pageView(url: string) {
   if (!GA_MEASUREMENT_ID || typeof window === 'undefined') return;
-  window.gtag('config', GA_MEASUREMENT_ID, { page_path: url });
+  (window as any).gtag('config', GA_MEASUREMENT_ID, { page_path: url });
 }
 
 export function GoogleAnalytics() {
