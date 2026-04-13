@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createMobileAwareClient } from '@/lib/supabase/server';
+import { stripe, STRIPE_TEST_MODE } from '@/lib/stripe';
 
 export const revalidate = 0; // Don't cache admin metrics on CDN
 
@@ -22,34 +23,59 @@ export async function GET(request: Request) {
         let aiCostPerUser = 0;
         let sprintCompletionPercentage = 0;
 
-        // 1. Fetch Subscription Data for MRR
-        const todayStr = new Date().toISOString().split('T')[0]; // Simple YYYY-MM-DD
-        
-        // This is an MRR calculation waiting for actual receipt values from Stripe API
-        const { data: subscriptions } = await supabase
-            .from('subscriptions')
-            .select('status, tier, charter_pricing, created_at, updated_at');
+        // 1. MRR — use live Stripe API in production, DB approximation in test mode
+        const todayStr = new Date().toISOString().split('T')[0];
 
-        if (subscriptions) {
-            let totalMonthlyRevenue = 0;
-            let activeCount = 0;
-            subscriptions.forEach((sub: any) => {
-                if (sub.status === 'active' || sub.status === 'trialing') {
-                    // Start with base price
-                    let price = sub.tier === 'team' ? 199 : 99.99;
-                    if (sub.charter_pricing) price = price * 0.8; // 20% off
-                    totalMonthlyRevenue += price;
-                    activeCount++;
-
-                    // new paid today
-                    if (sub.created_at.startsWith(todayStr)) {
+        if (!STRIPE_TEST_MODE) {
+            // Live: paginate through all active Stripe subscriptions
+            let hasMore = true;
+            let startingAfter: string | undefined;
+            while (hasMore) {
+                const page = await stripe.subscriptions.list({
+                    status: 'active',
+                    limit: 100,
+                    expand: ['data.items.data.price'],
+                    ...(startingAfter ? { starting_after: startingAfter } : {}),
+                });
+                for (const sub of page.data) {
+                    for (const item of sub.items.data) {
+                        mrr += (item.price.unit_amount ?? 0) / 100;
+                    }
+                    if (sub.created && new Date(sub.created * 1000).toISOString().startsWith(todayStr)) {
                         newPaidToday++;
                     }
-                } else if (sub.status === 'cancelled' && sub.updated_at.startsWith(todayStr)) {
-                    churnToday++;
                 }
+                hasMore = page.has_more;
+                if (hasMore && page.data.length > 0) {
+                    startingAfter = page.data[page.data.length - 1].id;
+                }
+            }
+            // Count cancellations today from Stripe (canceled subscriptions updated today)
+            const canceledPage = await stripe.subscriptions.list({
+                status: 'canceled',
+                limit: 100,
             });
-            mrr = totalMonthlyRevenue;
+            churnToday = canceledPage.data.filter(sub =>
+                sub.canceled_at && new Date(sub.canceled_at * 1000).toISOString().startsWith(todayStr)
+            ).length;
+        } else {
+            // Test mode: fall back to DB with real pricing
+            const { data: subscriptions } = await supabase
+                .from('subscriptions')
+                .select('status, tier, charter_pricing, created_at, updated_at');
+
+            if (subscriptions) {
+                subscriptions.forEach((sub: any) => {
+                    if (sub.status === 'active' || sub.status === 'trialing') {
+                        let price = sub.tier === 'team' ? 199 : 99.99;
+                        if (sub.charter_pricing) price = price * 0.8;
+                        mrr += price;
+                        if (sub.created_at.startsWith(todayStr)) newPaidToday++;
+                    } else if (sub.status === 'cancelled' && sub.updated_at?.startsWith(todayStr)) {
+                        churnToday++;
+                    }
+                });
+            }
         }
 
         // 2. Activation Rate (7-day)

@@ -9,4 +9,9 @@ export const stripe = STRIPE_TEST_MODE
         apiVersion: '2026-01-28.clover',
     });
 
+/** @deprecated Use STRIPE_PRICE_IDS from plan-gating.ts instead */
 export const PRICE_ID = process.env.STRIPE_PRICE_ID || 'price_test_dummy';
+
+// Per-tier price IDs
+export const PRICE_ID_BROTHER = process.env.STRIPE_PRICE_ID_BROTHER || '';
+export const PRICE_ID_TEAM = process.env.STRIPE_PRICE_ID_TEAM || '';
