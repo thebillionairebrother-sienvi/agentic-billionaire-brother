@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Target, CheckCircle, DollarSign, UserCheck } from 'lucide-react';
 import { ExecutiveMetricsGrid } from '@/components/admin/ExecutiveMetricsGrid';
+import { EmailCampaignStats } from '@/components/admin/EmailCampaignStats';
 import styles from './page.module.css';
 
 interface UserData {
@@ -138,6 +139,9 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Billionaire Brother Email Campaign KPIs */}
+            <EmailCampaignStats />
 
             {/* Users Table */}
             <div className={`card ${styles.tableCard}`}>

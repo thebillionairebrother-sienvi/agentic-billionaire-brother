@@ -6,6 +6,7 @@ import { ResetStrategyButton } from '@/components/ResetStrategyButton';
 import { JourneyCalendar } from '@/components/JourneyCalendar';
 import { StrategyGantt } from '@/components/StrategyGantt';
 import { UserRealityLayer } from '@/components/dashboard/UserRealityLayer';
+import { EmailKpiCard } from '@/components/EmailKpiCard';
 import { Briefcase } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -134,6 +135,14 @@ export default async function DashboardPage({
                             </div>
                         </div>
                     </div>
+
+                    {/* Email KPI Card — shown when locked KPI is email-related */}
+                    {contract?.locked_kpi && /email|open rate|ctr|click.through|click rate|unsubscribe/i.test(contract.locked_kpi) && (
+                        <EmailKpiCard
+                            userId={user.id}
+                            lockedKpi={contract.locked_kpi}
+                        />
+                    )}
 
                     {/* Strategy Gantt Chart — full width */}
                     <StrategyGantt

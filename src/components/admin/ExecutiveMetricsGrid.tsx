@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import {
     DollarSign, UserPlus, UserMinus, Rocket,
-    Clock, Cpu, Settings, CheckCircle2, Mail
+    Clock, Cpu, Settings, CheckCircle2, Eye
 } from 'lucide-react';
 import styles from './ExecutiveMetricsGrid.module.css';
 
@@ -22,9 +22,13 @@ interface ExecutiveMetrics {
 export function ExecutiveMetricsGrid() {
     const [metrics, setMetrics] = useState<ExecutiveMetrics | null>(null);
     const [loading, setLoading] = useState(true);
+    // Real email open rate from BB campaigns in the emailer
+    const [emailOpenRate, setEmailOpenRate] = useState<number | null>(null);
 
     useEffect(() => {
         let isMounted = true;
+
+        // Fetch platform metrics
         fetch('/api/admin/metrics')
             .then(res => res.json())
             .then(res => {
@@ -36,6 +40,16 @@ export function ExecutiveMetricsGrid() {
             .finally(() => {
                 if (isMounted) setLoading(false);
             });
+
+        // Fetch BB campaign email KPIs in parallel
+        fetch('/api/admin/email-kpis')
+            .then(res => res.json())
+            .then(res => {
+                if (isMounted && res.success && res.totals) {
+                    setEmailOpenRate(res.totals.avgOpenRate);
+                }
+            })
+            .catch(() => { /* silently fail — shown in EmailCampaignStats section */ });
 
         return () => { isMounted = false; };
     }, []);
@@ -145,14 +159,19 @@ export function ExecutiveMetricsGrid() {
                     </div>
                 </div>
 
-                {/* 9. Email-to-Paid % (Sienvi) */}
-                <div className={styles.card} style={{ opacity: 0.8, borderStyle: 'dashed' }}>
-                    <div className={styles.iconWrapper} style={{ background: 'rgba(156, 163, 175, 0.15)', color: '#9ca3af' }}>
-                        <Mail size={20} />
+                {/* 9. BB Email Open Rate (live from Sienvi emailer) */}
+                <div className={styles.card}>
+                    <div className={styles.iconWrapper} style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' }}>
+                        <Eye size={20} />
                     </div>
                     <div className={styles.cardContent}>
-                        <span className={styles.label}>Email-to-Paid (Sienvi)</span>
-                        <div className={styles.value}>{metrics.emailToPaidPercentage}%</div>
+                        <span className={styles.label}>BB Email Open Rate</span>
+                        <div className={styles.value}>
+                            {emailOpenRate !== null
+                                ? `${emailOpenRate}%`
+                                : <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>—</span>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>

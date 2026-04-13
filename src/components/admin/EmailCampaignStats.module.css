@@ -1,0 +1,179 @@
+/* EmailCampaignStats.module.css */
+
+/* ─── Section wrapper ─── */
+.section {
+    margin-top: var(--space-8);
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--space-5);
+}
+
+/* ─── Aggregate totals row ─── */
+.totalsRow {
+    display: flex;
+    gap: var(--space-6);
+    padding: var(--space-4) var(--space-6);
+    background: var(--bg-glass);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-5);
+    flex-wrap: wrap;
+}
+
+.totalItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.totalIcon {
+    flex-shrink: 0;
+}
+
+.totalValue {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.totalLabel {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ─── Campaign grid ─── */
+.campaignGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+/* ─── Campaign card ─── */
+.campaignCard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    transition: border-color var(--duration-base) var(--ease-out),
+                transform var(--duration-base) var(--ease-out);
+}
+
+.campaignCard:hover {
+    transform: translateY(-2px);
+}
+
+.campaignHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.campaignMeta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.campaignName {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.campaignDate {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+}
+
+/* ─── KPI grid inside card ─── */
+.kpiGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--surface-border);
+    border-bottom: 1px solid var(--surface-border);
+}
+
+.kpiItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.kpiVal {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.kpiLbl {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    text-align: center;
+}
+
+/* ─── Dispatch progress ─── */
+.campaignFooter {
+    display: flex;
+    align-items: center;
+}
+
+.dispatchWrap {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+}
+
+.dispatchLabel {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ─── Loading skeleton ─── */
+.skeletonGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+.skeletonCard {
+    height: 180px;
+    border-radius: var(--radius-lg);
+}
+
+/* ─── Error state ─── */
+.errorCard {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+    padding: var(--space-5);
+}
+
+.errorIcon {
+    color: var(--accent-red);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* ─── Empty state ─── */
+.emptyCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--space-12);
+}
