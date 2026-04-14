@@ -1,3 +1,5 @@
 env:
   - variable: EMAILER_SUPABASE_ANON_KEY
     secret: EMAILER_SUPABASE_ANON_KEY
+  - variable: EMAILER_SUPABASE_URL
+    secret: EMAILER_SUPABASE_URL
