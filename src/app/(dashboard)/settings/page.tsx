@@ -45,7 +45,7 @@ function SettingsInner() {
         fetchUsage();
         // Check for test mode billing redirect
         if (searchParams.get('billing') === 'test') {
-            setBillingMessage('Stripe is in test mode — billing portal is disabled. Configure STRIPE_SECRET_KEY to enable.');
+            setBillingMessage('Payments are currently disabled while we configure the billing portal. Please check back later or contact support.');
         }
     }, [searchParams]);
 
@@ -70,6 +70,10 @@ function SettingsInner() {
     };
 
     const handleBillingPortal = async () => {
+        if (isTestMode) {
+            router.push('/upgrade');
+            return;
+        }
         const res = await fetch('/api/billing/portal', { method: 'POST' });
         const data = await res.json();
         if (data.url) window.location.href = data.url;
