@@ -5,9 +5,6 @@ import { stripe, STRIPE_TEST_MODE } from '@/lib/stripe';
 import { syncSubscriptionToDb, cancelSubscriptionInDb } from '@/lib/stripe-sync';
 import { createServiceClient } from '@/lib/supabase/server';
 
-// CRITICAL: disable Next.js body parsing — Stripe needs the raw body to verify signatures
-export const config = { api: { bodyParser: false } };
-
 // Don't cache this endpoint
 export const dynamic = 'force-dynamic';
 

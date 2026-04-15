@@ -29,6 +29,11 @@ function parseDerekResponse(raw: string): { reaction: string; response: string }
     };
 }
 
+/** Security limits for AI inputs */
+const MAX_MESSAGE_LENGTH = 2000;
+const MAX_HISTORY_MESSAGES = 20;
+const MAX_HISTORY_CONTENT_LENGTH = 4000;
+
 export async function POST(request: Request) {
     try {
         const { supabase, user } = await createMobileAwareClient(request);
@@ -47,6 +52,25 @@ export async function POST(request: Request) {
         if (!message) {
             return NextResponse.json({ error: 'Message is required' }, { status: 400 });
         }
+
+        // Security: Enforce hard caps on inputs to prevent token abuse
+        if (typeof message !== 'string' || message.length > MAX_MESSAGE_LENGTH) {
+            return NextResponse.json(
+                { error: `Message must be under ${MAX_MESSAGE_LENGTH} characters` },
+                { status: 400 }
+            );
+        }
+
+        // Sanitize chat history: cap count and per-message length
+        const sanitizedHistory = (chatHistory || [])
+            .slice(-MAX_HISTORY_MESSAGES)
+            .map(msg => ({
+                role: msg.role,
+                content: typeof msg.content === 'string'
+                    ? msg.content.slice(0, MAX_HISTORY_CONTENT_LENGTH)
+                    : '',
+            }))
+            .filter(msg => msg.role === 'user' || msg.role === 'assistant');
 
         // Fetch user context: tasks, profile, strategy (scoped to contractId if provided)
         const today = new Date().toISOString().split('T')[0];
@@ -139,11 +163,11 @@ REACTION RULES:
 - Never include the reaction phrase in the response text
 - Task update/status commands (%%TASK_UPDATE%% etc.) go INSIDE the response field`;
 
-        // Build Gemini message history from client-provided chat history
+        // Build Gemini message history from sanitized (capped) history
         const geminiHistory: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
-        if (chatHistory && chatHistory.length > 0) {
-            for (const msg of chatHistory) {
+        if (sanitizedHistory.length > 0) {
+            for (const msg of sanitizedHistory) {
                 geminiHistory.push({
                     role: msg.role === 'assistant' ? 'model' : 'user',
                     parts: [{ text: msg.content }],
@@ -275,9 +299,9 @@ REACTION RULES:
         if (error instanceof GuardError) {
             return NextResponse.json(guardErrorResponse(error), { status: error.statusCode });
         }
-        console.error('Chat error:', error);
+        console.error('[chat] Unhandled error:', error);
         return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Derek is unavailable right now' },
+            { error: 'Derek is unavailable right now. Please try again.' },
             { status: 500 }
         );
     }

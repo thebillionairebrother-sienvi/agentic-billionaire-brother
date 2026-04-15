@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createMobileAwareClient } from '@/lib/supabase/server';
 import { stripe, STRIPE_TEST_MODE } from '@/lib/stripe';
+import { isAdmin } from '@/lib/admin';
 
 export const revalidate = 0; // Don't cache admin metrics on CDN
 
@@ -12,7 +13,10 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Ideally, we'd check if user is an admin here. Assuming admin route protection handles this.
+        // Security: Only platform admins may access company revenue metrics
+        if (!isAdmin(user.email)) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
 
         // Initialize variables
         let mrr = 0;

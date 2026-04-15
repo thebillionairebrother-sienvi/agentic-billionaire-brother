@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
+/** UUID v4 pattern */
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /**
  * Refresh Twitter access token using refresh_token + per-user credentials
  */
@@ -35,9 +38,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { postId } = await request.json();
+    const body = await request.json();
+    const { postId } = body;
     if (!postId) {
         return NextResponse.json({ error: 'Missing postId' }, { status: 400 });
+    }
+
+    // Security: Validate postId is a well-formed UUID to prevent injection
+    if (typeof postId !== 'string' || !UUID_REGEX.test(postId)) {
+        return NextResponse.json({ error: 'Invalid postId format' }, { status: 400 });
     }
 
     const serviceClient = await createServiceClient();

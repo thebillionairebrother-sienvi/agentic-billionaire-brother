@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { ThinkingLevel } from '@google/genai';
+import { buildAiContext, GuardError, guardErrorResponse } from '@/lib/middleware';
 
 function extractJSON(text: string): Record<string, unknown> {
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -21,6 +22,17 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Security: Enforce tier-based AI rate limits on social content generation
+    let ctx;
+    try {
+        ctx = await buildAiContext(supabase, user);
+    } catch (err) {
+        if (err instanceof GuardError) {
+            return NextResponse.json(guardErrorResponse(err), { status: err.statusCode });
+        }
+        throw err;
     }
 
     const serviceClient = await createServiceClient();
@@ -71,11 +83,12 @@ export async function POST(request: Request) {
         ? `Business: ${profile.business_name || 'unnamed'}\nIndustry: ${profile.industry || 'general'}\nTarget: ${profile.target_audience || 'general audience'}`
         : 'No business profile yet.';
 
-    // Get optional topic from request body
+    // Get optional topic from request body (capped for safety)
     let topic = '';
     try {
         const body = await request.json();
-        topic = body.topic || '';
+        const rawTopic = body.topic || '';
+        topic = typeof rawTopic === 'string' ? rawTopic.slice(0, 200) : '';
     } catch { /* no body is fine */ }
 
     const prompt = `You are a JSON-only API. Generate exactly 5 tweet suggestions for @${socialAccount.platform_username}.
@@ -109,7 +122,7 @@ Return ONLY this JSON:
             config: {
                 systemInstruction: DEREK_FULL_PROMPT,
                 responseMimeType: 'application/json',
-                maxOutputTokens: 4096,
+                maxOutputTokens: ctx.maxOutputTokens,
                 thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
             },
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -145,9 +158,12 @@ Return ONLY this JSON:
         return NextResponse.json({ posts, count: posts.length });
 
     } catch (err) {
+        if (err instanceof GuardError) {
+            return NextResponse.json(guardErrorResponse(err), { status: err.statusCode });
+        }
         console.error('[social/generate] Error:', err);
         return NextResponse.json(
-            { error: err instanceof Error ? err.message : 'Generation failed' },
+            { error: 'Content generation failed. Please try again.' },
             { status: 500 }
         );
     }

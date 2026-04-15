@@ -125,6 +125,29 @@ export async function POST(request: Request) {
             messageCount?: number;
         };
 
+        // Security: Cap inputs to prevent token abuse
+        const MAX_MSG_LEN = 2000;
+        const MAX_HISTORY = 20;
+        const MAX_CONTENT_LEN = 4000;
+
+        if (message && (typeof message !== 'string' || message.length > MAX_MSG_LEN)) {
+            return NextResponse.json(
+                { error: `Message must be under ${MAX_MSG_LEN} characters` },
+                { status: 400 }
+            );
+        }
+
+        // Sanitize conversation history: cap count and per-message length
+        const sanitizedHistory = (chatHistory || [])
+            .slice(-MAX_HISTORY)
+            .map(msg => ({
+                role: msg.role,
+                content: typeof msg.content === 'string'
+                    ? msg.content.slice(0, MAX_CONTENT_LEN)
+                    : '',
+            }))
+            .filter(msg => msg.role === 'user' || msg.role === 'assistant');
+
         // ── Guardrail Gate ──
         // Interview is critical onboarding — never block it with 429
         let ctx;
@@ -153,7 +176,7 @@ export async function POST(request: Request) {
         const geminiContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
         // First call — no history, generate a greeting
-        if (!chatHistory || chatHistory.length === 0) {
+        if (sanitizedHistory.length === 0) {
             geminiContents.push({
                 role: 'user',
                 parts: [{ text: 'Now greet the founder and ask your first question. Remember to respond in the JSON format with reaction and response fields.' }],
@@ -197,8 +220,8 @@ export async function POST(request: Request) {
             });
         }
 
-        // Subsequent calls — rebuild history and send user message
-        for (const msg of chatHistory) {
+        // Subsequent calls — rebuild history from sanitized (capped) messages
+        for (const msg of sanitizedHistory) {
             geminiContents.push({
                 role: msg.role === 'assistant' ? 'model' : 'user',
                 parts: [{ text: msg.content }],

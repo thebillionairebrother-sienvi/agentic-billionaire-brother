@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createMobileAwareClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
+import { isAdmin } from '@/lib/admin';
 
 export const revalidate = 0;
 
@@ -36,6 +37,11 @@ export async function GET(request: Request) {
         const { user } = await createMobileAwareClient(request);
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Security: Only platform admins may access cross-service email analytics
+        if (!isAdmin(user.email)) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
         // 2. Create a read-only client pointing at the Sienvi emailer Supabase project
@@ -97,10 +103,10 @@ export async function GET(request: Request) {
             totals: { totalSent, avgOpenRate, avgClickRate },
         } satisfies EmailKpisResponse);
 
-    } catch (err: any) {
+    } catch (err) {
         console.error('[email-kpis] Unexpected error:', err);
         return NextResponse.json(
-            { error: err?.message ?? 'Unknown error' },
+            { error: 'Failed to fetch email analytics' },
             { status: 500 }
         );
     }
