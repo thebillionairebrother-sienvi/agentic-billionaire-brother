@@ -15,6 +15,7 @@ import {
     Menu,
     Briefcase,
     BookOpen,
+    HelpCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { User } from '@/lib/types';
@@ -32,6 +33,7 @@ const navItems = [
     { href: '/brief', icon: FileText, label: 'Strategy Brief' },
     { href: '/playbook', icon: BookOpen, label: 'Playbook' },
     { href: '/settings', icon: Settings, label: 'Settings' },
+    { href: '/help', icon: HelpCircle, label: 'Help' },
 ];
 
 export function DashboardSidebar({ user }: DashboardSidebarProps) {
