@@ -106,9 +106,19 @@ export default function CostDashboard() {
     // Tier donut data
     const tierEntries = Object.entries(tierTotals);
     const totalTierCost = tierEntries.reduce((s, [, v]) => s + v.cost, 0);
-    const tierColors: Record<string, string> = {
-        brother: 'var(--accent-blue)',
-        team: 'var(--accent-purple)',
+    const fallbackColors = [
+        'var(--accent-green)',
+        'var(--gold-400)',
+        '#ef4444',
+        '#f97316',
+        '#06b6d4',
+    ];
+    const getTierColor = (tier: string, index: number) => {
+        const tierColors: Record<string, string> = {
+            brother: 'var(--accent-blue)',
+            team: 'var(--accent-purple)',
+        };
+        return tierColors[tier] || fallbackColors[index % fallbackColors.length];
     };
 
     // Max endpoint cost for bar scaling
@@ -214,14 +224,14 @@ export default function CostDashboard() {
                                 <circle cx="60" cy="60" r="50" fill="none" stroke="var(--bg-tertiary)" strokeWidth="10" />
                                 {(() => {
                                     let offset = 0;
-                                    return tierEntries.map(([tier, val]) => {
+                                    return tierEntries.map(([tier, val], index) => {
                                         const pct = totalTierCost > 0 ? val.cost / totalTierCost : 0;
                                         const dashLen = pct * 314;
                                         const el = (
                                             <circle
                                                 key={tier}
                                                 cx="60" cy="60" r="50" fill="none"
-                                                stroke={tierColors[tier] || 'var(--accent-blue)'}
+                                                stroke={getTierColor(tier, index)}
                                                 strokeWidth="10"
                                                 strokeDasharray={`${dashLen} 314`}
                                                 strokeDashoffset={-offset}
@@ -242,9 +252,9 @@ export default function CostDashboard() {
                                 </text>
                             </svg>
                             <div className={styles.legendList}>
-                                {tierEntries.map(([tier, val]) => (
+                                {tierEntries.map(([tier, val], index) => (
                                     <div key={tier} className={styles.legendItem}>
-                                        <span className={styles.legendDot} style={{ background: tierColors[tier] || 'var(--accent-blue)' }} />
+                                        <span className={styles.legendDot} style={{ background: getTierColor(tier, index) }} />
                                         <span style={{ textTransform: 'capitalize' }}>{tier}</span>
                                         <span className={styles.legendValue}>${val.cost.toFixed(4)}</span>
                                         <span className="text-tertiary">({val.users} users)</span>

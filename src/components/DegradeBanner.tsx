@@ -72,11 +72,7 @@ export function DegradeBanner() {
         <div className={`${styles.banner} ${bannerClass}`}>
             <Icon size={16} className={styles.icon} />
             <span className={styles.text}>{message}</span>
-            <div className={styles.statsRow}>
-                <span>{status.promptsUsed}/{status.promptCap} prompts</span>
-                <span>•</span>
-                <span>{status.costPct}% budget</span>
-            </div>
+
             {!isHardStop && (
                 <button className={styles.closeBtn} onClick={handleDismiss} aria-label="Dismiss usage warning">
                     <X size={14} />

@@ -8,6 +8,10 @@ import { GifBubble } from '@/components/GifBubble';
 import type { InterviewMessage, InterviewResponse, QuestionnairePayload } from '@/lib/types';
 import styles from './onboard.module.css';
 
+const INTERVIEW_STORAGE_KEY = 'derek_interview_history';
+const INTERVIEW_COMPLETE_KEY = 'derek_interview_complete';
+const INTERVIEW_EXTRACTED_KEY = 'derek_interview_extracted';
+
 export default function OnboardPage() {
     const [messages, setMessages] = useState<InterviewMessage[]>([]);
     const [input, setInput] = useState('');
@@ -22,15 +26,42 @@ export default function OnboardPage() {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const router = useRouter();
 
+    // Persist messages to localStorage whenever they change
+    useEffect(() => {
+        if (messages.length > 0) {
+            localStorage.setItem(INTERVIEW_STORAGE_KEY, JSON.stringify(messages));
+        }
+    }, [messages]);
+
     // Auto-scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, loading]);
 
-    // Initialize — get the AI's greeting
+    // Initialize — restore from localStorage or get AI's greeting
     useEffect(() => {
         const init = async () => {
             try {
+                // Check if interview was already completed (but not yet submitted)
+                const savedComplete = localStorage.getItem(INTERVIEW_COMPLETE_KEY);
+                const savedExtracted = localStorage.getItem(INTERVIEW_EXTRACTED_KEY);
+                const savedMessages = localStorage.getItem(INTERVIEW_STORAGE_KEY);
+
+                if (savedComplete === 'true' && savedExtracted && savedMessages) {
+                    // Restore completed state
+                    setMessages(JSON.parse(savedMessages));
+                    setExtractedData(JSON.parse(savedExtracted));
+                    setComplete(true);
+                    return;
+                }
+
+                if (savedMessages) {
+                    // Restore in-progress conversation — no greeting needed
+                    setMessages(JSON.parse(savedMessages));
+                    return;
+                }
+
+                // Fresh start — fetch AI greeting
                 const res = await fetch('/api/interview', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -89,9 +120,7 @@ export default function OnboardPage() {
             }]);
 
             if (data.complete) {
-                setComplete(true);
-                // Use extracted data if available, or a minimal default so the button still shows
-                setExtractedData(data.extractedData || {
+                const extracted = data.extractedData || {
                     business_name: 'My Business',
                     business_state: 'idea',
                     industry: 'General',
@@ -109,7 +138,12 @@ export default function OnboardPage() {
                     va_count: 0,
                     calendar_blocks_available: 4,
                     timezone: 'UTC',
-                });
+                };
+                setComplete(true);
+                setExtractedData(extracted);
+                // Persist completed state so reload restores takeaways + CTA
+                localStorage.setItem(INTERVIEW_COMPLETE_KEY, 'true');
+                localStorage.setItem(INTERVIEW_EXTRACTED_KEY, JSON.stringify(extracted));
             }
         } catch {
             setError('Something went wrong. Please try again.');
@@ -142,6 +176,11 @@ export default function OnboardPage() {
                 const body = await res.json();
                 throw new Error(body.error || 'Failed to save');
             }
+
+            // Clear persisted interview state after successful submission
+            localStorage.removeItem(INTERVIEW_STORAGE_KEY);
+            localStorage.removeItem(INTERVIEW_COMPLETE_KEY);
+            localStorage.removeItem(INTERVIEW_EXTRACTED_KEY);
 
             router.push('/strategies');
             router.refresh();
