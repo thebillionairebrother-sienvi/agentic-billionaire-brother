@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Crown, ArrowRight, Zap, Target, TrendingUp, Shield, Check, Users } from 'lucide-react';
 import styles from './page.module.css';
+import RotatingMeme from '../components/RotatingMeme';
+import RotatingTextBadge from '../components/RotatingTextBadge';
 
 export default function LandingPage() {
   return (
@@ -31,10 +33,10 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className={styles.hero}>
-        <div className={styles.heroBadge}>
-          <Zap size={14} />
-          <span>Business Strategy That Ships</span>
+        <div style={{ height: '225px', marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <RotatingMeme />
         </div>
+        <RotatingTextBadge className={styles.heroBadge} />
         <h1 className={styles.heroTitle}>
           Your Strategy.
           <br />
@@ -43,9 +45,9 @@ export default function LandingPage() {
           Built by Your Brother.
         </h1>
         <p className={styles.heroSub}>
-          Meet Derek — your Billionaire Brother. He interviews you, diagnoses your
-          revenue bottlenecks, builds your strategy, and gives you weekly Action Steps
-          so you actually ship — not just plan.
+          Meet Derek, your blunt, strategic, bullshit-cutting Billionaire Brother.
+          He figures out where your money is getting stuck, builds the game plan,
+          and gives you weekly Action Steps that keep you moving, shipping, and making real progress.
         </p>
 
         {/* VSL Placeholder */}
