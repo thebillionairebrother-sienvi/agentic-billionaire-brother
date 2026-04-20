@@ -1,223 +1,279 @@
 import Link from 'next/link';
-import { Crown, ArrowRight, Zap, Target, TrendingUp, Shield, Check, Users } from 'lucide-react';
+import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, Users, Terminal, ChevronRight } from 'lucide-react';
 import styles from './page.module.css';
-import RotatingMeme from '../components/RotatingMeme';
-import RotatingTextBadge from '../components/RotatingTextBadge';
 
 export default function LandingPage() {
   return (
     <div className={styles.page}>
-      {/* Nav */}
+
+      {/* ── Nav ── */}
       <nav className={styles.nav}>
-        <Link href="/" className={styles.navBrand}>
-          <div className={styles.logoMark}>
-            <Crown size={18} />
+        <div className={styles.navInner}>
+          <Link href="/" className={styles.navBrand}>
+            <div className={styles.logoMark}>
+              <Crown size={16} />
+            </div>
+            <span className={styles.navBrandText}>THE BILLIONAIRE BROTHER</span>
+          </Link>
+          <div className={styles.navLinks}>
+            <Link href="/framework" className={styles.navLink}>PROCESS</Link>
+            <Link href="/framework" className={styles.navLink}>FEATURES</Link>
+            <Link href="/#pricing" className={styles.navLink}>PRICING</Link>
+            <Link href="/framework" className={styles.navLink}>RED TEAM</Link>
           </div>
-          <span>The Billionaire Brother</span>
-        </Link>
-        <div className={styles.navActions}>
-          <Link href="/framework" className="btn btn-ghost">
-            How to use
-          </Link>
-          <Link href="/testimonials" className="btn btn-ghost">
-            Testimonials
-          </Link>
-          <Link href="/auth" className="btn btn-ghost">
-            Sign In
-          </Link>
-          <Link href="/auth" className="btn btn-primary">
-            Get Started
+          <Link href="/auth" className={styles.navCta}>
+            ACCESS TERMINAL →
           </Link>
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* ── Hero ── */}
       <section className={styles.hero}>
-        <div style={{ height: '225px', marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <RotatingMeme />
-        </div>
-        <RotatingTextBadge className={styles.heroBadge} />
-        <h1 className={styles.heroTitle}>
-          Your Strategy.
-          <br />
-          <span className={styles.heroGold}>Your Action Steps.</span>
-          <br />
-          Built by Your Brother.
-        </h1>
-        <p className={styles.heroSub}>
-          Meet Derek, your blunt, strategic, bullshit-cutting Billionaire Brother.
-          He figures out where your money is getting stuck, builds the game plan,
-          and gives you weekly Action Steps that keep you moving, shipping, and making real progress.
-        </p>
-
-        {/* VSL Placeholder */}
-        <div className={styles.vslContainer}>
-          <div className={styles.vslPlaceholder}>
-            <div className={styles.playButton}>
-              <div className={styles.playButtonTriangle}></div>
+        <div className={styles.heroInner}>
+          {/* Left: headline block */}
+          <div className={styles.heroLeft}>
+            <div className={styles.systemChip}>
+              <span className={styles.chipDot} />
+              <span>SYSTEM ONLINE // DEREK_V2.0</span>
             </div>
-            <p className={styles.vslText}>Video Placeholder</p>
+
+            <h1 className={styles.heroTitle}>
+              Your Strategy.<br />
+              <span className={styles.strikethrough}>Your Excuses.</span><br />
+              <span className={styles.heroGold}>Built by Your<br />Bro.</span>
+            </h1>
+
+            <p className={styles.heroSub}>
+              Derek isn&apos;t here to be your friend. He&apos;s a blunt, strategic AI billionaire
+              designed to audit your decisions, ruthlessly optimize your workflow, and
+              force you to ship. No fluff. Just metrics and execution.
+            </p>
+
+            <div className={styles.heroCTA}>
+              <Link href="/auth" className={styles.ctaPrimary} id="hero-cta">
+                START FREE QUESTIONNAIRE →
+              </Link>
+            </div>
+          </div>
+
+          {/* Right: terminal card */}
+          <div className={styles.heroRight}>
+            <div className={styles.terminalCard}>
+              <div className={styles.terminalBar}>
+                <div className={styles.terminalDots}>
+                  <span className={styles.dot} style={{ background: '#ff5f56' }} />
+                  <span className={styles.dot} style={{ background: '#ffbd2e' }} />
+                  <span className={styles.dot} style={{ background: '#27c93f' }} />
+                </div>
+                <span className={styles.terminalTitle}>derek_terminal.sh</span>
+              </div>
+              <div className={styles.terminalBody}>
+                <p className={styles.terminalLine}><span className={styles.terminalPrompt}>&gt;</span> Analysing current trajectory...</p>
+                <p className={styles.terminalLine}><span className={styles.terminalPrompt}>&gt;</span> Efficiency score: <span className={styles.terminalHighlight}>34%</span></p>
+                <p className={styles.terminalLine}><span className={styles.terminalPrompt}>&gt;</span> Major bottleneck identified: <span className={styles.terminalWarn}>Indecision.</span></p>
+                <p className={styles.terminalLine}>&nbsp;</p>
+                <p className={styles.terminalLine}><span className={styles.terminalMuted}>Generating brutal action plan.</span></p>
+                <p className={styles.terminalLine}><span className={styles.terminalCursor}>▌</span></p>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        <div className={styles.heroCTA}>
-          <Link href="/auth" className="btn btn-primary btn-lg">
-            Start Free Questionnaire <ArrowRight size={18} />
+      {/* ── How It Works ── */}
+      <section className={styles.howItWorks}>
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionMeta}>
+            <span className={styles.sectionLabel}>THE PROTOCOL</span>
+            <h2 className={styles.sectionTitle}>How It Works</h2>
+            <p className={styles.sectionTagline}>
+              A systematic dismantling of your comfort zone. Execute the steps, or get left behind.
+            </p>
+          </div>
+
+          <div className={styles.stepsGrid}>
+            <div className={styles.stepCard}>
+              <div className={styles.stepIconRow}>
+                <Target size={20} className={styles.stepIcon} />
+                <span className={styles.stepNum}>01</span>
+              </div>
+              <h3 className={styles.stepTitle}>Questionnaire</h3>
+              <p className={styles.stepBody}>
+                Submit your current status. Derek processes your inputs to establish a
+                baseline of your operational efficiency and glaring weaknesses.
+              </p>
+            </div>
+            <div className={styles.stepCard}>
+              <div className={styles.stepIconRow}>
+                <TrendingUp size={20} className={styles.stepIcon} />
+                <span className={styles.stepNum}>02</span>
+              </div>
+              <h3 className={styles.stepTitle}>Strategy &amp; KPIs</h3>
+              <p className={styles.stepBody}>
+                Receive a bespoke, unvarnished strategy. Key Performance Indicators are
+                locked in. There is no room for interpretation.
+              </p>
+            </div>
+            <div className={styles.stepCard}>
+              <div className={styles.stepIconRow}>
+                <ChevronRight size={20} className={styles.stepIcon} />
+                <span className={styles.stepNum}>03</span>
+              </div>
+              <h3 className={styles.stepTitle}>Execute &amp; Ship</h3>
+              <p className={styles.stepBody}>
+                The mandate is execution. Follow the weekly directives. Report back. If you
+                fail, Derek will ensure you know exactly why.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Features / Arsenal ── */}
+      <section className={styles.arsenal}>
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionMeta}>
+            <span className={styles.sectionLabel}>THE ARSENAL</span>
+            <h2 className={styles.sectionTitle}>Tools for Unapologetic<br />Growth.</h2>
+          </div>
+
+          <div className={styles.arsenalGrid}>
+            {/* Decision Scores — large card */}
+            <div className={styles.arsenalCardLg}>
+              <Target size={20} className={styles.arsenalIcon} />
+              <h3 className={styles.arsenalTitle}>Decision Scores</h3>
+              <p className={styles.arsenalBody}>
+                Every choice you make is quantified. Derek evaluates your strategic moves
+                on a scale of 0 to 100. Ship guessing; start optimizing based on cold, hard data.
+              </p>
+              <div className={styles.scoreChip}>
+                <span className={styles.scoreLabel}>Last Decision: [Pivot to SaaS]</span>
+                <span className={styles.scoreValue}>SCORE: 42/100 <span className={styles.scoreBad}>[WEAK]</span></span>
+              </div>
+            </div>
+
+            {/* Weekly Action Steps */}
+            <div className={styles.arsenalCardSm}>
+              <TrendingUp size={20} className={styles.arsenalIcon} />
+              <h3 className={styles.arsenalTitle}>Weekly Action Steps</h3>
+              <p className={styles.arsenalBody}>
+                Bite-sized, uncompromising directives issued every Monday. No broad theories.
+                Only actionable commands.
+              </p>
+            </div>
+
+            {/* Red Team QA */}
+            <div className={styles.arsenalCardSm}>
+              <Shield size={20} className={styles.arsenalIcon} />
+              <h3 className={styles.arsenalTitle}>Red Team QA</h3>
+              <p className={styles.arsenalBody}>
+                Before you launch, Derek stress-tests your idea. Finding vulnerabilities before
+                the market does.
+              </p>
+            </div>
+
+            {/* System Architecture image-card */}
+            <div className={styles.arsenalImageCard}>
+              <div className={styles.arsenalImageOverlay}>
+                <span className={styles.arsenalImageLabel}>System Architecture</span>
+                <span className={styles.arsenalSecureBadge}>SECURE</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section className={styles.pricing} id="pricing">
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionMetaCenter}>
+            <span className={styles.sectionLabel}>ACCESS TIERS</span>
+            <h2 className={styles.sectionTitleLg}>Invest in Discipline.</h2>
+          </div>
+
+          <div className={styles.pricingGrid}>
+            {/* Free */}
+            <div className={styles.pricingCard}>
+              <div className={styles.pricingTierLabel}>FREE</div>
+              <div className={styles.pricingPrice}>
+                <span className={styles.priceCurrency}>$</span>
+                <span className={styles.priceAmount}>0</span>
+              </div>
+              <ul className={styles.pricingFeatures}>
+                <li><Check size={13} className={styles.checkIcon} /> Initial Baseline Assessment</li>
+                <li><Check size={13} className={styles.checkIcon} /> 1 Weekly Action Step</li>
+              </ul>
+              <Link href="/auth" className={styles.btnSecondary} id="pricing-free-cta">
+                BEGIN BASIC
+              </Link>
+            </div>
+
+            {/* Brother — featured */}
+            <div className={`${styles.pricingCard} ${styles.pricingCardFeatured}`}>
+              <div className={styles.mostPopularBadge}>MOST POPULAR</div>
+              <div className={styles.pricingTierLabel}>BROTHER PLAN</div>
+              <div className={styles.pricingPrice}>
+                <span className={styles.priceCurrency}>$</span>
+                <span className={styles.priceAmount}>99.99</span>
+                <span className={styles.pricePeriod}>/mo</span>
+              </div>
+              <ul className={styles.pricingFeatures}>
+                <li><Check size={13} className={styles.checkIconGold} /> Full Strategy &amp; KPIs</li>
+                <li><Check size={13} className={styles.checkIconGold} /> Unlimited Decision Scores</li>
+                <li><Check size={13} className={styles.checkIconGold} /> Direct Terminal Access</li>
+              </ul>
+              <Link href="/auth" className={styles.btnPrimary} id="pricing-brother-cta">
+                DEPLOY BROTHER
+              </Link>
+            </div>
+
+            {/* Team */}
+            <div className={styles.pricingCard}>
+              <div className={styles.pricingTierLabel}>TEAM PLAN</div>
+              <div className={styles.pricingPrice}>
+                <span className={styles.priceCurrency}>$</span>
+                <span className={styles.priceAmount}>199</span>
+                <span className={styles.pricePeriod}>/mo</span>
+              </div>
+              <ul className={styles.pricingFeatures}>
+                <li><Check size={13} className={styles.checkIcon} /> Up to 5 Users</li>
+                <li><Check size={13} className={styles.checkIcon} /> Red Team QA Priority</li>
+                <li><Check size={13} className={styles.checkIcon} /> Quarterly Audit</li>
+              </ul>
+              <Link href="/auth" className={styles.btnSecondary} id="pricing-team-cta">
+                UPGRADE TEAM
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Disclaimer ── */}
+      <div className={styles.disclaimer}>
+        <div className={styles.sectionInner}>
+          ⚠️&nbsp; Decision Scores are model-based estimates, not guarantees. They reflect pattern
+          matching against stated inputs and documented assumptions. Results depend on execution
+          quality and market conditions.
+        </div>
+      </div>
+
+      {/* ── Footer ── */}
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <Link href="/" className={styles.footerBrand}>
+            <Crown size={14} />
+            <span>THE BILLIONAIRE BROTHER</span>
           </Link>
-          <span className={styles.heroNote}>10 minutes. Zero commitment.</span>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className={styles.section}>
-        <h2 className={`heading-lg ${styles.sectionTitle}`}>How It Works</h2>
-        <div className={styles.steps}>
-          <div className={styles.step}>
-            <div className={styles.stepNumber}>01</div>
-            <h3 className="heading-sm">Questionnaire</h3>
-            <p className="text-secondary">
-              10-minute deep dive into your business, constraints, strengths, and goals.
-            </p>
+          <div className={styles.footerLinks}>
+            <Link href="/framework" className={styles.footerLink}>Terms of Service</Link>
+            <Link href="/framework" className={styles.footerLink}>Privacy Policy</Link>
+            <Link href="/framework" className={styles.footerLink}>Contact Strategist</Link>
+            <Link href="/auth" className={styles.footerLink}>System Status</Link>
           </div>
-          <div className={styles.stepArrow}>→</div>
-          <div className={styles.step}>
-            <div className={styles.stepNumber}>02</div>
-            <h3 className="heading-sm">Strategy & KPIs</h3>
-            <p className="text-secondary">
-              Derek builds your strategy with Decision Scores, risks, and a locked KPI to track.
-            </p>
-          </div>
-          <div className={styles.stepArrow}>→</div>
-          <div className={styles.step}>
-            <div className={styles.stepNumber}>03</div>
-            <h3 className="heading-sm">Execute & Ship</h3>
-            <p className="text-secondary">
-              Get weekly Action Steps with capped deliverables. Check in, adjust, repeat.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className={styles.section}>
-        <div className={styles.featuresGrid}>
-          <div className={`card ${styles.featureCard}`}>
-            <Target size={24} className={styles.featureIcon} />
-            <h3 className="heading-sm">Decision Scores</h3>
-            <p className="text-secondary">
-              Transparent 0–100 scoring across Market Fit, Resource Alignment, Speed to Revenue,
-              Founder Fit, Risk Profile, and Scalability. Every score shows its math.
-            </p>
-          </div>
-          <div className={`card ${styles.featureCard}`}>
-            <TrendingUp size={24} className={styles.featureIcon} />
-            <h3 className="heading-sm">Weekly Action Steps</h3>
-            <p className="text-secondary">
-              2 big deliverables + 5 small tasks, each week. Capped to your hours-per-week budget.
-              Never too much, never too vague.
-            </p>
-          </div>
-          <div className={`card ${styles.featureCard}`}>
-            <Shield size={24} className={styles.featureIcon} />
-            <h3 className="heading-sm">Red Team QA</h3>
-            <p className="text-secondary">
-              Every output is adversarially reviewed before you see it. No unrealistic claims,
-              no illegal advice, no missing assumptions.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section className={styles.section}>
-        <h2 className={`heading-lg ${styles.sectionTitle}`}>Simple Pricing</h2>
-        <div className={styles.pricingGrid}>
-
-          {/* Free */}
-          <div className={styles.pricingCard}>
-            <div className={styles.pricingBadge}>Free</div>
-            <div className={styles.pricingPrice}>
-              <span className={styles.priceCurrency}>$</span>
-              <span className={styles.priceAmount}>0</span>
-              <span className={styles.pricePeriod}>/mo</span>
-            </div>
-            <ul className={styles.pricingFeatures}>
-              <li><Check size={14} /> Strategy diagnosis</li>
-              <li><Check size={14} /> Decision Scores</li>
-              <li><Check size={14} /> 10 AI prompts / day</li>
-              <li><Check size={14} /> Progress tracking</li>
-              <li className={styles.featureLocked}><span className={styles.lockDash}>✕</span> Have Derek Do It</li>
-              <li className={styles.featureLocked}><span className={styles.lockDash}>✕</span> Team seats</li>
-            </ul>
-            <Link href="/auth" className="btn btn-secondary" style={{ width: '100%' }}>
-              Get Started Free
-            </Link>
-          </div>
-
-          {/* Brother */}
-          <div className={`${styles.pricingCard} ${styles.pricingCardFeatured}`}>
-            <div className={`${styles.pricingBadge} ${styles.pricingBadgeFeatured}`}>Most Popular</div>
-            <div className={styles.pricingPrice}>
-              <span className={styles.priceCurrency}>$</span>
-              <span className={styles.priceAmount}>99.99</span>
-              <span className={styles.pricePeriod}>/mo</span>
-            </div>
-            <p className={styles.pricingPlanName}>Brother Plan</p>
-            <ul className={styles.pricingFeatures}>
-              <li><Check size={14} /> Strategy diagnosis</li>
-              <li><Check size={14} /> Decision Scores</li>
-              <li><Check size={14} /> 40 AI prompts / day</li>
-              <li><Check size={14} /> Have Derek Do It</li>
-              <li><Check size={14} /> AI deliverable downloads</li>
-              <li className={styles.featureLocked}><span className={styles.lockDash}>✕</span> Team seats</li>
-            </ul>
-            <Link href="/auth" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-              Get Started <ArrowRight size={18} />
-            </Link>
-          </div>
-
-          {/* Team */}
-          <div className={`${styles.pricingCard} ${styles.pricingCardTeam}`}>
-            <div className={`${styles.pricingBadge} ${styles.pricingBadgeTeam}`}><Users size={12} /> Team</div>
-            <div className={styles.pricingPrice}>
-              <span className={styles.priceCurrency}>$</span>
-              <span className={styles.priceAmount}>199</span>
-              <span className={styles.pricePeriod}>/mo</span>
-            </div>
-            <p className={styles.pricingPlanName}>Team Plan</p>
-            <ul className={styles.pricingFeatures}>
-              <li><Check size={14} /> Strategy diagnosis</li>
-              <li><Check size={14} /> Decision Scores</li>
-              <li><Check size={14} /> 100 AI prompts / day</li>
-              <li><Check size={14} /> Have Derek Do It</li>
-              <li><Check size={14} /> AI deliverable downloads</li>
-              <li><Check size={14} /> Team seats</li>
-            </ul>
-            <Link href="/auth" className="btn btn-secondary" style={{ width: '100%' }}>
-              Get Team Access <ArrowRight size={18} />
-            </Link>
-          </div>
-
-        </div>
-      </section>
-
-      {/* Disclaimer */}
-      <section className={styles.section}>
-        <div className="disclaimer" style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <span>⚠️</span>
-          <span>
-            Decision Scores are model-based estimates, not guarantees. They reflect pattern matching
-            against stated inputs and documented assumptions. Results depend on execution quality and
-            market conditions.
+          <span className={styles.footerCopy}>
+            © {new Date().getFullYear()} The Billionaire Brother. All rights reserved.
           </span>
         </div>
-      </section>
-
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <p className="text-tertiary">
-          © {new Date().getFullYear()} The Billionaire Brother. All rights reserved.
-        </p>
       </footer>
     </div>
   );

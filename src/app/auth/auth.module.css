@@ -1,181 +1,375 @@
+/* ═══════════════════════════════════════════
+   Auth Page — Architectural Authority Theme
+   ═══════════════════════════════════════════ */
+
+/* Local tokens mirroring landing page */
+:root {
+  --surface:           #131313;
+  --surface-low:       #1c1b1b;
+  --surface-high:      #2a2a2a;
+  --surface-highest:   #333333;
+  --primary-container: #ffbf00;
+  --primary:           #ffe2ab;
+  --on-primary:        #402d00;
+  --primary-dim:       #e6a800;
+}
+
+/* ── Full-height split layout ── */
 .container {
-    display: flex;
-    min-height: 100vh;
+  display: flex;
+  min-height: 100vh;
+  background: var(--surface);
 }
 
-/* ─── Left Brand Panel ─── */
+/* ═══════════════════════════════════
+   LEFT — Brand panel
+   ═══════════════════════════════════ */
 .leftPanel {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-12);
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-    position: relative;
-    overflow: hidden;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 56px;
+  background: var(--surface-low);
+  position: relative;
+  overflow: hidden;
 }
 
+/* Subtle grid texture */
 .leftPanel::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(ellipse 60% 50% at 30% 20%, rgba(234, 179, 8, 0.08), transparent),
-        radial-gradient(ellipse 50% 60% at 70% 80%, rgba(59, 130, 246, 0.05), transparent);
-    pointer-events: none;
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><line x1="0" y1="0" x2="0" y2="40" stroke="%23ffffff05" stroke-width="1"/><line x1="0" y1="0" x2="40" y2="0" stroke="%23ffffff05" stroke-width="1"/></svg>');
+  pointer-events: none;
+}
+
+/* Gold ambient glow in top-left */
+.leftPanel::after {
+  content: '';
+  position: absolute;
+  top: -80px;
+  left: -80px;
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(255,191,0,0.07) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .brandContent {
-    position: relative;
-    max-width: 420px;
+  position: relative;
+  max-width: 400px;
+  z-index: 1;
 }
 
+/* ── Logo ── */
 .logoMark {
-    width: 56px;
-    height: 56px;
-    border-radius: var(--radius-lg);
-    background: linear-gradient(135deg, var(--gold-500), var(--gold-700));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-inverse);
-    margin-bottom: var(--space-6);
-    box-shadow: var(--shadow-glow-gold);
+  width: 48px;
+  height: 48px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, var(--primary-container), var(--primary-dim));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-primary);
+  margin-bottom: 28px;
 }
 
+/* ── System chip (mirrors landing hero chip) ── */
+.systemChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-high);
+  border-left: 2px solid var(--primary-container);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.chipDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #27c93f;
+  box-shadow: 0 0 6px #27c93f;
+  animation: blink 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── Brand headline ── */
 .brandTitle {
-    font-size: var(--text-4xl);
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    margin-bottom: var(--space-4);
-    background: linear-gradient(135deg, var(--text-primary) 0%, var(--gold-400) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.brandTitle span {
+  color: var(--primary-container);
 }
 
 .brandTagline {
-    font-size: var(--text-lg);
-    color: var(--text-secondary);
-    margin-bottom: var(--space-10);
-    line-height: 1.6;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: 48px;
+  line-height: 1.65;
 }
 
+/* ── Feature list (terminal-style) ── */
 .features {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .featureItem {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  padding: 14px 0;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+.featureItem:last-child {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 
 .featureDot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--gold-500);
-    flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary-container);
+  flex-shrink: 0;
 }
 
-/* ─── Right Form Panel ─── */
+/* ── Bottom monospace stat line ── */
+.leftFooter {
+  margin-top: 40px;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+/* ═══════════════════════════════════
+   RIGHT — Form panel
+   ═══════════════════════════════════ */
 .rightPanel {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-12);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 56px;
+  background: var(--surface);
 }
 
 .formWrapper {
-    width: 100%;
-    max-width: 400px;
+  width: 100%;
+  max-width: 380px;
 }
 
+/* ── Form header ── */
 .formHeader {
-    margin-bottom: var(--space-8);
+  margin-bottom: 36px;
 }
 
-.formHeader h2 {
-    margin-bottom: var(--space-2);
+.formTitle {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
+.formSubtitle {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+/* ── Form ── */
 .form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .field {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Monospace uppercase label */
+.fieldLabel {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.fieldLabelOptional {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: #444;
+  font-weight: 400;
+  text-transform: none;
+  margin-left: 8px;
+}
+
+/* Input wrapper — bottom-ghost-border style */
 .inputWrapper {
-    position: relative;
+  position: relative;
+}
+
+/* Override global .input for the Architectural style */
+.inputWrapper :global(.input) {
+  background: var(--surface-low);
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  border-radius: 2px 2px 0 0;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  padding: 12px 16px 12px 2.75rem;
+  width: 100%;
+  outline: none;
+  transition: border-color 150ms linear, background 150ms linear;
+}
+
+.inputWrapper :global(.input):focus {
+  border-bottom-color: var(--primary-container);
+  background: var(--surface-high);
+  box-shadow: none;
+}
+
+.inputWrapper :global(.input)::placeholder {
+  color: #3a3a3a;
 }
 
 .inputIcon {
-    position: absolute;
-    left: var(--space-4);
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-tertiary);
-    pointer-events: none;
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
 }
 
+/* ── Feedback messages ── */
 .error {
-    padding: var(--space-3) var(--space-4);
-    background: var(--accent-red-glow);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: var(--radius-md);
-    color: var(--accent-red);
-    font-size: var(--text-sm);
+  padding: 10px 14px;
+  background: rgba(239,68,68,0.07);
+  border-left: 2px solid #ef4444;
+  color: #ef4444;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  border-radius: 0 2px 2px 0;
 }
 
 .success {
-    padding: var(--space-3) var(--space-4);
-    background: var(--accent-green-glow);
-    border: 1px solid rgba(34, 197, 94, 0.3);
-    border-radius: var(--radius-md);
-    color: var(--accent-green);
-    font-size: var(--text-sm);
+  padding: 10px 14px;
+  background: rgba(34,197,94,0.07);
+  border-left: 2px solid #22c55e;
+  color: #22c55e;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  border-radius: 0 2px 2px 0;
 }
 
+/* ── Submit button ── */
+.submitBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: linear-gradient(45deg, var(--primary-container), var(--primary));
+  color: var(--on-primary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 15px 0;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: filter 150ms linear, box-shadow 150ms linear;
+  box-shadow: 0 0 24px rgba(255,191,0,0.15);
+  margin-top: 4px;
+}
+
+.submitBtn:hover:not(:disabled) {
+  filter: brightness(0.9);
+  box-shadow: 0 0 40px rgba(255,191,0,0.28);
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Mode toggle ── */
 .switchMode {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    margin-top: var(--space-8);
-    font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 32px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
 }
 
-/* ─── Responsive ─── */
+.switchModeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  color: var(--primary-container);
+  padding: 0;
+  transition: color 150ms linear;
+}
+
+.switchModeBtn:hover { color: var(--primary); }
+
+/* ═══════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════ */
 @media (max-width: 768px) {
-    .container {
-        flex-direction: column;
-    }
+  .container { flex-direction: column; }
 
-    .leftPanel {
-        padding: var(--space-8) var(--space-6);
-    }
+  .leftPanel {
+    padding: 40px 28px;
+  }
 
-    .brandTitle {
-        font-size: var(--text-2xl);
-    }
+  .features { display: none; }
 
-    .features {
-        display: none;
-    }
-
-    .rightPanel {
-        padding: var(--space-8) var(--space-6);
-    }
+  .rightPanel {
+    padding: 40px 28px;
+  }
 }

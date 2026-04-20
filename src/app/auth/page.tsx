@@ -8,7 +8,7 @@ import styles from './auth.module.css';
 
 export default function AuthPage() {
     return (
-        <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }} />}>
+        <Suspense fallback={<div style={{ minHeight: '100vh', background: '#131313' }} />}>
             <AuthPageInner />
         </Suspense>
     );
@@ -107,15 +107,28 @@ function AuthPageInner() {
 
     return (
         <div className={styles.container}>
+
+            {/* ── Left — Brand panel ── */}
             <div className={styles.leftPanel}>
                 <div className={styles.brandContent}>
                     <div className={styles.logoMark}>
-                        <Crown size={32} />
+                        <Crown size={24} />
                     </div>
-                    <h1 className={styles.brandTitle}>The Billionaire Brother</h1>
+
+                    <div className={styles.systemChip}>
+                        <span className={styles.chipDot} />
+                        <span>SYSTEM ONLINE // DEREK_V2.0</span>
+                    </div>
+
+                    <h1 className={styles.brandTitle}>
+                        The Billionaire<br />
+                        <span>Brother.</span>
+                    </h1>
                     <p className={styles.brandTagline}>
-                        Your business strategist. Built to execute.
+                        Your business strategist. Built to execute.<br />
+                        No fluff. Just metrics and relentless action.
                     </p>
+
                     <div className={styles.features}>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />
@@ -134,35 +147,40 @@ function AuthPageInner() {
                             <span>Weekly check-ins that keep you honest</span>
                         </div>
                     </div>
+
+                    <p className={styles.leftFooter}>
+                        © {new Date().getFullYear()} THE BILLIONAIRE BROTHER
+                    </p>
                 </div>
             </div>
 
+            {/* ── Right — Form panel ── */}
             <div className={styles.rightPanel}>
                 <div className={styles.formWrapper}>
                     <div className={styles.formHeader}>
-                        <h2 className="heading-lg">
-                            {mode === 'login' ? 'Welcome back' : 'Get started'}
+                        <h2 className={styles.formTitle}>
+                            {mode === 'login' ? 'Access Terminal' : 'Initialize Account'}
                         </h2>
-                        <p className="text-secondary">
+                        <p className={styles.formSubtitle}>
                             {mode === 'login'
-                                ? 'Sign in to your account'
-                                : 'Create your account to begin'}
+                                ? 'AUTHENTICATE // DEREK SYSTEM'
+                                : 'CREATE CREDENTIALS // BEGIN PROTOCOL'}
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className={styles.form}>
+
                         {mode === 'signup' && (
                             <div className={styles.field}>
-                                <label className="label" htmlFor="displayName">
+                                <label className={styles.fieldLabel} htmlFor="displayName">
                                     Display Name
                                 </label>
                                 <div className={styles.inputWrapper}>
-                                    <User size={18} className={styles.inputIcon} />
+                                    <User size={16} className={styles.inputIcon} />
                                     <input
                                         id="displayName"
                                         type="text"
                                         className="input"
-                                        style={{ paddingLeft: '2.75rem' }}
                                         placeholder="Derek Junior"
                                         value={displayName}
                                         onChange={(e) => setDisplayName(e.target.value)}
@@ -174,17 +192,18 @@ function AuthPageInner() {
 
                         {mode === 'signup' && (
                             <div className={styles.field}>
-                                <label className="label" htmlFor="promoCode">
-                                    Promo Code <span className="text-tertiary" style={{ fontWeight: 400 }}>(optional)</span>
+                                <label className={styles.fieldLabel} htmlFor="promoCode">
+                                    Promo Code
+                                    <span className={styles.fieldLabelOptional}>(optional)</span>
                                 </label>
                                 <div className={styles.inputWrapper}>
-                                    <Tag size={18} className={styles.inputIcon} />
+                                    <Tag size={16} className={styles.inputIcon} />
                                     <input
                                         id="promoCode"
                                         type="text"
                                         className="input"
-                                        style={{ paddingLeft: '2.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
-                                        placeholder="Have a code? Enter it here"
+                                        style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}
+                                        placeholder="ENTER CODE"
                                         value={promoCode}
                                         onChange={(e) => setPromoCode(e.target.value)}
                                     />
@@ -193,16 +212,15 @@ function AuthPageInner() {
                         )}
 
                         <div className={styles.field}>
-                            <label className="label" htmlFor="email">
-                                Email
+                            <label className={styles.fieldLabel} htmlFor="email">
+                                Email Address
                             </label>
                             <div className={styles.inputWrapper}>
-                                <Mail size={18} className={styles.inputIcon} />
+                                <Mail size={16} className={styles.inputIcon} />
                                 <input
                                     id="email"
                                     type="email"
                                     className="input"
-                                    style={{ paddingLeft: '2.75rem' }}
                                     placeholder="you@company.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -212,16 +230,15 @@ function AuthPageInner() {
                         </div>
 
                         <div className={styles.field}>
-                            <label className="label" htmlFor="password">
+                            <label className={styles.fieldLabel} htmlFor="password">
                                 Password
                             </label>
                             <div className={styles.inputWrapper}>
-                                <Lock size={18} className={styles.inputIcon} />
+                                <Lock size={16} className={styles.inputIcon} />
                                 <input
                                     id="password"
                                     type="password"
                                     className="input"
-                                    style={{ paddingLeft: '2.75rem' }}
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -235,39 +252,41 @@ function AuthPageInner() {
                         {message && <div className={styles.success}>{message}</div>}
 
                         <button
+                            id="auth-submit-btn"
                             type="submit"
-                            className="btn btn-primary btn-lg"
-                            style={{ width: '100%' }}
+                            className={styles.submitBtn}
                             disabled={loading}
                         >
                             {loading
-                                ? 'Loading...'
+                                ? 'CONNECTING...'
                                 : mode === 'login'
-                                    ? 'Sign In'
-                                    : 'Create Account'}
-                            {!loading && <ArrowRight size={18} />}
+                                    ? 'ACCESS SYSTEM'
+                                    : 'INITIALIZE ACCOUNT'}
+                            {!loading && <ArrowRight size={16} />}
                         </button>
                     </form>
 
                     <div className={styles.switchMode}>
-                        <span className="text-secondary">
+                        <span>
                             {mode === 'login'
-                                ? "Don't have an account?"
-                                : 'Already have an account?'}
+                                ? "No account yet?"
+                                : 'Already registered?'}
                         </span>
                         <button
-                            className="btn btn-ghost"
+                            id="auth-mode-toggle"
+                            className={styles.switchModeBtn}
                             onClick={() => {
                                 setMode(mode === 'login' ? 'signup' : 'login');
                                 setError(null);
                                 setMessage(null);
                             }}
                         >
-                            {mode === 'login' ? 'Sign up' : 'Sign in'}
+                            {mode === 'login' ? 'CREATE ACCOUNT →' : 'SIGN IN →'}
                         </button>
                     </div>
                 </div>
             </div>
+
         </div>
     );
 }
