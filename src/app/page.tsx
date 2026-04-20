@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, Users, Terminal, ChevronRight } from 'lucide-react';
+import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, Users, Terminal, ChevronRight, X } from 'lucide-react';
 import styles from './page.module.css';
 
 export default function LandingPage() {
@@ -200,8 +200,12 @@ export default function LandingPage() {
                 <span className={styles.priceAmount}>0</span>
               </div>
               <ul className={styles.pricingFeatures}>
-                <li><Check size={13} className={styles.checkIcon} /> Initial Baseline Assessment</li>
-                <li><Check size={13} className={styles.checkIcon} /> 1 Weekly Action Step</li>
+                <li><Check size={13} className={styles.checkIcon} /> Strategy diagnosis</li>
+                <li><Check size={13} className={styles.checkIcon} /> Decision Scores</li>
+                <li><Check size={13} className={styles.checkIcon} /> 10 AI prompts / day</li>
+                <li><Check size={13} className={styles.checkIcon} /> Progress tracking</li>
+                <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Have Derek Do It</li>
+                <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Team Seats</li>
               </ul>
               <Link href="/auth" className={styles.btnSecondary} id="pricing-free-cta">
                 BEGIN BASIC
@@ -218,9 +222,13 @@ export default function LandingPage() {
                 <span className={styles.pricePeriod}>/mo</span>
               </div>
               <ul className={styles.pricingFeatures}>
-                <li><Check size={13} className={styles.checkIconGold} /> Full Strategy &amp; KPIs</li>
-                <li><Check size={13} className={styles.checkIconGold} /> Unlimited Decision Scores</li>
-                <li><Check size={13} className={styles.checkIconGold} /> Direct Terminal Access</li>
+                <li><Check size={13} className={styles.checkIconGold} /> Strategy diagnosis</li>
+                <li><Check size={13} className={styles.checkIconGold} /> Decision Scores</li>
+                <li><Check size={13} className={styles.checkIconGold} /> 40 AI prompts / day</li>
+                <li><Check size={13} className={styles.checkIconGold} /> Progress tracking</li>
+                <li><Check size={13} className={styles.checkIconGold} /> Have Derek Do It</li>
+                <li><Check size={13} className={styles.checkIconGold} /> AI deliverable downloads</li>
+                <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Team Seats</li>
               </ul>
               <Link href="/auth" className={styles.btnPrimary} id="pricing-brother-cta">
                 DEPLOY BROTHER
@@ -236,9 +244,13 @@ export default function LandingPage() {
                 <span className={styles.pricePeriod}>/mo</span>
               </div>
               <ul className={styles.pricingFeatures}>
-                <li><Check size={13} className={styles.checkIcon} /> Up to 5 Users</li>
-                <li><Check size={13} className={styles.checkIcon} /> Red Team QA Priority</li>
-                <li><Check size={13} className={styles.checkIcon} /> Quarterly Audit</li>
+                <li><Check size={13} className={styles.checkIcon} /> Strategy diagnosis</li>
+                <li><Check size={13} className={styles.checkIcon} /> Decision Scores</li>
+                <li><Check size={13} className={styles.checkIcon} /> 100 AI prompts / day</li>
+                <li><Check size={13} className={styles.checkIcon} /> Progress tracking</li>
+                <li><Check size={13} className={styles.checkIcon} /> Have Derek Do It</li>
+                <li><Check size={13} className={styles.checkIcon} /> AI deliverable downloads</li>
+                <li><Check size={13} className={styles.checkIcon} /> Team Seats</li>
               </ul>
               <Link href="/auth" className={styles.btnSecondary} id="pricing-team-cta">
                 UPGRADE TEAM

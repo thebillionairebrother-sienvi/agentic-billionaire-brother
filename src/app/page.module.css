@@ -529,7 +529,8 @@
 .pricingGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
+  gap: 24px;
+  align-items: center;
 }
 
 .pricingCard {
@@ -539,10 +540,15 @@
   flex-direction: column;
   gap: 0;
   position: relative;
-  transition: background 150ms linear;
+  transition: background 150ms linear, outline 150ms linear;
+  outline: 1.5px solid transparent;
+  outline-offset: -1.5px;
 }
 
-.pricingCard:hover { background: #323232; }
+.pricingCard:hover { 
+  background: #323232;
+  outline: 1.5px solid var(--primary-container);
+}
 
 .pricingCardFeatured {
   background: var(--surface-low);
@@ -551,7 +557,10 @@
   z-index: 1;
 }
 
-.pricingCardFeatured:hover { background: #222121; }
+.pricingCardFeatured:hover { 
+  background: #222121;
+  outline: 1.5px solid var(--primary-container);
+}
 
 .mostPopularBadge {
   position: absolute;
@@ -613,7 +622,7 @@
 
 .pricingFeatures li {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: #e5e5e5;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -621,8 +630,13 @@
   font-size: 0.72rem;
 }
 
+.mutedFeature {
+  color: #666 !important;
+}
+
 .checkIcon { color: var(--text-tertiary); flex-shrink: 0; }
 .checkIconGold { color: var(--primary-container); flex-shrink: 0; }
+.xIcon { color: #666; flex-shrink: 0; }
 
 /* Pricing buttons */
 .btnPrimary {
@@ -645,7 +659,8 @@
 .btnSecondary {
   display: block;
   text-align: center;
-  background: var(--surface-highest);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 0.68rem;
@@ -654,11 +669,12 @@
   padding: 13px 0;
   border-radius: 2px;
   text-decoration: none;
-  transition: background 150ms linear, color 150ms linear;
+  transition: background 150ms linear, color 150ms linear, border-color 150ms linear;
 }
 
 .btnSecondary:hover {
-  background: #444;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
   color: var(--text-primary);
 }
 
