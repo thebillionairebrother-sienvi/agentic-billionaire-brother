@@ -103,7 +103,7 @@ export default function LandingPage() {
           <div className={styles.stepsGrid}>
             <div className={styles.stepCard}>
               <div className={styles.stepIconRow}>
-                <Target size={20} className={styles.stepIcon} />
+                <Target size={36} className={styles.stepIcon} />
                 <span className={styles.stepNum}>01</span>
               </div>
               <h3 className={styles.stepTitle}>Questionnaire</h3>
@@ -114,7 +114,7 @@ export default function LandingPage() {
             </div>
             <div className={styles.stepCard}>
               <div className={styles.stepIconRow}>
-                <TrendingUp size={20} className={styles.stepIcon} />
+                <TrendingUp size={36} className={styles.stepIcon} />
                 <span className={styles.stepNum}>02</span>
               </div>
               <h3 className={styles.stepTitle}>Strategy &amp; KPIs</h3>
@@ -125,7 +125,7 @@ export default function LandingPage() {
             </div>
             <div className={styles.stepCard}>
               <div className={styles.stepIconRow}>
-                <ChevronRight size={20} className={styles.stepIcon} />
+                <ChevronRight size={36} className={styles.stepIcon} />
                 <span className={styles.stepNum}>03</span>
               </div>
               <h3 className={styles.stepTitle}>Execute &amp; Ship</h3>

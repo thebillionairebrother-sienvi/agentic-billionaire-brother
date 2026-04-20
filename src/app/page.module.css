@@ -308,8 +308,8 @@
    VSL PLACEHOLDER
    ═══════════════════════════════════ */
 .vslSection {
-  background: var(--surface);
-  padding: 40px var(--space-6) 96px;
+  background: linear-gradient(to bottom, var(--surface) 50%, var(--surface-low) 50%);
+  padding: 0 var(--space-6);
 }
 
 .vslInner {
