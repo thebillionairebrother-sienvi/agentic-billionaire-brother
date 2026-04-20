@@ -80,6 +80,15 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── VSL Placeholder ── */}
+      <section className={styles.vslSection}>
+        <div className={styles.vslInner}>
+          <div className={styles.vslPlaceholder}>
+            <span className={styles.vslText}>[ VSL Placeholder ]</span>
+          </div>
+        </div>
+      </section>
+
       {/* ── How It Works ── */}
       <section className={styles.howItWorks}>
         <div className={styles.sectionInner}>
