@@ -308,6 +308,10 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-tertiary);
+  background: var(--surface);
+  padding: 4px 0;
+  position: relative;
+  z-index: 2;
 }
 
 /* Step right content */

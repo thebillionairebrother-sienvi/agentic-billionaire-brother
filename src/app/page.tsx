@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, Users, Terminal, ChevronRight, X } from 'lucide-react';
 import styles from './page.module.css';
 import { useEffect, useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 
 /* ── Terminal typing animation data ── */
 type TerminalSegment = { text: string; className?: string };
@@ -210,7 +211,7 @@ export default function LandingPage() {
           <div className={styles.navLinks}>
             <Link href="/guide" className={styles.navLink}>PLAYBOOK</Link>
             <Link href="/#pricing" className={styles.navLink}>PRICING</Link>
-            <Link href="/framework" className={styles.navLink}>RED TEAM</Link>
+            <Link href="/#features" className={styles.navLink}>FEATURES</Link>
           </div>
           <Link href="/auth" className={styles.navCta}>
             ACCESS TERMINAL →
@@ -275,7 +276,13 @@ export default function LandingPage() {
 
       {/* ── How It Works ── */}
       <section className={styles.howItWorks}>
-        <div className={styles.sectionInner}>
+        <motion.div 
+          className={styles.sectionInner}
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
           <div className={styles.sectionMeta}>
             <span className={styles.sectionLabel}>THE PROTOCOL</span>
             <h2 className={styles.sectionTitle}>How It Works</h2>
@@ -319,12 +326,18 @@ export default function LandingPage() {
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* ── Features / Arsenal ── */}
-      <section className={styles.arsenal}>
-        <div className={styles.sectionInner}>
+      <section className={styles.arsenal} id="features">
+        <motion.div 
+          className={styles.sectionInner}
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
           <div className={styles.sectionMeta}>
             <span className={styles.sectionLabel}>THE ARSENAL</span>
             <h2 className={styles.sectionTitle}>Tools for Unapologetic<br />Growth.</h2>
@@ -373,12 +386,18 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* ── Pricing ── */}
       <section className={styles.pricing} id="pricing">
-        <div className={styles.sectionInner}>
+        <motion.div 
+          className={styles.sectionInner}
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
           <div className={styles.sectionMetaCenter}>
             <span className={styles.sectionLabel}>ACCESS TIERS</span>
             <h2 className={styles.sectionTitleLg}>Invest in Discipline.</h2>
@@ -450,7 +469,7 @@ export default function LandingPage() {
               </Link>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* ── Disclaimer ── */}

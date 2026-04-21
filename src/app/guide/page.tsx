@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
   Crown,
   ArrowLeft,
@@ -138,7 +141,14 @@ export default function PlaybookPage() {
             const Icon = step.icon;
             const isLast = i === steps.length - 1;
             return (
-              <div key={step.num} className={styles.step}>
+              <motion.div 
+                key={step.num} 
+                className={styles.step}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
+              >
                 {/* Connector line */}
                 {!isLast && <div className={styles.connector} />}
 
@@ -163,7 +173,7 @@ export default function PlaybookPage() {
                     <p className={styles.proTipText}>{step.tip}</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
