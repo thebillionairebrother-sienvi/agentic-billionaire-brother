@@ -5,7 +5,46 @@ import Image from 'next/image';
 import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, Users, Terminal, ChevronRight, X } from 'lucide-react';
 import styles from './page.module.css';
 import { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform, useMotionValue, useSpring, Variants } from 'framer-motion';
+
+/* ── 3D Tilt Wrapper Animation ── */
+function TiltWrapper({ children }: { children: React.ReactNode }) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const mouseXSpring = useSpring(x, { stiffness: 300, damping: 30 });
+  const mouseYSpring = useSpring(y, { stiffness: 300, damping: 30 });
+
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["8deg", "-8deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-8deg", "8deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    x.set(mouseX / width - 0.5);
+    y.set(mouseY / height - 0.5);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <div style={{ perspective: 1200, display: 'flex', width: '100%' }}>
+      <motion.div
+        style={{ rotateX, rotateY, width: '100%', display: 'flex', flexDirection: 'column' }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+}
 
 /* ── Terminal typing animation data ── */
 type TerminalSegment = { text: string; className?: string };
@@ -196,7 +235,37 @@ function AnimatedTerminal() {
   );
 }
 
+/* ── Staggered Reveal Variants ── */
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.2
+    }
+  }
+};
+
+const fadeUpVariant: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { duration: 0.6, ease: 'easeOut' } 
+  }
+};
+
 export default function LandingPage() {
+  const heroRef = useRef(null);
+  const { scrollYProgress: heroScroll } = useScroll({ 
+    target: heroRef, 
+    offset: ["start start", "end start"] 
+  });
+  
+  const heroYLeft = useTransform(heroScroll, [0, 1], ["0%", "40%"]);
+  const heroYRight = useTransform(heroScroll, [0, 1], ["0%", "70%"]);
+  const heroOpacity = useTransform(heroScroll, [0, 0.8, 1], [1, 0, 0]);
+
   return (
     <main id="main-content" className={styles.page}>
 
@@ -221,10 +290,13 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <section className={styles.hero}>
-        <div className={styles.heroInner}>
+      <section className={styles.hero} ref={heroRef}>
+        <motion.div 
+          className={styles.heroInner}
+          style={{ opacity: heroOpacity }}
+        >
           {/* Left: headline block */}
-          <div className={styles.heroLeft}>
+          <motion.div className={styles.heroLeft} style={{ y: heroYLeft }}>
             <div className={styles.systemChip}>
               <span className={styles.chipDot} />
               <span>SYSTEM ONLINE // DEREK_V2.0</span>
@@ -247,10 +319,10 @@ export default function LandingPage() {
                 START FREE QUESTIONNAIRE →
               </Link>
             </div>
-          </div>
+          </motion.div>
 
           {/* Right: terminal card */}
-          <div className={styles.heroRight}>
+          <motion.div className={styles.heroRight} style={{ y: heroYRight }}>
             <div className={styles.terminalCard}>
               <div className={styles.terminalBar}>
                 <div className={styles.terminalDots}>
@@ -262,8 +334,8 @@ export default function LandingPage() {
               </div>
               <AnimatedTerminal />
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* ── VSL Placeholder ── */}
@@ -281,7 +353,7 @@ export default function LandingPage() {
           className={styles.sectionInner}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: false, margin: "-100px" }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
         >
           <div className={styles.sectionMeta}>
@@ -292,8 +364,14 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className={styles.stepsGrid}>
-            <div className={styles.stepCard}>
+          <motion.div 
+            className={styles.stepsGrid}
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: false, margin: "-100px" }}
+          >
+            <motion.div className={styles.stepCard} variants={fadeUpVariant}>
               <div className={styles.stepIconRow}>
                 <Target size={36} className={styles.stepIcon} />
                 <span className={styles.stepNum}>01</span>
@@ -303,8 +381,8 @@ export default function LandingPage() {
                 Submit your current status. Derek processes your inputs to establish a
                 baseline of your operational efficiency and glaring weaknesses.
               </p>
-            </div>
-            <div className={styles.stepCard}>
+            </motion.div>
+            <motion.div className={styles.stepCard} variants={fadeUpVariant}>
               <div className={styles.stepIconRow}>
                 <TrendingUp size={36} className={styles.stepIcon} />
                 <span className={styles.stepNum}>02</span>
@@ -314,8 +392,8 @@ export default function LandingPage() {
                 Receive a bespoke, unvarnished strategy. Key Performance Indicators are
                 locked in. There is no room for interpretation.
               </p>
-            </div>
-            <div className={styles.stepCard}>
+            </motion.div>
+            <motion.div className={styles.stepCard} variants={fadeUpVariant}>
               <div className={styles.stepIconRow}>
                 <ChevronRight size={36} className={styles.stepIcon} />
                 <span className={styles.stepNum}>03</span>
@@ -325,8 +403,8 @@ export default function LandingPage() {
                 The mandate is execution. Follow the weekly directives. Report back. If you
                 fail, Derek will ensure you know exactly why.
               </p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </motion.div>
       </section>
 
@@ -336,7 +414,7 @@ export default function LandingPage() {
           className={styles.sectionInner}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: false, margin: "-100px" }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
         >
           <div className={styles.sectionMeta}>
@@ -344,9 +422,15 @@ export default function LandingPage() {
             <h2 className={styles.sectionTitle}>Tools for Unapologetic<br />Growth.</h2>
           </div>
 
-          <div className={styles.arsenalGrid}>
+          <motion.div 
+            className={styles.arsenalGrid}
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: false, margin: "-100px" }}
+          >
             {/* Decision Scores — large card */}
-            <div className={styles.arsenalCardLg}>
+            <motion.div className={styles.arsenalCardLg} variants={fadeUpVariant}>
               <Target size={20} className={styles.arsenalIcon} />
               <h3 className={styles.arsenalTitle}>Decision Scores</h3>
               <p className={styles.arsenalBody}>
@@ -357,37 +441,37 @@ export default function LandingPage() {
                 <span className={styles.scoreLabel}>Last Decision: [Pivot to SaaS]</span>
                 <span className={styles.scoreValue}>SCORE: 42/100 <span className={styles.scoreBad}>[WEAK]</span></span>
               </div>
-            </div>
+            </motion.div>
 
             {/* Weekly Action Steps */}
-            <div className={styles.arsenalCardSm}>
+            <motion.div className={styles.arsenalCardSm} variants={fadeUpVariant}>
               <TrendingUp size={20} className={styles.arsenalIcon} />
               <h3 className={styles.arsenalTitle}>Weekly Action Steps</h3>
               <p className={styles.arsenalBody}>
                 Bite-sized, uncompromising directives issued every Monday. No broad theories.
                 Only actionable commands.
               </p>
-            </div>
+            </motion.div>
 
             {/* Red Team QA */}
-            <div className={styles.arsenalCardSm}>
+            <motion.div className={styles.arsenalCardSm} variants={fadeUpVariant}>
               <Shield size={20} className={styles.arsenalIcon} />
               <h3 className={styles.arsenalTitle}>Red Team QA</h3>
               <p className={styles.arsenalBody}>
                 Before you launch, Derek stress-tests your idea. Finding vulnerabilities before
                 the market does.
               </p>
-            </div>
+            </motion.div>
 
             {/* System Architecture image-card */}
-            <div className={styles.arsenalImageCard}>
+            <motion.div className={styles.arsenalImageCard} variants={fadeUpVariant}>
               <Image src="/images/strategies/strategy-growth.png" alt="Strategy Growth" fill style={{ objectFit: 'cover' }} />
               <div className={styles.arsenalImageOverlay}>
                 <span className={styles.arsenalImageLabel}>System Architecture</span>
                 <span className={styles.arsenalSecureBadge}>SECURE</span>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </motion.div>
       </section>
 
@@ -397,7 +481,7 @@ export default function LandingPage() {
           className={styles.sectionInner}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: false, margin: "-100px" }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
         >
           <div className={styles.sectionMetaCenter}>
@@ -405,72 +489,90 @@ export default function LandingPage() {
             <h2 className={styles.sectionTitleLg}>Invest in Discipline.</h2>
           </div>
 
-          <div className={styles.pricingGrid}>
+          <motion.div 
+            className={styles.pricingGrid}
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: false, margin: "-100px" }}
+          >
             {/* Free */}
-            <div className={styles.pricingCard}>
-              <div className={styles.pricingTierLabel}>FREE</div>
-              <div className={styles.pricingPrice}>
-                <span className={styles.priceCurrency}>$</span>
-                <span className={styles.priceAmount}>0</span>
-              </div>
-              <ul className={styles.pricingFeatures}>
-                <li><Check size={13} className={styles.checkIcon} /> Strategy diagnosis</li>
-                <li><Check size={13} className={styles.checkIcon} /> Decision Scores</li>
-                <li><Check size={13} className={styles.checkIcon} /> 10 AI prompts / day</li>
-                <li><Check size={13} className={styles.checkIcon} /> Progress tracking</li>
-                <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Have Derek Do It</li>
-                <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Team Seats</li>
-              </ul>
-              <Link href="/auth" className={styles.btnSecondary} id="pricing-free-cta">
-                BEGIN BASIC
-              </Link>
-            </div>
+            <motion.div variants={fadeUpVariant}>
+              <TiltWrapper>
+                <div className={styles.pricingCard}>
+                  <div className={styles.pricingTierLabel}>FREE</div>
+                  <div className={styles.pricingPrice}>
+                    <span className={styles.priceCurrency}>$</span>
+                    <span className={styles.priceAmount}>0</span>
+                  </div>
+                  <ul className={styles.pricingFeatures}>
+                    <li><Check size={13} className={styles.checkIcon} /> Strategy diagnosis</li>
+                    <li><Check size={13} className={styles.checkIcon} /> Decision Scores</li>
+                    <li><Check size={13} className={styles.checkIcon} /> 10 AI prompts / day</li>
+                    <li><Check size={13} className={styles.checkIcon} /> Progress tracking</li>
+                    <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Have Derek Do It</li>
+                    <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Team Seats</li>
+                  </ul>
+                  <Link href="/auth" className={styles.btnSecondary} id="pricing-free-cta">
+                    BEGIN BASIC
+                  </Link>
+                </div>
+              </TiltWrapper>
+            </motion.div>
 
             {/* Brother — featured */}
-            <div className={`${styles.pricingCard} ${styles.pricingCardFeatured}`}>
-              <div className={styles.mostPopularBadge}>MOST POPULAR</div>
-              <div className={styles.pricingTierLabel}>BROTHER PLAN</div>
-              <div className={styles.pricingPrice}>
-                <span className={styles.priceCurrency}>$</span>
-                <span className={styles.priceAmount}>99.99</span>
-                <span className={styles.pricePeriod}>/mo</span>
-              </div>
-              <ul className={styles.pricingFeatures}>
-                <li><Check size={13} className={styles.checkIconGold} /> Strategy diagnosis</li>
-                <li><Check size={13} className={styles.checkIconGold} /> Decision Scores</li>
-                <li><Check size={13} className={styles.checkIconGold} /> 40 AI prompts / day</li>
-                <li><Check size={13} className={styles.checkIconGold} /> Progress tracking</li>
-                <li><Check size={13} className={styles.checkIconGold} /> Have Derek Do It</li>
-                <li><Check size={13} className={styles.checkIconGold} /> AI deliverable downloads</li>
-                <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Team Seats</li>
-              </ul>
-              <Link href="/auth" className={styles.btnPrimary} id="pricing-brother-cta">
-                DEPLOY BROTHER
-              </Link>
-            </div>
+            <motion.div variants={fadeUpVariant}>
+              <TiltWrapper>
+                <div className={`${styles.pricingCard} ${styles.pricingCardFeatured}`}>
+                  <div className={styles.mostPopularBadge}>MOST POPULAR</div>
+                  <div className={styles.pricingTierLabel}>BROTHER PLAN</div>
+                  <div className={styles.pricingPrice}>
+                    <span className={styles.priceCurrency}>$</span>
+                    <span className={styles.priceAmount}>99.99</span>
+                    <span className={styles.pricePeriod}>/mo</span>
+                  </div>
+                  <ul className={styles.pricingFeatures}>
+                    <li><Check size={13} className={styles.checkIconGold} /> Strategy diagnosis</li>
+                    <li><Check size={13} className={styles.checkIconGold} /> Decision Scores</li>
+                    <li><Check size={13} className={styles.checkIconGold} /> 40 AI prompts / day</li>
+                    <li><Check size={13} className={styles.checkIconGold} /> Progress tracking</li>
+                    <li><Check size={13} className={styles.checkIconGold} /> Have Derek Do It</li>
+                    <li><Check size={13} className={styles.checkIconGold} /> AI deliverable downloads</li>
+                    <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Team Seats</li>
+                  </ul>
+                  <Link href="/auth" className={styles.btnPrimary} id="pricing-brother-cta">
+                    DEPLOY BROTHER
+                  </Link>
+                </div>
+              </TiltWrapper>
+            </motion.div>
 
             {/* Team */}
-            <div className={styles.pricingCard}>
-              <div className={styles.pricingTierLabel}>TEAM PLAN</div>
-              <div className={styles.pricingPrice}>
-                <span className={styles.priceCurrency}>$</span>
-                <span className={styles.priceAmount}>199</span>
-                <span className={styles.pricePeriod}>/mo</span>
-              </div>
-              <ul className={styles.pricingFeatures}>
-                <li><Check size={13} className={styles.checkIcon} /> Strategy diagnosis</li>
-                <li><Check size={13} className={styles.checkIcon} /> Decision Scores</li>
-                <li><Check size={13} className={styles.checkIcon} /> 100 AI prompts / day</li>
-                <li><Check size={13} className={styles.checkIcon} /> Progress tracking</li>
-                <li><Check size={13} className={styles.checkIcon} /> Have Derek Do It</li>
-                <li><Check size={13} className={styles.checkIcon} /> AI deliverable downloads</li>
-                <li><Check size={13} className={styles.checkIcon} /> Team Seats</li>
-              </ul>
-              <Link href="/auth" className={styles.btnSecondary} id="pricing-team-cta">
-                UPGRADE TEAM
-              </Link>
-            </div>
-          </div>
+            <motion.div variants={fadeUpVariant}>
+              <TiltWrapper>
+                <div className={styles.pricingCard}>
+                  <div className={styles.pricingTierLabel}>TEAM PLAN</div>
+                  <div className={styles.pricingPrice}>
+                    <span className={styles.priceCurrency}>$</span>
+                    <span className={styles.priceAmount}>199</span>
+                    <span className={styles.pricePeriod}>/mo</span>
+                  </div>
+                  <ul className={styles.pricingFeatures}>
+                    <li><Check size={13} className={styles.checkIcon} /> Strategy diagnosis</li>
+                    <li><Check size={13} className={styles.checkIcon} /> Decision Scores</li>
+                    <li><Check size={13} className={styles.checkIcon} /> 100 AI prompts / day</li>
+                    <li><Check size={13} className={styles.checkIcon} /> Progress tracking</li>
+                    <li><Check size={13} className={styles.checkIcon} /> Have Derek Do It</li>
+                    <li><Check size={13} className={styles.checkIcon} /> AI deliverable downloads</li>
+                    <li><Check size={13} className={styles.checkIcon} /> Team Seats</li>
+                  </ul>
+                  <Link href="/auth" className={styles.btnSecondary} id="pricing-team-cta">
+                    UPGRADE TEAM
+                  </Link>
+                </div>
+              </TiltWrapper>
+            </motion.div>
+          </motion.div>
         </motion.div>
       </section>
 

@@ -118,6 +118,7 @@
 .hero {
   background: var(--surface);
   padding: 100px var(--space-6) 80px;
+  overflow: hidden;
 }
 
 .heroInner {
@@ -775,6 +776,8 @@
   color: var(--text-tertiary);
   letter-spacing: 0.04em;
   line-height: 1.6;
+  position: relative;
+  z-index: 40;
 }
 
 /* ═══════════════════════════════════
@@ -784,6 +787,8 @@
   background: var(--surface-low);
   padding: 28px var(--space-6);
   border-top: 1px solid rgba(255, 255, 255, 0.04);
+  position: relative;
+  z-index: 40;
 }
 
 .footerInner {
