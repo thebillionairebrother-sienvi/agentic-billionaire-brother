@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, Users, Terminal, ChevronRight, X } from 'lucide-react';
 import styles from './page.module.css';
 import { useEffect, useState, useRef } from 'react';
@@ -197,7 +198,7 @@ function AnimatedTerminal() {
 
 export default function LandingPage() {
   return (
-    <div className={styles.page}>
+    <main id="main-content" className={styles.page}>
 
       {/* ── Nav ── */}
       <nav className={styles.nav}>
@@ -380,6 +381,7 @@ export default function LandingPage() {
 
             {/* System Architecture image-card */}
             <div className={styles.arsenalImageCard}>
+              <Image src="/images/strategies/strategy-growth.png" alt="Strategy Growth" fill style={{ objectFit: 'cover' }} />
               <div className={styles.arsenalImageOverlay}>
                 <span className={styles.arsenalImageLabel}>System Architecture</span>
                 <span className={styles.arsenalSecureBadge}>SECURE</span>
@@ -499,6 +501,6 @@ export default function LandingPage() {
           </span>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }

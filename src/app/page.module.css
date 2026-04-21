@@ -179,7 +179,7 @@
 
 .strikethrough {
   position: relative;
-  color: #4a4a4a;
+  color: #767676;
   /* making the text dark grey like the image */
 }
 
@@ -497,9 +497,6 @@
   position: relative;
   overflow: hidden;
   min-height: 220px;
-  background-image: url('/images/strategies/strategy-growth.png');
-  background-size: cover;
-  background-position: center;
 }
 
 .arsenalImageOverlay {

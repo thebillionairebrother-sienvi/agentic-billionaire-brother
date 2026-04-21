@@ -2,8 +2,7 @@
    The Billionaire Brother — Design System
    ======================================== */
 
-/* Google Font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 
 /* ─── CSS Custom Properties ─── */
 :root {
@@ -29,7 +28,7 @@
 
   --text-primary: #f5f5f7;
   --text-secondary: #a1a1aa;
-  --text-tertiary: #71717a;
+  --text-tertiary: #9ca3af;
   --text-inverse: #0a0a0f;
 
   /* Accent Colors */
@@ -150,6 +149,11 @@ button {
   border: none;
   background: none;
   color: inherit;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
 }
 
 input, textarea, select {
@@ -592,4 +596,19 @@ textarea.input {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-tertiary);
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--gold-500);
+  color: #000;
+  padding: 8px;
+  z-index: 100;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
 }
