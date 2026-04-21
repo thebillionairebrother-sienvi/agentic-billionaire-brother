@@ -1,6 +1,198 @@
+'use client';
+
 import Link from 'next/link';
 import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, Users, Terminal, ChevronRight, X } from 'lucide-react';
 import styles from './page.module.css';
+import { useEffect, useState, useRef } from 'react';
+
+/* ── Terminal typing animation data ── */
+type TerminalSegment = { text: string; className?: string };
+type TerminalLineData =
+  | { type: 'command'; segments: TerminalSegment[] }
+  | { type: 'blank' }
+  | { type: 'plain'; segments: TerminalSegment[] };
+
+const TERMINAL_LINES: TerminalLineData[] = [
+  {
+    type: 'command',
+    segments: [{ text: ' Analysing current trajectory...' }],
+  },
+  {
+    type: 'command',
+    segments: [
+      { text: ' Efficiency score: ' },
+      { text: '34%', className: styles.terminalHighlight },
+    ],
+  },
+  {
+    type: 'command',
+    segments: [
+      { text: ' Major bottleneck identified: ' },
+      { text: 'Indecision.', className: styles.terminalWarn },
+    ],
+  },
+  { type: 'blank' },
+  {
+    type: 'plain',
+    segments: [{ text: 'Generating brutal action plan.', className: styles.terminalMuted }],
+  },
+];
+
+const CHAR_DELAY = 38;   // ms per character
+const LINE_PAUSE = 320;  // ms pause after each line finishes before starting the next
+const LOOP_PAUSE = 2200; // ms pause before restarting the animation
+
+function useTerminalAnimation() {
+  const [visibleLines, setVisibleLines] = useState<number>(0);      // how many lines are fully visible
+  const [typingText, setTypingText] = useState<string>('');          // current partially-typed line text
+  const [showCursor, setShowCursor] = useState<boolean>(true);
+  const lineRef = useRef(0);    // which line we're currently typing
+  const charRef = useRef(0);    // which character in that line's full text we're at
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Extract the plain-text version of a line for typing
+  function getPlainText(line: TerminalLineData): string {
+    if (line.type === 'blank') return '';
+    return line.segments.map((s) => s.text).join('');
+  }
+
+  useEffect(() => {
+    function scheduleNext() {
+      const line = TERMINAL_LINES[lineRef.current];
+      if (!line) return;
+
+      const fullText = getPlainText(line);
+
+      if (line.type === 'blank') {
+        // blank line — just commit it without typing
+        timerRef.current = setTimeout(() => {
+          setVisibleLines((n) => n + 1);
+          lineRef.current += 1;
+          charRef.current = 0;
+          setTypingText('');
+
+          if (lineRef.current < TERMINAL_LINES.length) {
+            timerRef.current = setTimeout(scheduleNext, LINE_PAUSE);
+          } else {
+            // Finished — loop
+            timerRef.current = setTimeout(restart, LOOP_PAUSE);
+          }
+        }, LINE_PAUSE / 2);
+        return;
+      }
+
+      if (charRef.current <= fullText.length) {
+        setTypingText(fullText.slice(0, charRef.current));
+        charRef.current += 1;
+        timerRef.current = setTimeout(scheduleNext, CHAR_DELAY);
+      } else {
+        // Done typing this line — commit it
+        timerRef.current = setTimeout(() => {
+          setVisibleLines((n) => n + 1);
+          lineRef.current += 1;
+          charRef.current = 0;
+          setTypingText('');
+
+          if (lineRef.current < TERMINAL_LINES.length) {
+            timerRef.current = setTimeout(scheduleNext, LINE_PAUSE);
+          } else {
+            timerRef.current = setTimeout(restart, LOOP_PAUSE);
+          }
+        }, LINE_PAUSE);
+      }
+    }
+
+    function restart() {
+      lineRef.current = 0;
+      charRef.current = 0;
+      setVisibleLines(0);
+      setTypingText('');
+      timerRef.current = setTimeout(scheduleNext, 600);
+    }
+
+    timerRef.current = setTimeout(scheduleNext, 800);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Blinking cursor ticker
+  useEffect(() => {
+    const id = setInterval(() => setShowCursor((v) => !v), 530);
+    return () => clearInterval(id);
+  }, []);
+
+  return { visibleLines, typingText, showCursor };
+}
+
+/* ── Render a committed (fully-typed) terminal line ── */
+function CommittedLine({ line }: { line: TerminalLineData }) {
+  if (line.type === 'blank') return <p className={styles.terminalLine}>&nbsp;</p>;
+
+  return (
+    <p className={styles.terminalLine}>
+      {line.type === 'command' && (
+        <span className={styles.terminalPrompt}>&gt;</span>
+      )}
+      {line.segments.map((seg, i) =>
+        seg.className ? (
+          <span key={i} className={seg.className}>{seg.text}</span>
+        ) : (
+          <span key={i}>{seg.text}</span>
+        )
+      )}
+    </p>
+  );
+}
+
+/* ── Animated terminal that renders committed lines + the currently-typing line ── */
+function AnimatedTerminal() {
+  const { visibleLines, typingText, showCursor } = useTerminalAnimation();
+  const currentLine = TERMINAL_LINES[visibleLines];
+  const isTyping = visibleLines < TERMINAL_LINES.length;
+
+  return (
+    <div className={styles.terminalBody}>
+      {/* Committed lines */}
+      {TERMINAL_LINES.slice(0, visibleLines).map((line, i) => (
+        <CommittedLine key={i} line={line} />
+      ))}
+
+      {/* Currently typing line */}
+      {isTyping && currentLine && currentLine.type !== 'blank' && (
+        <p className={styles.terminalLine}>
+          {currentLine.type === 'command' && (
+            <span className={styles.terminalPrompt}>&gt;</span>
+          )}
+          {/* Render typed segments with colour split */}
+          {(() => {
+            let remaining = typingText;
+            return currentLine.segments.map((seg, i) => {
+              if (remaining.length === 0) return null;
+              const chunk = remaining.slice(0, seg.text.length);
+              remaining = remaining.slice(seg.text.length);
+              return seg.className ? (
+                <span key={i} className={seg.className}>{chunk}</span>
+              ) : (
+                <span key={i}>{chunk}</span>
+              );
+            });
+          })()}
+          <span className={`${styles.terminalCursor} ${showCursor ? styles.cursorVisible : styles.cursorHidden}`}>▌</span>
+        </p>
+      )}
+
+      {/* Idle cursor after all lines are done */}
+      {!isTyping && (
+        <p className={styles.terminalLine}>
+          <span className={`${styles.terminalCursor} ${showCursor ? styles.cursorVisible : styles.cursorHidden}`}>▌</span>
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function LandingPage() {
   return (
@@ -16,8 +208,7 @@ export default function LandingPage() {
             <span className={styles.navBrandText}>THE BILLIONAIRE BROTHER</span>
           </Link>
           <div className={styles.navLinks}>
-            <Link href="/framework" className={styles.navLink}>PROCESS</Link>
-            <Link href="/framework" className={styles.navLink}>FEATURES</Link>
+            <Link href="/guide" className={styles.navLink}>PLAYBOOK</Link>
             <Link href="/#pricing" className={styles.navLink}>PRICING</Link>
             <Link href="/framework" className={styles.navLink}>RED TEAM</Link>
           </div>
@@ -67,14 +258,7 @@ export default function LandingPage() {
                 </div>
                 <span className={styles.terminalTitle}>derek_terminal.sh</span>
               </div>
-              <div className={styles.terminalBody}>
-                <p className={styles.terminalLine}><span className={styles.terminalPrompt}>&gt;</span> Analysing current trajectory...</p>
-                <p className={styles.terminalLine}><span className={styles.terminalPrompt}>&gt;</span> Efficiency score: <span className={styles.terminalHighlight}>34%</span></p>
-                <p className={styles.terminalLine}><span className={styles.terminalPrompt}>&gt;</span> Major bottleneck identified: <span className={styles.terminalWarn}>Indecision.</span></p>
-                <p className={styles.terminalLine}>&nbsp;</p>
-                <p className={styles.terminalLine}><span className={styles.terminalMuted}>Generating brutal action plan.</span></p>
-                <p className={styles.terminalLine}><span className={styles.terminalCursor}>▌</span></p>
-              </div>
+              <AnimatedTerminal />
             </div>
           </div>
         </div>

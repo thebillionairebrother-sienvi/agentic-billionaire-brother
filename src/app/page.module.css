@@ -301,7 +301,14 @@
 
 .terminalCursor {
   color: var(--primary-container);
-  animation: blink 0.9s step-start infinite;
+}
+
+.cursorVisible {
+  opacity: 1;
+}
+
+.cursorHidden {
+  opacity: 0;
 }
 
 /* ═══════════════════════════════════
