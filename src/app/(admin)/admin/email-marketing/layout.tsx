@@ -1,5 +1,6 @@
 import { requireAdmin } from '@/lib/auth/admin';
 import Link from 'next/link';
+import styles from './email.module.css';
 
 export default async function EmailMarketingLayout({
   children,
@@ -10,54 +11,47 @@ export default async function EmailMarketingLayout({
   await requireAdmin();
 
   return (
-    <div className="flex h-screen bg-neutral-900 text-white">
+    <div className={styles.layout}>
       {/* Sidebar */}
-      <aside className="w-64 bg-neutral-950 border-r border-neutral-800 flex flex-col">
-        <div className="p-6">
-          <h2 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-200 to-amber-500">
+      <aside className={styles.sidebar}>
+        <div className={styles.sidebarHeader}>
+          <h2 className={styles.sidebarTitle}>
             Sienvi Mail
           </h2>
-          <p className="text-xs text-neutral-500 mt-1">Admin Only</p>
+          <p className={styles.sidebarSubtitle}>Admin Only</p>
         </div>
         
-        <nav className="flex-1 px-4 space-y-1">
-          <Link href="/admin/email-marketing" className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors">
+        <nav className={styles.nav}>
+          <Link href="/admin/email-marketing" className={styles.navLink}>
             Dashboard
           </Link>
-          <div className="pt-4 pb-2">
-            <p className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Compose</p>
-          </div>
-          <Link href="/admin/email-marketing/compose/funnel" className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors">
+          
+          <div className={styles.navSection}>Compose</div>
+          <Link href="/admin/email-marketing/compose/funnel" className={styles.navLink}>
             AI Funnel Wizard
           </Link>
-          <Link href="/admin/email-marketing/compose" className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors">
+          <Link href="/admin/email-marketing/compose" className={styles.navLink}>
             One-Off Email
           </Link>
           
-          <div className="pt-4 pb-2">
-            <p className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Manage</p>
-          </div>
-          <Link href="/admin/email-marketing/campaigns" className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors">
+          <div className={styles.navSection}>Manage</div>
+          <Link href="/admin/email-marketing/campaigns" className={styles.navLink}>
             Campaigns
           </Link>
-          <Link href="/admin/email-marketing/customers" className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors">
+          <Link href="/admin/email-marketing/customers" className={styles.navLink}>
             Customers & Groups
           </Link>
           
-          <div className="pt-4 pb-2">
-            <p className="px-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Configuration</p>
-          </div>
-          <Link href="/admin/email-marketing/settings" className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors">
+          <div className={styles.navSection}>Configuration</div>
+          <Link href="/admin/email-marketing/settings" className={styles.navLink}>
             Settings
           </Link>
         </nav>
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto p-8">
-          {children}
-        </div>
+      <main className={styles.main}>
+        {children}
       </main>
     </div>
   );

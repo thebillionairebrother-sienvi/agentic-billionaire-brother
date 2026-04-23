@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/admin';
 import Link from 'next/link';
+import styles from '../email.module.css';
 
 export default async function CampaignsPage() {
   await requireAdmin();
@@ -17,74 +18,78 @@ export default async function CampaignsPage() {
     .limit(20);
 
   const getStatusBadge = (dbStatus: string, schedules: any[]) => {
-    if (dbStatus === 'draft') return <span className="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-xs font-medium">Draft</span>;
-    if (!schedules || schedules.length === 0) return <span className="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-xs font-medium">{dbStatus}</span>;
+    if (dbStatus === 'draft') return <span className="badge" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>Draft</span>;
+    if (!schedules || schedules.length === 0) return <span className="badge" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>{dbStatus}</span>;
 
     const now = new Date();
     const allDispatched = schedules.every((s) => s.dispatched);
     const someDispatched = schedules.some((s) => s.dispatched);
     const allPastSchedule = schedules.every((s) => new Date(s.scheduled_at) <= now);
 
-    if (allDispatched) return <span className="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded text-xs font-medium">Completed</span>;
-    if (allPastSchedule && !allDispatched && someDispatched) return <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-1 rounded text-xs font-medium">Sending</span>;
-    if (dbStatus === 'active') return <span className="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-1 rounded text-xs font-medium">Active</span>;
+    if (allDispatched) return <span className="badge badge-green">Completed</span>;
+    if (allPastSchedule && !allDispatched && someDispatched) return <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-amber)' }}>Sending</span>;
+    if (dbStatus === 'active') return <span className="badge badge-blue">Active</span>;
     
-    return <span className="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-xs font-medium">{dbStatus}</span>;
+    return <span className="badge" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>{dbStatus}</span>;
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
+    <div>
+      <div className={styles.sectionHeader} style={{ marginBottom: 'var(--space-8)' }}>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Campaigns</h1>
-          <p className="text-neutral-400 mt-2">Manage your email sequences and one-off broadcasts.</p>
+          <h1 className={styles.pageTitle}>Campaigns</h1>
+          <p className={styles.pageSubtitle}>Manage your email sequences and one-off broadcasts.</p>
         </div>
-        <div className="flex space-x-3">
-          <Link href="/admin/email-marketing/compose/funnel" className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-medium rounded-md transition-colors">
+        <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+          <Link href="/admin/email-marketing/compose/funnel" className="btn btn-secondary">
             New AI Funnel
           </Link>
-          <Link href="/admin/email-marketing/compose" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors">
+          <Link href="/admin/email-marketing/compose" className="btn btn-primary">
             New Email
           </Link>
         </div>
       </div>
 
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
-        <table className="w-full text-left border-collapse">
+      <div className={styles.tableContainer}>
+        <table className={styles.table}>
           <thead>
-            <tr className="border-b border-neutral-800 bg-neutral-950/50">
-              <th className="px-6 py-4 text-xs font-semibold text-neutral-400 uppercase tracking-wider">Campaign Name</th>
-              <th className="px-6 py-4 text-xs font-semibold text-neutral-400 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-4 text-xs font-semibold text-neutral-400 uppercase tracking-wider">Type</th>
-              <th className="px-6 py-4 text-xs font-semibold text-neutral-400 uppercase tracking-wider">Emails</th>
-              <th className="px-6 py-4 text-xs font-semibold text-neutral-400 uppercase tracking-wider text-right">Actions</th>
+            <tr>
+              <th>Campaign Name</th>
+              <th>Status</th>
+              <th>Type</th>
+              <th>Emails</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-800">
+          <tbody>
             {campaigns?.map(campaign => (
-              <tr key={campaign.id} className="hover:bg-neutral-800/50 transition-colors">
-                <td className="px-6 py-4 text-sm text-white font-medium">{campaign.name}</td>
-                <td className="px-6 py-4 text-sm">
+              <tr key={campaign.id}>
+                <td><div className={styles.tableTitle}>{campaign.name}</div></td>
+                <td>
                   {getStatusBadge(campaign.status, campaign.campaign_schedules || [])}
                 </td>
-                <td className="px-6 py-4 text-sm text-neutral-300 capitalize">{campaign.campaign_type}</td>
-                <td className="px-6 py-4 text-sm text-neutral-400">
+                <td style={{ textTransform: 'capitalize' }}>{campaign.campaign_type}</td>
+                <td>
                   {campaign.email_templates?.length || 0} template{(campaign.email_templates?.length || 0) !== 1 ? 's' : ''}
                 </td>
-                <td className="px-6 py-4 text-sm text-right space-x-3">
-                  {campaign.status === 'draft' && (
-                    <Link href={`/admin/email-marketing/campaigns/${campaign.id}/setup`} className="text-indigo-400 hover:text-indigo-300 font-medium">
-                      Setup Schedule
-                    </Link>
-                  )}
-                  <button className="text-neutral-500 hover:text-white font-medium">View</button>
+                <td>
+                  <div className={styles.tableActions}>
+                    {campaign.status === 'draft' && (
+                      <Link href={`/admin/email-marketing/campaigns/${campaign.id}/setup`} className={styles.linkPrimary}>
+                        Setup Schedule
+                      </Link>
+                    )}
+                    <button className="btn btn-ghost btn-sm" style={{ padding: 0 }}>View</button>
+                  </div>
                 </td>
               </tr>
             ))}
             {(!campaigns || campaigns.length === 0) && (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-sm text-neutral-500">
-                  No campaigns found. Create one to get started.
+                <td colSpan={5}>
+                  <div className={styles.emptyState}>
+                    No campaigns found. Create one to get started.
+                  </div>
                 </td>
               </tr>
             )}

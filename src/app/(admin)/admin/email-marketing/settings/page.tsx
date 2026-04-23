@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/admin';
+import styles from '../email.module.css';
 
 export default async function SettingsPage() {
   await requireAdmin();
@@ -17,49 +18,50 @@ export default async function SettingsPage() {
     .limit(50);
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Settings</h1>
-        <p className="text-neutral-400 mt-2">Manage sender identities and suppressions.</p>
+    <div>
+      <div className={styles.pageHeader}>
+        <h1 className={styles.pageTitle}>Settings</h1>
+        <p className={styles.pageSubtitle}>Manage sender identities and suppressions.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className={styles.actionsGrid}>
         
         {/* Sender Identities */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-white">Sender Identities</h2>
-            <button className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-medium rounded-md transition-colors">
+        <div>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Sender Identities</h2>
+            <button className="btn btn-secondary btn-sm">
               Add Domain
             </button>
           </div>
           
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden divide-y divide-neutral-800">
+          <div className={styles.tableContainer} style={{ marginBottom: 0 }}>
             {identities?.map(id => (
-              <div key={id.id} className="p-4">
-                <div className="flex justify-between items-start">
+              <div key={id.id} style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--surface-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <p className="text-sm font-medium text-white">{id.from_name} &lt;{id.from_email}&gt;</p>
-                    <p className="text-xs text-neutral-500 mt-1">Domain: {id.domain}</p>
+                    <p style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-primary)' }}>{id.from_name} &lt;{id.from_email}&gt;</p>
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: 'var(--space-1)' }}>Domain: {id.domain}</p>
                   </div>
-                  <div className="flex space-x-2">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${id.spf_verified ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                    <span className={`badge ${id.spf_verified ? 'badge-green' : 'badge-red'}`}>
                       SPF {id.spf_verified ? 'OK' : 'FAIL'}
                     </span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${id.dkim_verified ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    <span className={`badge ${id.dkim_verified ? 'badge-green' : 'badge-red'}`}>
                       DKIM {id.dkim_verified ? 'OK' : 'FAIL'}
                     </span>
                   </div>
                 </div>
                 {(!id.spf_verified || !id.dkim_verified) && (
-                  <div className="mt-3 bg-amber-500/10 border border-amber-500/20 rounded p-3">
-                    <p className="text-xs text-amber-400">DNS records require verification. Add the provided TXT records to your domain registrar.</p>
+                  <div className="disclaimer" style={{ marginTop: 'var(--space-3)' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    <span>DNS records require verification. Add the provided TXT records to your domain registrar.</span>
                   </div>
                 )}
               </div>
             ))}
             {(!identities || identities.length === 0) && (
-              <div className="p-6 text-center text-sm text-neutral-500">
+              <div className={styles.emptyState}>
                 No sender identities configured.
               </div>
             )}
@@ -67,26 +69,26 @@ export default async function SettingsPage() {
         </div>
 
         {/* Suppressions */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-white">Suppression List</h2>
-            <button className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-medium rounded-md transition-colors">
+        <div>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Suppression List</h2>
+            <button className="btn btn-secondary btn-sm">
               Manual Add
             </button>
           </div>
           
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden divide-y divide-neutral-800">
+          <div className={styles.tableContainer} style={{ marginBottom: 0 }}>
             {suppressions?.map(sub => (
-              <div key={sub.id} className="p-4 flex justify-between items-center hover:bg-neutral-800/50 transition-colors">
+              <div key={sub.id} style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--surface-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <p className="text-sm font-medium text-white">{sub.email}</p>
-                  <p className="text-xs text-neutral-500 mt-0.5">Reason: {sub.reason || 'Unsubscribed'}</p>
+                  <p style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-primary)' }}>{sub.email}</p>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', marginTop: '4px' }}>Reason: {sub.reason || 'Unsubscribed'}</p>
                 </div>
-                <button className="text-xs text-red-400 hover:text-red-300 font-medium">Remove</button>
+                <button className="btn btn-ghost btn-sm" style={{ color: 'var(--accent-red)' }}>Remove</button>
               </div>
             ))}
             {(!suppressions || suppressions.length === 0) && (
-              <div className="p-6 text-center text-sm text-neutral-500">
+              <div className={styles.emptyState}>
                 No emails in the suppression list.
               </div>
             )}

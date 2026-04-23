@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import styles from '../../../email.module.css';
 
 export default function CampaignSetupPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function CampaignSetupPage({ params }: { params: { id: string } }
     if (!startDate) return alert('Start date is required');
     
     setLoading(true);
-    // API Call to setup targeting and schedules based on the templates in this campaign
+    // Mock
     setTimeout(() => {
       alert('Campaign Launched!');
       setLoading(false);
@@ -23,79 +24,76 @@ export default function CampaignSetupPage({ params }: { params: { id: string } }
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Campaign Setup</h1>
-        <p className="text-neutral-400 mt-2">Configure targeting and schedule your email sequences.</p>
+    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <div className={styles.pageHeader}>
+        <h1 className={styles.pageTitle}>Campaign Setup</h1>
+        <p className={styles.pageSubtitle}>Configure targeting and schedule your email sequences.</p>
       </div>
 
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-sm">
-        <div className="p-6 space-y-6">
+      <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+        <div style={{ padding: 'var(--space-6)' }}>
           
           {/* Targeting Step */}
-          <div>
-            <h2 className="text-lg font-semibold text-white mb-4">1. Targeting</h2>
-            <div className="space-y-4">
-              <label className="flex items-center space-x-3">
-                <input type="radio" name="targeting" value="all" className="text-indigo-600 bg-neutral-900 border-neutral-700" defaultChecked />
-                <span className="text-white text-sm">All Customers</span>
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle} style={{ marginBottom: 'var(--space-4)' }}>1. Targeting</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer' }}>
+                <input type="radio" name="targeting" value="all" defaultChecked style={{ width: '16px', height: '16px' }} />
+                <span className="text-primary text-sm">All Customers</span>
               </label>
-              <label className="flex items-center space-x-3">
-                <input type="radio" name="targeting" value="groups" className="text-indigo-600 bg-neutral-900 border-neutral-700" />
-                <span className="text-white text-sm">Specific Groups</span>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', cursor: 'pointer' }}>
+                <input type="radio" name="targeting" value="groups" style={{ width: '16px', height: '16px' }} />
+                <span className="text-primary text-sm">Specific Groups</span>
               </label>
             </div>
           </div>
 
-          <hr className="border-neutral-800" />
+          <div className="divider" style={{ margin: 'var(--space-6) 0' }} />
 
           {/* Schedule Step */}
           <div>
-            <h2 className="text-lg font-semibold text-white mb-4">2. Schedule</h2>
-            <div className="space-y-4">
-              
+            <h2 className={styles.sectionTitle} style={{ marginBottom: 'var(--space-4)' }}>2. Schedule</h2>
+            
+            <div className={styles.formGroup}>
+              <label className="label">Send Frequency</label>
+              <select 
+                value={scheduleMode}
+                onChange={e => setScheduleMode(e.target.value)}
+                className="input"
+              >
+                <option value="daily">Daily (One email per day)</option>
+                <option value="every_other_day">Every Other Day</option>
+                <option value="custom">Custom Schedule</option>
+              </select>
+            </div>
+
+            <div className={styles.formRow} style={{ marginBottom: 0 }}>
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-2">Send Frequency</label>
-                <select 
-                  value={scheduleMode}
-                  onChange={e => setScheduleMode(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-md p-2 text-white text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
-                >
-                  <option value="daily">Daily (One email per day)</option>
-                  <option value="every_other_day">Every Other Day</option>
-                  <option value="custom">Custom Schedule</option>
-                </select>
+                <label className="label">Start Date</label>
+                <input 
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="input"
+                />
               </div>
-
-              <div className="flex space-x-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-neutral-400 mb-2">Start Date</label>
-                  <input 
-                    type="date"
-                    value={startDate}
-                    onChange={e => setStartDate(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-md p-2 text-white text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-neutral-400 mb-2">Default Send Time</label>
-                  <input 
-                    type="time"
-                    value={defaultTime}
-                    onChange={e => setDefaultTime(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-md p-2 text-white text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
-                  />
-                </div>
+              <div>
+                <label className="label">Default Send Time</label>
+                <input 
+                  type="time"
+                  value={defaultTime}
+                  onChange={e => setDefaultTime(e.target.value)}
+                  className="input"
+                />
               </div>
-
             </div>
           </div>
 
         </div>
 
-        <div className="bg-neutral-950 px-6 py-4 border-t border-neutral-800 flex justify-between items-center">
+        <div style={{ background: 'var(--bg-tertiary)', padding: 'var(--space-4) var(--space-6)', borderTop: '1px solid var(--surface-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button 
-            className="text-neutral-400 hover:text-white text-sm font-medium transition-colors"
+            className="btn btn-ghost"
             onClick={() => router.back()}
           >
             Back
@@ -103,7 +101,7 @@ export default function CampaignSetupPage({ params }: { params: { id: string } }
           <button 
             onClick={launchCampaign}
             disabled={loading}
-            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-neutral-800 disabled:text-neutral-500 text-white text-sm font-medium rounded-md transition-colors"
+            className="btn btn-primary"
           >
             {loading ? 'Launching...' : 'Launch Campaign'}
           </button>
