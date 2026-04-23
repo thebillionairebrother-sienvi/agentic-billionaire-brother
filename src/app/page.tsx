@@ -311,7 +311,7 @@ export default function LandingPage() {
             <p className={styles.heroSub}>
               Derek isn&apos;t here to be your friend. He&apos;s a blunt, strategic AI billionaire
               designed to audit your decisions, ruthlessly optimize your workflow, and
-              force you to ship. No fluff. Just metrics and execution.
+              force you to ship via the BILLIONAIRE BROTHER&apos;S REVENUE VELOCITY MACHINE&trade;. No fluff. Just metrics and execution.
             </p>
 
             <div className={styles.heroCTA}>
