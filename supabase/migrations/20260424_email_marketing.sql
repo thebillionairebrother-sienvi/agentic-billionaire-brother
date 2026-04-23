@@ -251,3 +251,10 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Grant admin access to teamsienvi@gmail.com
 UPDATE public.profiles SET role = 'admin' WHERE email = 'teamsienvi@gmail.com';
+
+-- Seed default sender identity for Derek
+INSERT INTO public.sender_identities (user_id, from_name, from_email, domain, spf_verified, dkim_verified)
+SELECT id, 'Derek', 'derek@billionairebrother.com', 'billionairebrother.com', true, true
+FROM public.profiles 
+WHERE email = 'teamsienvi@gmail.com'
+ON CONFLICT DO NOTHING;
