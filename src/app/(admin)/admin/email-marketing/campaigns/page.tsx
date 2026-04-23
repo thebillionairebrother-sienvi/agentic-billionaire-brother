@@ -73,7 +73,7 @@ export default async function CampaignsPage() {
                 </td>
                 <td className="px-6 py-4 text-sm text-right space-x-3">
                   {campaign.status === 'draft' && (
-                    <Link href={\`/admin/email-marketing/campaigns/\${campaign.id}/setup\`} className="text-indigo-400 hover:text-indigo-300 font-medium">
+                    <Link href={`/admin/email-marketing/campaigns/${campaign.id}/setup`} className="text-indigo-400 hover:text-indigo-300 font-medium">
                       Setup Schedule
                     </Link>
                   )}

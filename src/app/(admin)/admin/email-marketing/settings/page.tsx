@@ -43,10 +43,10 @@ export default async function SettingsPage() {
                     <p className="text-xs text-neutral-500 mt-1">Domain: {id.domain}</p>
                   </div>
                   <div className="flex space-x-2">
-                    <span className={\`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider \${id.spf_verified ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}\`}>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${id.spf_verified ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                       SPF {id.spf_verified ? 'OK' : 'FAIL'}
                     </span>
-                    <span className={\`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider \${id.dkim_verified ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}\`}>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${id.dkim_verified ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                       DKIM {id.dkim_verified ? 'OK' : 'FAIL'}
                     </span>
                   </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin';
-import { funnelAgent, buildFunnelPrompt, generateContentConfig, EmailFunnelInput } from '@/lib/ai/funnel-agent';
+import { funnelAgent, buildFunnelPrompt, EmailFunnelInput } from '@/lib/ai/funnel-agent';
+import { InMemoryRunner } from '@google/adk';
 
 export async function POST(request: Request) {
   try {
@@ -15,19 +16,27 @@ export async function POST(request: Request) {
 
     // 3. Generate content via Gemini ADK
     const prompt = buildFunnelPrompt(body);
-    const response = await funnelAgent.generate({
-      prompt,
-      config: generateContentConfig
+    
+    const runner = new InMemoryRunner({ agent: funnelAgent });
+    const eventStream = runner.runEphemeral({
+      userId: 'admin',
+      newMessage: { role: 'user', parts: [{ text: prompt }] }
     });
 
-    const outputText = response.text || '';
+    let outputText = '';
+    for await (const event of eventStream) {
+      const e = event as any;
+      if (e.type === 'content' && e.content?.parts) {
+        outputText += e.content.parts.map((p: any) => p.text || '').join('');
+      }
+    }
     
     // Attempt to parse JSON safely, sometimes LLMs wrap in markdown despite instructions
     let cleanedOutput = outputText.trim();
-    if (cleanedOutput.startsWith('\`\`\`json')) {
-      cleanedOutput = cleanedOutput.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
-    } else if (cleanedOutput.startsWith('\`\`\`')) {
-      cleanedOutput = cleanedOutput.replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
+    if (cleanedOutput.startsWith('```json')) {
+      cleanedOutput = cleanedOutput.replace(/^```json/, '').replace(/```$/, '').trim();
+    } else if (cleanedOutput.startsWith('```')) {
+      cleanedOutput = cleanedOutput.replace(/^```/, '').replace(/```$/, '').trim();
     }
 
     let parsedJson;

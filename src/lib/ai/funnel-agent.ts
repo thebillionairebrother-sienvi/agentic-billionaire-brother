@@ -132,21 +132,21 @@ export const funnelAgent = new LlmAgent({
 export function buildFunnelPrompt(input: EmailFunnelInput): string {
   const emailCount = input.emailCount ?? 5;
   const embedLinkText = input.embedLink
-    ? \`Embed Link: \${input.embedLink}\`
+    ? `Embed Link: ${input.embedLink}`
     : 'Embed Link: none provided';
 
   const brandColorText = input.brandColor
-    ? \`Brand Color: \${input.brandColor}\`
+    ? `Brand Color: ${input.brandColor}`
     : 'Brand Color: none provided';
 
   const feedbackText = input.feedback?.trim()
-    ? \`Feedback For Regeneration: \${input.feedback.trim()}\`
+    ? `Feedback For Regeneration: ${input.feedback.trim()}`
     : 'Feedback For Regeneration: none';
 
   return [
-    \`Create \${emailCount} emails.\`,
-    \`Purpose: \${input.purpose}\`,
-    \`Target Age Group: \${input.ageGroup}\`,
+    `Create ${emailCount} emails.`,
+    `Purpose: ${input.purpose}`,
+    `Target Age Group: ${input.ageGroup}`,
     embedLinkText,
     brandColorText,
     feedbackText,
