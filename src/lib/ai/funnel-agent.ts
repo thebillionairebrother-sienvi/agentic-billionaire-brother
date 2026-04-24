@@ -155,7 +155,7 @@ export function buildFunnelPrompt(input: EmailFunnelInput): string {
     'Return JSON only.',
     'Make the sequence coherent from email 1 to email 5.',
     'Every content field must be an email-safe HTML fragment.',
-  ].join('\\n');
+  ].join('\n');
 }
 
 export { generateContentConfig };
