@@ -34,7 +34,6 @@ const generateContentConfig: GenerateContentConfig = {
   topP: 0.9,
   maxOutputTokens: 8192,
   responseMimeType: 'application/json',
-  responseSchema: EmailFunnelOutputSchema,
 };
 
 const SYSTEM_INSTRUCTION = `
@@ -127,6 +126,8 @@ export const funnelAgent = new LlmAgent({
   model: process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
   description: 'Generates admin-reviewed 5-email HTML marketing funnels as strict JSON.',
   instruction: SYSTEM_INSTRUCTION,
+  outputSchema: EmailFunnelOutputSchema,
+  generateContentConfig,
 });
 
 export function buildFunnelPrompt(input: EmailFunnelInput): string {

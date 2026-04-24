@@ -33,17 +33,25 @@ export async function POST(request: Request) {
     
     // Attempt to parse JSON safely, sometimes LLMs wrap in markdown despite instructions
     let cleanedOutput = outputText.trim();
-    if (cleanedOutput.startsWith('```json')) {
-      cleanedOutput = cleanedOutput.replace(/^```json/, '').replace(/```$/, '').trim();
-    } else if (cleanedOutput.startsWith('```')) {
-      cleanedOutput = cleanedOutput.replace(/^```/, '').replace(/```$/, '').trim();
+    let parsedJson;
+
+    // First try extracting JSON from markdown code blocks
+    const jsonMatch = cleanedOutput.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      cleanedOutput = jsonMatch[1].trim();
+    } else {
+      // If no markdown block, try to find the first '{' and last '}'
+      const firstBrace = cleanedOutput.indexOf('{');
+      const lastBrace = cleanedOutput.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        cleanedOutput = cleanedOutput.slice(firstBrace, lastBrace + 1);
+      }
     }
 
-    let parsedJson;
     try {
       parsedJson = JSON.parse(cleanedOutput);
     } catch (parseError) {
-      console.error('Failed to parse Gemini output:', cleanedOutput);
+      console.error('Failed to parse Gemini output:', outputText);
       return NextResponse.json({ error: 'Agent returned invalid JSON structure.' }, { status: 500 });
     }
 
