@@ -16,6 +16,7 @@ import {
     Briefcase,
     BookOpen,
     HelpCircle,
+    Mail,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { User } from '@/lib/types';
@@ -23,6 +24,7 @@ import styles from './DashboardSidebar.module.css';
 
 interface DashboardSidebarProps {
     user: User | null;
+    isAdmin?: boolean;
 }
 
 const navItems = [
@@ -36,12 +38,16 @@ const navItems = [
     { href: '/help', icon: HelpCircle, label: 'Help' },
 ];
 
-export function DashboardSidebar({ user }: DashboardSidebarProps) {
+export function DashboardSidebar({ user, isAdmin }: DashboardSidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const supabase = createClient();
+
+    const displayNavItems = isAdmin 
+        ? [...navItems, { href: '/admin/email-marketing', icon: Mail, label: 'Email Marketing' }]
+        : navItems;
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -99,7 +105,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
 
                 {/* Nav */}
                 <nav className={styles.nav}>
-                    {navItems.map((item) => {
+                    {displayNavItems.map((item) => {
                         const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                         return (
                             <Link
