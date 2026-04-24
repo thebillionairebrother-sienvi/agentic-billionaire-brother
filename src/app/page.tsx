@@ -487,6 +487,10 @@ export default function LandingPage() {
           <div className={styles.sectionMetaCenter}>
             <span className={styles.sectionLabel}>ACCESS TIERS</span>
             <h2 className={styles.sectionTitleLg}>Invest in Discipline.</h2>
+            <div className={styles.pricingUrgencyBanner}>
+              <span className={styles.pricingUrgencyDot} />
+              <span>LAUNCH PRICING — Limited spots at these rates. Lock in before the price increases.</span>
+            </div>
           </div>
 
           <motion.div 
@@ -527,9 +531,17 @@ export default function LandingPage() {
                   <div className={styles.mostPopularBadge}>MOST POPULAR</div>
                   <div className={styles.pricingTierLabel}>BROTHER PLAN</div>
                   <div className={styles.pricingPrice}>
-                    <span className={styles.priceCurrency}>$</span>
-                    <span className={styles.priceAmount}>99.99</span>
-                    <span className={styles.pricePeriod}>/mo</span>
+                    <div className={styles.priceStack}>
+                      <div className={styles.priceOriginalRow}>
+                        <span className={styles.priceOriginal}>$49</span>
+                        <span className={styles.discountBadge}>20% OFF</span>
+                      </div>
+                      <div className={styles.priceCurrentRow}>
+                        <span className={styles.priceCurrency}>$</span>
+                        <span className={styles.priceAmount}>39</span>
+                        <span className={styles.pricePeriod}>/mo</span>
+                      </div>
+                    </div>
                   </div>
                   <ul className={styles.pricingFeatures}>
                     <li><Check size={13} className={styles.checkIconGold} /> Strategy diagnosis</li>
@@ -553,9 +565,17 @@ export default function LandingPage() {
                 <div className={styles.pricingCard}>
                   <div className={styles.pricingTierLabel}>TEAM PLAN</div>
                   <div className={styles.pricingPrice}>
-                    <span className={styles.priceCurrency}>$</span>
-                    <span className={styles.priceAmount}>199</span>
-                    <span className={styles.pricePeriod}>/mo</span>
+                    <div className={styles.priceStack}>
+                      <div className={styles.priceOriginalRow}>
+                        <span className={styles.priceOriginal}>$199</span>
+                        <span className={styles.discountBadgeBlue}>35% OFF</span>
+                      </div>
+                      <div className={styles.priceCurrentRow}>
+                        <span className={styles.priceCurrency}>$</span>
+                        <span className={styles.priceAmount}>129</span>
+                        <span className={styles.pricePeriod}>/mo</span>
+                      </div>
+                    </div>
                   </div>
                   <ul className={styles.pricingFeatures}>
                     <li><Check size={13} className={styles.checkIcon} /> Strategy diagnosis</li>

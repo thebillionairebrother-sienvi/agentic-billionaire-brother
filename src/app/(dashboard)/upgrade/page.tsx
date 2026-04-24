@@ -10,7 +10,8 @@ const PLANS = [
     {
         tier: 'brother' as const,
         name: 'Brother Plan',
-        price: 99.99,
+        price: 39,
+        originalPrice: 49,
         badge: 'Most Popular',
         badgeStyle: 'gold',
         features: [
@@ -26,11 +27,13 @@ const PLANS = [
         cta: 'Upgrade to Brother',
         icon: Crown,
         color: 'gold',
+        discountLabel: '20% OFF',
     },
     {
         tier: 'team' as const,
         name: 'Team Plan',
-        price: 199,
+        price: 129,
+        originalPrice: 199,
         badge: 'Team',
         badgeStyle: 'blue',
         features: [
@@ -47,6 +50,7 @@ const PLANS = [
         cta: 'Upgrade to Team',
         icon: Users,
         color: 'blue',
+        discountLabel: '35% OFF',
     },
 ];
 
@@ -167,9 +171,15 @@ function UpgradePageInner() {
                                 <div>
                                     <h2 className={styles.planName}>{plan.name}</h2>
                                     <div className={styles.planPrice}>
-                                        <span className={styles.currency}>$</span>
-                                        <span className={styles.amount}>{plan.price}</span>
-                                        <span className={styles.period}>/mo</span>
+                                        <div className={styles.planPriceOriginalRow}>
+                                            <span className={styles.planPriceOriginal}>${plan.originalPrice}</span>
+                                            <span className={`${styles.planDiscountBadge} ${plan.color === 'gold' ? styles.planDiscountBadgeGold : styles.planDiscountBadgeBlue}`}>{plan.discountLabel}</span>
+                                        </div>
+                                        <div className={styles.planPriceCurrentRow}>
+                                            <span className={styles.currency}>$</span>
+                                            <span className={styles.amount}>{plan.price}</span>
+                                            <span className={styles.period}>/mo</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -201,7 +211,7 @@ function UpgradePageInner() {
                                 style={{ width: '100%' }}
                                 onClick={() => handleCheckout(plan.tier)}
                                 disabled={checkoutState === 'loading'}
-                                aria-label={`${plan.cta} for $${plan.price}/month`}
+                                aria-label={`${plan.cta} for $${plan.price}/month (was $${plan.originalPrice})`}
                             >
                                 {isLoading ? (
                                     <>
