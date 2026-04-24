@@ -231,9 +231,59 @@
 }
 
 .planPrice {
-    display: flex;
-    align-items: baseline;
-    gap: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.planPriceOriginalRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planPriceOriginal {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  text-decoration-color: rgba(239, 68, 68, 0.6);
+  text-decoration-thickness: 2px;
+  font-family: var(--font-mono);
+}
+
+.planDiscountBadge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  animation: discountPulse 2.4s ease-in-out infinite;
+}
+
+.planDiscountBadgeGold {
+  background: linear-gradient(45deg, var(--gold-500), var(--gold-400));
+  color: #402d00;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+}
+
+.planDiscountBadgeBlue {
+  background: linear-gradient(45deg, #3b82f6, #60a5fa);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.planPriceCurrentRow {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+@keyframes discountPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
 }
 
 .currency {

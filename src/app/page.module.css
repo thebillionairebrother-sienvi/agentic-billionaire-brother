@@ -600,6 +600,31 @@
   margin: 0;
 }
 
+.pricingUrgencyBanner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  background: rgba(255, 191, 0, 0.07);
+  border: 1px solid rgba(255, 191, 0, 0.2);
+  border-radius: 2px;
+  padding: 7px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--primary-container);
+}
+
+.pricingUrgencyDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary-container);
+  box-shadow: 0 0 6px var(--primary-container);
+  flex-shrink: 0;
+  animation: blink 1.4s ease-in-out infinite;
+}
+
 .pricingGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -660,10 +685,65 @@
 }
 
 .pricingPrice {
+  margin-bottom: 24px;
+}
+
+/* Price stack: original (struck) + new price */
+.priceStack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.priceOriginalRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.priceOriginal {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  text-decoration-color: rgba(239, 68, 68, 0.7);
+  text-decoration-thickness: 2px;
+}
+
+.discountBadge {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #402d00;
+  background: linear-gradient(45deg, var(--primary-container), var(--primary));
+  padding: 2px 7px;
+  border-radius: 2px;
+  animation: discountPulse 2.4s ease-in-out infinite;
+}
+
+.discountBadgeBlue {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: linear-gradient(45deg, #3b82f6, #60a5fa);
+  padding: 2px 7px;
+  border-radius: 2px;
+  animation: discountPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes discountPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.priceCurrentRow {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  margin-bottom: 24px;
 }
 
 .priceCurrency {
