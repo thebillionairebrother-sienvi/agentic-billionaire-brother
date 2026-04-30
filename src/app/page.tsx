@@ -248,20 +248,58 @@ const staggerContainer: Variants = {
 
 const fadeUpVariant: Variants = {
   hidden: { opacity: 0, y: 40 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.6, ease: 'easeOut' } 
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: 'easeOut' }
   }
 };
 
+/* ── Meme Carousel (Temporary) ── */
+function MemeCarousel() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const memes = [
+    '/memes/meme1.jpg',
+    '/memes/meme2.jpg',
+    '/memes/meme3.gif',
+    '/memes/meme4.gif',
+    '/memes/meme5.jpg',
+    '/memes/meme6.jpg',
+    '/memes/meme7.jpg',
+    '/memes/meme8.jpg',
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % memes.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', minHeight: '380px', height: '100%', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'rgba(0, 0, 0, 0.2)', border: '1px solid rgba(255, 215, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+      {memes.map((src, index) => (
+        <motion.div
+          key={src}
+          initial={false}
+          animate={{ opacity: index === currentIndex ? 1 : 0 }}
+          transition={{ duration: 0.5 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: index === currentIndex ? 'auto' : 'none' }}
+        >
+          <Image src={src} alt={`Meme ${index + 1}`} fill style={{ objectFit: 'contain', padding: '16px' }} unoptimized={src.endsWith('.gif')} />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const heroRef = useRef(null);
-  const { scrollYProgress: heroScroll } = useScroll({ 
-    target: heroRef, 
-    offset: ["start start", "end start"] 
+  const { scrollYProgress: heroScroll } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"]
   });
-  
+
   const heroYLeft = useTransform(heroScroll, [0, 1], ["0%", "40%"]);
   const heroYRight = useTransform(heroScroll, [0, 1], ["0%", "70%"]);
   const heroOpacity = useTransform(heroScroll, [0, 0.8, 1], [1, 0, 0]);
@@ -291,7 +329,7 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <section className={styles.hero} ref={heroRef}>
-        <motion.div 
+        <motion.div
           className={styles.heroInner}
           style={{ opacity: heroOpacity }}
         >
@@ -323,7 +361,7 @@ export default function LandingPage() {
 
           {/* Right: terminal card */}
           <motion.div className={styles.heroRight} style={{ y: heroYRight }}>
-            <div className={styles.terminalCard}>
+            {/* <div className={styles.terminalCard}>
               <div className={styles.terminalBar}>
                 <div className={styles.terminalDots}>
                   <span className={styles.dot} style={{ background: '#ff5f56' }} />
@@ -333,7 +371,8 @@ export default function LandingPage() {
                 <span className={styles.terminalTitle}>derek_terminal.sh</span>
               </div>
               <AnimatedTerminal />
-            </div>
+            </div> */}
+            <MemeCarousel />
           </motion.div>
         </motion.div>
       </section>
@@ -349,7 +388,7 @@ export default function LandingPage() {
 
       {/* ── How It Works ── */}
       <section className={styles.howItWorks}>
-        <motion.div 
+        <motion.div
           className={styles.sectionInner}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -364,7 +403,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <motion.div 
+          <motion.div
             className={styles.stepsGrid}
             variants={staggerContainer}
             initial="hidden"
@@ -410,7 +449,7 @@ export default function LandingPage() {
 
       {/* ── Features / Arsenal ── */}
       <section className={styles.arsenal} id="features">
-        <motion.div 
+        <motion.div
           className={styles.sectionInner}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -422,7 +461,7 @@ export default function LandingPage() {
             <h2 className={styles.sectionTitle}>Tools for Unapologetic<br />Growth.</h2>
           </div>
 
-          <motion.div 
+          <motion.div
             className={styles.arsenalGrid}
             variants={staggerContainer}
             initial="hidden"
@@ -477,7 +516,7 @@ export default function LandingPage() {
 
       {/* ── Pricing ── */}
       <section className={styles.pricing} id="pricing">
-        <motion.div 
+        <motion.div
           className={styles.sectionInner}
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -493,7 +532,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <motion.div 
+          <motion.div
             className={styles.pricingGrid}
             variants={staggerContainer}
             initial="hidden"
