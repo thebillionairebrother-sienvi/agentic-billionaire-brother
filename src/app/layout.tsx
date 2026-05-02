@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { FloatingDerekChat } from '@/components/FloatingDerekChat';
-import { GoogleAnalytics } from '@/components/GoogleAnalytics';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 export const metadata: Metadata = {
   title: 'The Billionaire Brother — Your Business Strategist',
@@ -46,7 +46,7 @@ export default function RootLayout({
       </head>
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>
-        <GoogleAnalytics />
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID as string} />
         {children}
         <FloatingDerekChat />
       </body>
