@@ -382,7 +382,7 @@ export default function LandingPage() {
         <div className={styles.vslInner}>
           <video 
             className={styles.vslVideo} 
-            src="https://firebasestorage.googleapis.com/v0/b/the-billionaire-brother.firebasestorage.app/o/VSL%2FVSL%20BB.mp4?alt=media" 
+            src="https://firebasestorage.googleapis.com/v0/b/the-billionaire-brother.firebasestorage.app/o/VSL%2FVSL%20BB.mp4?alt=media&token=ec7200b5-74ba-4f90-8022-e47f20712c9c" 
             controls 
             autoPlay 
             muted 
