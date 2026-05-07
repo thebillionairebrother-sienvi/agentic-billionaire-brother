@@ -377,12 +377,18 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ── VSL Placeholder ── */}
+      {/* ── VSL ── */}
       <section className={styles.vslSection}>
         <div className={styles.vslInner}>
-          <div className={styles.vslPlaceholder}>
-            <span className={styles.vslText}>[ VSL Placeholder ]</span>
-          </div>
+          <video 
+            className={styles.vslVideo} 
+            src="https://firebasestorage.googleapis.com/v0/b/the-billionaire-brother.firebasestorage.app/o/VSL%2FVSL%20BB.mp4?alt=media" 
+            controls 
+            autoPlay 
+            muted 
+            loop 
+            playsInline
+          />
         </div>
       </section>
 
