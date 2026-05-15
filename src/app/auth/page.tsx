@@ -27,6 +27,7 @@ function AuthPageInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirect = searchParams.get('redirect') || '/dashboard';
+    // NOTE: createBrowserClient is designed to be called once per component mount
     const supabase = createClient();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -35,74 +36,92 @@ function AuthPageInner() {
         setError(null);
         setMessage(null);
 
-        try {
-            if (mode === 'signup') {
-                // Validate promo code if provided (optional field)
-                const validCodes: Record<string, string> = {
-                    'BILLIONAIREBROTHER2026': 'brother',
-                    'BILLIONAIRETEAM2026': 'team',
-                };
-                const trimmedPromo = promoCode.toUpperCase().trim();
-                let tier = 'free';
+        const attemptAuth = async (retriesLeft: number): Promise<void> => {
+            try {
+                if (mode === 'signup') {
+                    // Validate promo code if provided (optional field)
+                    const validCodes: Record<string, string> = {
+                        'BILLIONAIREBROTHER2026': 'brother',
+                        'BILLIONAIRETEAM2026': 'team',
+                    };
+                    const trimmedPromo = promoCode.toUpperCase().trim();
+                    let tier = 'free';
 
-                if (trimmedPromo) {
-                    const matchedTier = validCodes[trimmedPromo];
-                    if (!matchedTier) {
-                        setError('Invalid promo code. Please check and try again.');
-                        setLoading(false);
-                        return;
+                    if (trimmedPromo) {
+                        const matchedTier = validCodes[trimmedPromo];
+                        if (!matchedTier) {
+                            setError('Invalid promo code. Please check and try again.');
+                            setLoading(false);
+                            return;
+                        }
+                        tier = matchedTier;
                     }
-                    tier = matchedTier;
-                }
 
-                const { error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: { display_name: displayName, tier, promo_code: trimmedPromo || null },
-                    },
-                });
-                if (error) throw error;
+                    const { error } = await supabase.auth.signUp({
+                        email,
+                        password,
+                        options: {
+                            data: { display_name: displayName, tier, promo_code: trimmedPromo || null },
+                        },
+                    });
+                    if (error) throw error;
 
-                // Store tier info so we can set it on first login
-                if (trimmedPromo) {
-                    sessionStorage.setItem('pending_promo_code', trimmedPromo);
-                }
-                sessionStorage.setItem('pending_tier', tier);
-
-                setMessage('Check your email for a confirmation link!');
-            } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-                if (error) throw error;
-
-                // Check if there's a pending tier from signup
-                const pendingPromo = sessionStorage.getItem('pending_promo_code');
-                const pendingTier = sessionStorage.getItem('pending_tier');
-                if (pendingTier) {
-                    try {
-                        await fetch('/api/auth/set-tier', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ promoCode: pendingPromo || null, tier: pendingTier }),
-                        });
-                        sessionStorage.removeItem('pending_promo_code');
-                        sessionStorage.removeItem('pending_tier');
-                    } catch {
-                        // Non-blocking — tier can be set later
+                    // Store tier info so we can set it on first login
+                    if (trimmedPromo) {
+                        sessionStorage.setItem('pending_promo_code', trimmedPromo);
                     }
+                    sessionStorage.setItem('pending_tier', tier);
+
+                    setMessage('Check your email for a confirmation link!');
+                } else {
+                    const { error } = await supabase.auth.signInWithPassword({
+                        email,
+                        password,
+                    });
+                    if (error) throw error;
+
+                    // Check if there's a pending tier from signup
+                    const pendingPromo = sessionStorage.getItem('pending_promo_code');
+                    const pendingTier = sessionStorage.getItem('pending_tier');
+                    if (pendingTier) {
+                        try {
+                            await fetch('/api/auth/set-tier', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ promoCode: pendingPromo || null, tier: pendingTier }),
+                            });
+                            sessionStorage.removeItem('pending_promo_code');
+                            sessionStorage.removeItem('pending_tier');
+                        } catch {
+                            // Non-blocking — tier can be set later
+                        }
+                    }
+
+                    router.push(redirect);
+                    router.refresh();
+                }
+            } catch (err) {
+                const errMsg = err instanceof Error ? err.message : 'An error occurred';
+                const isNetworkError = errMsg.toLowerCase().includes('failed to fetch')
+                    || errMsg.toLowerCase().includes('load failed')
+                    || errMsg.toLowerCase().includes('networkerror');
+
+                // Auto-retry once for transient network errors (common on mobile/Safari)
+                if (isNetworkError && retriesLeft > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    return attemptAuth(retriesLeft - 1);
                 }
 
-                router.push(redirect);
-                router.refresh();
+                if (isNetworkError) {
+                    setError('Connection issue — please check your internet connection and try again.');
+                } else {
+                    setError(errMsg);
+                }
             }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'An error occurred');
-        } finally {
-            setLoading(false);
-        }
+        };
+
+        await attemptAuth(1);
+        setLoading(false);
     };
 
     return (

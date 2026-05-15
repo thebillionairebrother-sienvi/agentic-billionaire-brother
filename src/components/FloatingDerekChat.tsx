@@ -15,6 +15,7 @@ interface Message {
     role: 'user' | 'derek';
     content: string;
     reaction?: string;
+    gifUrl?: string;
 }
 
 export function FloatingDerekChat() {
@@ -197,6 +198,7 @@ export function FloatingDerekChat() {
                     role: 'derek',
                     content: data.response,
                     reaction: data.reaction,
+                    gifUrl: data.gifUrl || undefined,
                 },
             ]);
 
@@ -213,11 +215,21 @@ export function FloatingDerekChat() {
                 }
             }
         } catch (err) {
+            // Sanitize network errors (Safari: 'Load failed', others: 'Failed to fetch')
+            let errorMessage = 'Something went wrong. Try again.';
+            if (err instanceof Error) {
+                const msg = err.message.toLowerCase();
+                if (msg.includes('load failed') || msg.includes('failed to fetch') || msg.includes('networkerror')) {
+                    errorMessage = 'Connection issue — check your internet and try again.';
+                } else {
+                    errorMessage = err.message;
+                }
+            }
             setMessages((prev) => [
                 ...prev,
                 {
                     role: 'derek',
-                    content: err instanceof Error ? err.message : 'Something went wrong. Try again.',
+                    content: errorMessage,
                 },
             ]);
         } finally {
@@ -309,9 +321,9 @@ export function FloatingDerekChat() {
                                     <div className={styles.msgAvatar}>D</div>
                                 )}
                                 <div className={styles.msgColumn}>
-                                    {msg.role === 'derek' && msg.reaction && (
+                                    {msg.role === 'derek' && (msg.gifUrl || msg.reaction) && (
                                         <div className={styles.gifWrapper}>
-                                            <GifBubble reaction={msg.reaction} />
+                                            <GifBubble reaction={msg.reaction || ''} gifUrl={msg.gifUrl} />
                                         </div>
                                     )}
                                     <div className={styles.msgBubble}>

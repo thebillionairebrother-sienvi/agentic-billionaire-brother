@@ -4,6 +4,7 @@ import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { Type, ThinkingLevel } from '@google/genai';
 import { DEREK_SYSTEM_PROMPT, DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
+import { fetchGifUrl } from '@/app/api/giphy-search/route';
 
 const MAX_GUEST_PROMPTS = 3;
 
@@ -216,6 +217,9 @@ REACTION RULES:
         const rawText = response.text || '';
         const parsed = parseDerekResponse(rawText);
 
+        // Fetch GIF URL server-side (non-blocking, 3s timeout) — eliminates extra client round-trip
+        const gifUrlPromise = parsed.reaction ? fetchGifUrl(parsed.reaction) : Promise.resolve(null);
+
         // ── Log usage (authenticated only) ──
         if (user && ctx) {
             await logUsageAndCost(supabase, {
@@ -229,9 +233,12 @@ REACTION RULES:
             });
         }
 
+        const gifUrl = await gifUrlPromise;
+
         return NextResponse.json({
             response: parsed.response,
             reaction: parsed.reaction,
+            gifUrl,
             isGuest: !user,
         });
     } catch (error) {

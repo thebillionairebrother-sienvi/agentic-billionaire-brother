@@ -4,6 +4,7 @@ import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { Type, ThinkingLevel } from '@google/genai';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
+import { fetchGifUrl } from '@/app/api/giphy-search/route';
 
 /**
  * Parse Derek's response which should be JSON with { reaction, response }.
@@ -212,6 +213,9 @@ REACTION RULES:
         // Process task commands embedded in response
         const taskUpdates: string[] = [];
 
+        // Start GIF fetch early (runs concurrently with task processing)
+        const gifUrlPromise = parsed.reaction ? fetchGifUrl(parsed.reaction) : Promise.resolve(null);
+
         // Handle TASK_UPDATE commands
         const updateRegex = /%%TASK_UPDATE:(.*?)%%/g;
         let match;
@@ -289,9 +293,12 @@ REACTION RULES:
             ]);
         }
 
+        const gifUrl = await gifUrlPromise;
+
         return NextResponse.json({
             response: responseText,
             reaction: parsed.reaction,
+            gifUrl,
             taskUpdates: taskUpdates.length > 0 ? taskUpdates : undefined,
             isDegradeMode: ctx.isDegradeMode || undefined,
         });

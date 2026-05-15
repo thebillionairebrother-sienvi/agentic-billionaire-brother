@@ -382,18 +382,12 @@ export default function LandingPage() {
       {/* ── VSL ── */}
       <section className={styles.vslSection}>
         <div className={styles.vslInner}>
-          <div className={styles.vslIframeWrapper}>
-            <iframe 
-              className={styles.vslIframe}
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=0&controls=1&rel=0" 
-              title="Billionaire Brother VSL"
-              frameBorder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-              allowFullScreen
-            />
+          <div className={styles.vslPlaceholder}>
+            <span className={styles.vslText}>[ VIDEO COMING SOON ]</span>
           </div>
         </div>
       </section>
+
 
       {/* ── How It Works ── */}
       <section className={styles.howItWorks}>
