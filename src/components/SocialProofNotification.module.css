@@ -1,0 +1,226 @@
+/* ═══════════════════════════════════════════
+   Social Proof Notification — Bottom-Left
+   ═══════════════════════════════════════════ */
+
+/* ── Container ── */
+.wrapper {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* ── Notification card ── */
+.notification {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: rgba(28, 27, 27, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 191, 0, 0.12);
+  border-radius: 6px;
+  padding: 16px 18px;
+  max-width: 360px;
+  width: max-content;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  position: relative;
+  cursor: default;
+
+  /* Animation defaults — JS toggles classes */
+  opacity: 0;
+  transform: translateX(-24px) translateY(12px);
+  transition:
+    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.notification.entering {
+  opacity: 1;
+  transform: translateX(0) translateY(0);
+}
+
+.notification.exiting {
+  opacity: 0;
+  transform: translateX(-16px) translateY(8px);
+  transition:
+    opacity 0.35s cubic-bezier(0.55, 0, 1, 0.45),
+    transform 0.35s cubic-bezier(0.55, 0, 1, 0.45);
+}
+
+/* ── Progress bar at the bottom ── */
+.progressBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-container), var(--primary, #ffe2ab));
+  border-radius: 0 0 6px 6px;
+  transition: width linear;
+}
+
+/* ── Icon bubble ── */
+.iconBubble {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Type-specific icon bubble colours */
+.iconPurchase {
+  background: linear-gradient(135deg, rgba(255, 191, 0, 0.18), rgba(255, 191, 0, 0.08));
+  border: 1px solid rgba(255, 191, 0, 0.22);
+}
+
+.iconGoal {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(34, 197, 94, 0.08));
+  border: 1px solid rgba(34, 197, 94, 0.22);
+}
+
+.iconJoin {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.08));
+  border: 1px solid rgba(59, 130, 246, 0.22);
+}
+
+.iconResult {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.18), rgba(168, 85, 247, 0.08));
+  border: 1px solid rgba(168, 85, 247, 0.22);
+}
+
+.iconTestimonial {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.18), rgba(251, 146, 60, 0.08));
+  border: 1px solid rgba(251, 146, 60, 0.22);
+}
+
+/* ── Content ── */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.message {
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: rgba(245, 245, 247, 0.92);
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+}
+
+.message strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.timestamp {
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.04em;
+}
+
+/* ── Close button ── */
+.closeBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.15s ease;
+  padding: 0;
+}
+
+.notification:hover .closeBtn {
+  opacity: 1;
+}
+
+.closeBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.closeBtn svg {
+  width: 12px;
+  height: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ── Verified badge ── */
+.verifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 191, 0, 0.7);
+  margin-top: 2px;
+}
+
+.verifiedBadge svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* ═══════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════ */
+@media (max-width: 480px) {
+  .wrapper {
+    bottom: 16px;
+    left: 12px;
+    right: 12px;
+  }
+
+  .notification {
+    max-width: 100%;
+    width: 100%;
+    padding: 14px 14px;
+    gap: 12px;
+  }
+
+  .iconBubble {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    font-size: 16px;
+  }
+
+  .message {
+    font-size: 0.78rem;
+  }
+
+  .closeBtn {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 360px) {
+  .notification {
+    padding: 12px;
+  }
+
+  .message {
+    font-size: 0.74rem;
+  }
+}
