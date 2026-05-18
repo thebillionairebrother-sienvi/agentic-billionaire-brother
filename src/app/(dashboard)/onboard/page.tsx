@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Crown, Send, Sparkles, ArrowRight, CheckCircle } from 'lucide-react';
+import { Crown, Send, Sparkles, ArrowRight, CheckCircle, DollarSign } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { GifBubble } from '@/components/GifBubble';
 import type { InterviewMessage, InterviewResponse, QuestionnairePayload } from '@/lib/types';
@@ -22,6 +22,7 @@ export default function OnboardPage() {
     const [extractedData, setExtractedData] = useState<QuestionnairePayload | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [baselineRevenue, setBaselineRevenue] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const router = useRouter();
@@ -184,6 +185,18 @@ export default function OnboardPage() {
 
             router.push('/strategies');
             router.refresh();
+
+            // Save baseline revenue if provided (non-blocking)
+            if (baselineRevenue.trim()) {
+                fetch('/api/revenue-tracking', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        baseline_monthly_revenue: parseInt(baselineRevenue, 10),
+                        current_monthly_revenue: parseInt(baselineRevenue, 10),
+                    }),
+                }).catch(() => { /* non-blocking */ });
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
             setSubmitting(false);
@@ -315,6 +328,41 @@ export default function OnboardPage() {
                                 <span>{extractedData.team_size}</span>
                             </div>
                         </div>
+
+                        {/* Optional baseline revenue input */}
+                        <div style={{
+                            padding: 'var(--space-4)',
+                            background: 'rgba(234, 179, 8, 0.04)',
+                            border: '1px solid rgba(234, 179, 8, 0.12)',
+                            borderRadius: 'var(--radius-md)',
+                            marginTop: 'var(--space-2)',
+                        }}>
+                            <label
+                                htmlFor="baseline-revenue"
+                                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 'var(--space-2)', color: 'var(--gold-400)' }}
+                            >
+                                <DollarSign size={14} />
+                                Current Monthly Revenue (optional)
+                            </label>
+                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: 'var(--space-3)', lineHeight: 1.5 }}>
+                                This helps us track your growth journey. You can update it anytime in Settings.
+                            </p>
+                            <div style={{ position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontWeight: 600, fontSize: 'var(--text-sm)', pointerEvents: 'none' }}>$</span>
+                                <input
+                                    id="baseline-revenue"
+                                    type="number"
+                                    className="input"
+                                    style={{ paddingLeft: '26px' }}
+                                    placeholder="e.g. 2000"
+                                    value={baselineRevenue}
+                                    onChange={(e) => setBaselineRevenue(e.target.value)}
+                                    min="0"
+                                    step="100"
+                                />
+                            </div>
+                        </div>
+
                         <button
                             className="btn btn-primary btn-lg"
                             style={{ width: '100%', marginTop: 'var(--space-4)' }}

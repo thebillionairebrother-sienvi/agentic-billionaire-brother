@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { CreditCard, User, LogOut, TestTube2, Zap, Tag } from 'lucide-react';
+import { CreditCard, User, LogOut, TestTube2, Zap, Tag, DollarSign, TrendingUp, Save } from 'lucide-react';
 
 interface UsageStatus {
     tier: string;
@@ -16,6 +16,15 @@ interface UsageStatus {
     isHardStop: boolean;
     resetDate: string;
 }
+
+interface RevenueData {
+    baseline_monthly_revenue: number | null;
+    current_monthly_revenue: number | null;
+    revenue_platform: string | null;
+    revenue_updated_at: string | null;
+    current_revenue_range: string | null;
+}
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import styles from './settings.module.css';
@@ -36,6 +45,11 @@ function SettingsInner() {
     const [settingsPromoCode, setSettingsPromoCode] = useState('');
     const [settingsPromoStatus, setSettingsPromoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [settingsPromoMessage, setSettingsPromoMessage] = useState<string | null>(null);
+    const [revenueData, setRevenueData] = useState<RevenueData | null>(null);
+    const [revenueCurrentInput, setRevenueCurrentInput] = useState('');
+    const [revenuePlatformInput, setRevenuePlatformInput] = useState('');
+    const [revenueSaving, setRevenueSaving] = useState(false);
+    const [revenueSaved, setRevenueSaved] = useState(false);
     const supabase = createClient();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -43,6 +57,7 @@ function SettingsInner() {
     useEffect(() => {
         loadProfile();
         fetchUsage();
+        fetchRevenue();
         // Check for test mode billing redirect
         if (searchParams.get('billing') === 'test') {
             setBillingMessage('Payments are currently disabled while we configure the billing portal. Please check back later or contact support.');
@@ -57,6 +72,46 @@ function SettingsInner() {
             }
         } catch {
             // Silently ignore usage fetch errors
+        }
+    };
+
+    const fetchRevenue = async () => {
+        try {
+            const res = await fetch('/api/revenue-tracking');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.revenue) {
+                    setRevenueData(data.revenue);
+                    setRevenueCurrentInput(data.revenue.current_monthly_revenue?.toString() || '');
+                    setRevenuePlatformInput(data.revenue.revenue_platform || '');
+                }
+            }
+        } catch {
+            // Silently ignore revenue fetch errors
+        }
+    };
+
+    const handleRevenueSave = async () => {
+        setRevenueSaving(true);
+        setRevenueSaved(false);
+        try {
+            const res = await fetch('/api/revenue-tracking', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    current_monthly_revenue: revenueCurrentInput ? parseInt(revenueCurrentInput, 10) : null,
+                    revenue_platform: revenuePlatformInput || null,
+                }),
+            });
+            if (res.ok) {
+                setRevenueSaved(true);
+                setTimeout(() => setRevenueSaved(false), 3000);
+                await fetchRevenue();
+            }
+        } catch {
+            // ignore
+        } finally {
+            setRevenueSaving(false);
         }
     };
 
@@ -133,6 +188,75 @@ function SettingsInner() {
                 <div className={styles.row}>
                     <span className="text-secondary">Email</span>
                     <span>{userProfile?.email}</span>
+                </div>
+            </div>
+
+            {/* Revenue Tracking */}
+            <div className={`card ${styles.section}`}>
+                <h3 className="heading-md">
+                    <DollarSign size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} /> My Revenue
+                </h3>
+                <p className="text-secondary" style={{ fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', lineHeight: 1.5 }}>
+                    Track your monthly revenue so we can measure your growth over time. This data is private and never shared.
+                </p>
+                {revenueData?.current_revenue_range && (
+                    <div className={styles.row}>
+                        <span className="text-secondary">Revenue Range (from onboarding)</span>
+                        <span className="badge badge-gold">{revenueData.current_revenue_range}</span>
+                    </div>
+                )}
+                {revenueData?.baseline_monthly_revenue != null && (
+                    <div className={styles.row}>
+                        <span className="text-secondary">Baseline at Signup</span>
+                        <span style={{ fontWeight: 600 }}>${revenueData.baseline_monthly_revenue.toLocaleString()}/mo</span>
+                    </div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
+                    <label className="label" htmlFor="settings-revenue-current">
+                        <TrendingUp size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                        Current Monthly Revenue (USD)
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', fontWeight: 600, fontSize: 'var(--text-sm)', pointerEvents: 'none' }}>$</span>
+                        <input
+                            id="settings-revenue-current"
+                            type="number"
+                            className="input"
+                            style={{ paddingLeft: '26px' }}
+                            placeholder="e.g. 5000"
+                            value={revenueCurrentInput}
+                            onChange={(e) => { setRevenueCurrentInput(e.target.value); setRevenueSaved(false); }}
+                            min="0"
+                            step="100"
+                        />
+                    </div>
+                    <label className="label" htmlFor="settings-revenue-platform">Platform</label>
+                    <select
+                        id="settings-revenue-platform"
+                        className="input"
+                        style={{ cursor: 'pointer' }}
+                        value={revenuePlatformInput}
+                        onChange={(e) => { setRevenuePlatformInput(e.target.value); setRevenueSaved(false); }}
+                    >
+                        <option value="">Select platform...</option>
+                        <option value="stripe">Stripe</option>
+                        <option value="paypal">PayPal</option>
+                        <option value="gumroad">Gumroad</option>
+                        <option value="shopify">Shopify</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <button
+                        id="settings-save-revenue-btn"
+                        className="btn btn-secondary"
+                        onClick={handleRevenueSave}
+                        disabled={revenueSaving}
+                        style={{ alignSelf: 'flex-start', marginTop: 'var(--space-2)' }}
+                    >
+                        {revenueSaving ? 'Saving...' : revenueSaved ? (<><Save size={14} /> Saved!</>) : (<><Save size={14} /> Save Revenue</>)}
+                    </button>
+                    {revenueSaved && (
+                        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--accent-green)', fontWeight: 600 }}>✓ Revenue updated successfully</p>
+                    )}
                 </div>
             </div>
 

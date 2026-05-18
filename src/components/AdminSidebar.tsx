@@ -12,6 +12,7 @@ import {
     ChevronLeft,
     Menu,
     ArrowLeft,
+    Trophy,
 } from 'lucide-react';
 import { useState } from 'react';
 import styles from './AdminSidebar.module.css';
@@ -23,6 +24,7 @@ interface AdminSidebarProps {
 const navItems = [
     { href: '/admin', icon: BarChart3, label: 'Overview' },
     { href: '/admin/costs', icon: DollarSign, label: 'Cost Monitor' },
+    { href: '/admin/social-proof', icon: Trophy, label: 'Social Proof' },
 ];
 
 export function AdminSidebar({ email }: AdminSidebarProps) {

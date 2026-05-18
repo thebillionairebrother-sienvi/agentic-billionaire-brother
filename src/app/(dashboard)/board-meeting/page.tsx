@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from 'react';
 import {
     Send, Trophy, TrendingUp, Target, Zap, Quote,
     ArrowRight, X, Check, Sparkles, RefreshCw, Calendar,
-    Clock, ChevronRight, Eye
+    Clock, ChevronRight, Eye, Camera
 } from 'lucide-react';
 import { GifBubble } from '@/components/GifBubble';
+import { RevenueWinModal } from '@/components/RevenueWinModal';
 import styles from './board-meeting.module.css';
 
 interface Message {
@@ -57,6 +58,7 @@ export default function WeeklyCheckinPage() {
     const [summary, setSummary] = useState<Summary | null>(null);
     const [started, setStarted] = useState(false);
     const [selectedPast, setSelectedPast] = useState<PastCheckin | null>(null);
+    const [showWinModal, setShowWinModal] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     // Load status on mount
@@ -433,10 +435,45 @@ export default function WeeklyCheckinPage() {
                         </div>
                     )}
 
+                    {/* Share Your Win CTA — only on current summary, not past views */}
+                    {phase === 'summary' && (
+                        <div className={styles.winCtaCard}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+                                <div style={{
+                                    width: 36, height: 36, borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, var(--gold-500), var(--gold-600))',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: 'var(--text-inverse)', flexShrink: 0
+                                }}>
+                                    <Trophy size={18} />
+                                </div>
+                                <div>
+                                    <h4 style={{ fontWeight: 700, fontSize: 'var(--text-base)' }}>Crushing it this week?</h4>
+                                    <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>
+                                        Share your Stripe/PayPal dashboard screenshot — we may feature you as a success story!
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setShowWinModal(true)}
+                                style={{ width: '100%', justifyContent: 'center' }}
+                            >
+                                <Camera size={16} /> Share My Win
+                            </button>
+                        </div>
+                    )}
+
                     <a href="/dashboard" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
                         Back to Dashboard
                     </a>
                 </div>
+
+                {showWinModal && (
+                    <RevenueWinModal
+                        onClose={() => setShowWinModal(false)}
+                    />
+                )}
             </div>
         );
     }
