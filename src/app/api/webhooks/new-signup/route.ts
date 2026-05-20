@@ -5,8 +5,8 @@ export const dynamic = 'force-dynamic';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
-const NOTIFY_EMAIL = 'yourbro@thebillionairebrother.com';
-const FROM_EMAIL = 'noreply@thebillionairebrother.com';
+const NOTIFY_EMAIL = 'yourbro@mybillionairebrother.com';
+const FROM_EMAIL = 'noreply@mybillionairebrother.com';
 const WEBHOOK_SECRET = process.env.SIGNUP_WEBHOOK_SECRET;
 
 /**
@@ -124,20 +124,33 @@ export async function POST(req: NextRequest) {
 </html>`;
 
     try {
-        const { data, error } = await resend.emails.send({
+        let sendResult = await resend.emails.send({
             from: `The Billionaire Brother <${FROM_EMAIL}>`,
             to: [NOTIFY_EMAIL],
             subject: `👑 New Signup: ${email} [${tier.toUpperCase()}]`,
             html: htmlBody,
         });
 
-        if (error) {
-            console.error('[new-signup webhook] Resend error:', error);
-            return NextResponse.json({ error: 'Email send failed', details: error }, { status: 500 });
+        // Smart Fallback for unverified domains / sandbox mode
+        if (sendResult.error && (sendResult.error as any).statusCode === 403) {
+            console.warn(
+                `[new-signup webhook] Main send failed (domain unverified). Falling back to Resend Sandbox mode.`
+            );
+            sendResult = await resend.emails.send({
+                from: 'The Billionaire Brother Sandbox <onboarding@resend.dev>',
+                to: ['teamsienvi@gmail.com'],
+                subject: `👑 [Sandbox] New Signup: ${email} [${tier.toUpperCase()}]`,
+                html: htmlBody + '<p style="color:#FFD700; font-size:12px; margin-top:20px;">⚠️ Note: This email was sent using Resend Sandbox fallback because the domain <strong>mybillionairebrother.com</strong> is not verified.</p>',
+            });
         }
 
-        console.log(`[new-signup webhook] Notification sent for ${email}, resend id: ${data?.id}`);
-        return NextResponse.json({ success: true, emailId: data?.id });
+        if (sendResult.error) {
+            console.error('[new-signup webhook] Resend error:', sendResult.error);
+            return NextResponse.json({ error: 'Email send failed', details: sendResult.error }, { status: 500 });
+        }
+
+        console.log(`[new-signup webhook] Notification sent for ${email}, resend id: ${sendResult.data?.id}`);
+        return NextResponse.json({ success: true, emailId: sendResult.data?.id });
     } catch (err) {
         console.error('[new-signup webhook] Unexpected error:', err);
         return NextResponse.json({ error: 'Unexpected error' }, { status: 500 });
