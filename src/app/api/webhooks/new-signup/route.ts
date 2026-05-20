@@ -26,12 +26,15 @@ const WEBHOOK_SECRET = process.env.SIGNUP_WEBHOOK_SECRET;
  */
 export async function POST(req: NextRequest) {
     // ── Verify shared secret (set as a custom header in the Supabase webhook) ──
-    if (WEBHOOK_SECRET) {
-        const incomingSecret = req.headers.get('x-webhook-secret');
-        if (incomingSecret !== WEBHOOK_SECRET) {
-            console.warn('[new-signup webhook] Unauthorized — wrong or missing secret');
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+    if (!WEBHOOK_SECRET || WEBHOOK_SECRET === 'REPLACE_WITH_A_STRONG_RANDOM_SECRET') {
+        console.error('[new-signup webhook] SIGNUP_WEBHOOK_SECRET is not configured or is using placeholder');
+        return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+    }
+
+    const incomingSecret = req.headers.get('x-webhook-secret');
+    if (incomingSecret !== WEBHOOK_SECRET) {
+        console.warn('[new-signup webhook] Unauthorized — wrong or missing secret');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     let payload: Record<string, unknown>;
