@@ -13,6 +13,7 @@ import {
     Menu,
     ArrowLeft,
     Trophy,
+    Mail,
 } from 'lucide-react';
 import { useState } from 'react';
 import styles from './AdminSidebar.module.css';
@@ -24,6 +25,7 @@ interface AdminSidebarProps {
 const navItems = [
     { href: '/admin', icon: BarChart3, label: 'Overview' },
     { href: '/admin/costs', icon: DollarSign, label: 'Cost Monitor' },
+    { href: '/admin/email-marketing', icon: Mail, label: 'Email Marketing' },
     { href: '/admin/social-proof', icon: Trophy, label: 'Social Proof' },
 ];
 
@@ -88,7 +90,7 @@ export function AdminSidebar({ email }: AdminSidebarProps) {
                 {/* Nav */}
                 <nav className={styles.nav}>
                     {navItems.map((item) => {
-                        const isActive = pathname === item.href;
+                        const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href + '/'));
                         return (
                             <Link
                                 key={item.href}

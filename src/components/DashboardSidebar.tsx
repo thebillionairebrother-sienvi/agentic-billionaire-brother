@@ -17,6 +17,7 @@ import {
     BookOpen,
     HelpCircle,
     Mail,
+    Shield,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { User } from '@/lib/types';
@@ -46,7 +47,11 @@ export function DashboardSidebar({ user, isAdmin }: DashboardSidebarProps) {
     const supabase = createClient();
 
     const displayNavItems = isAdmin 
-        ? [...navItems, { href: '/admin/email-marketing', icon: Mail, label: 'Email Marketing' }]
+        ? [
+            ...navItems,
+            { href: '/admin', icon: Shield, label: 'Admin Dashboard' },
+            { href: '/admin/email-marketing', icon: Mail, label: 'Email Marketing' }
+          ]
         : navItems;
 
     const handleSignOut = async () => {
