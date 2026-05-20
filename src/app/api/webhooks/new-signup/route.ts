@@ -3,8 +3,6 @@ import { Resend } from 'resend';
 
 export const dynamic = 'force-dynamic';
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
-
 const NOTIFY_EMAIL = 'yourbro@mybillionairebrother.com';
 const FROM_EMAIL = 'noreply@mybillionairebrother.com';
 const WEBHOOK_SECRET = process.env.SIGNUP_WEBHOOK_SECRET;
@@ -124,6 +122,13 @@ export async function POST(req: NextRequest) {
 </html>`;
 
     try {
+        const resendApiKey = process.env.RESEND_API_KEY;
+        if (!resendApiKey) {
+            console.error('[new-signup webhook] RESEND_API_KEY is not configured');
+            return NextResponse.json({ error: 'Email service not configured' }, { status: 500 });
+        }
+        const resend = new Resend(resendApiKey);
+
         let sendResult = await resend.emails.send({
             from: `The Billionaire Brother <${FROM_EMAIL}>`,
             to: [NOTIFY_EMAIL],
