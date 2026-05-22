@@ -18,6 +18,7 @@ export interface MeterLogEntry {
     workflowRunId?: string;
     isDegradeMode: boolean;
     isRegen?: boolean;
+    isExempt?: boolean;
 }
 
 export async function logUsageAndCost(
@@ -44,7 +45,7 @@ export async function logUsageAndCost(
         // 2. Increment daily counters (atomic upsert via RPC)
         await supabase.rpc('increment_daily_usage', {
             p_user_id: entry.userId,
-            p_prompts: 1,
+            p_prompts: entry.isExempt ? 0 : 1,
             p_input_tokens: entry.inputTokens,
             p_output_tokens: entry.outputTokens,
             p_cost: cost.budgeted,
@@ -57,7 +58,7 @@ export async function logUsageAndCost(
             p_user_id: entry.userId,
             p_month_start: getCurrentMonthStart(),
             p_tokens: entry.inputTokens + entry.outputTokens,
-            p_prompts: 1,
+            p_prompts: entry.isExempt ? 0 : 1,
             p_cost: cost.budgeted,
             p_is_regen: entry.isRegen ?? false,
         });

@@ -68,14 +68,12 @@ export async function POST(request: Request) {
             .single();
 
         // Lookup user tier
-        const { data: sub } = await supabase
-            .from('subscriptions')
+        const { data: userProfile } = await supabase
+            .from('users')
             .select('tier')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(1)
+            .eq('id', userId)
             .single();
-        const tier = (sub?.tier || 'free') as Tier;
+        const tier = (userProfile?.tier || 'free') as Tier;
 
         const isFreeTier = tier === 'free';
         const bigCount = isFreeTier ? 1 : 2;

@@ -38,13 +38,14 @@ export default function SettingsPage() {
 }
 
 function SettingsInner() {
-    const [userProfile, setUserProfile] = useState<{ display_name: string; email: string; subscription_status: string } | null>(null);
+    const [userProfile, setUserProfile] = useState<{ display_name: string; email: string; subscription_status: string; tier?: string } | null>(null);
     const [loading, setLoading] = useState(true);
     const [billingMessage, setBillingMessage] = useState<string | null>(null);
     const [usage, setUsage] = useState<UsageStatus | null>(null);
     const [settingsPromoCode, setSettingsPromoCode] = useState('');
     const [settingsPromoStatus, setSettingsPromoStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [settingsPromoMessage, setSettingsPromoMessage] = useState<string | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [revenueData, setRevenueData] = useState<RevenueData | null>(null);
     const [revenueCurrentInput, setRevenueCurrentInput] = useState('');
     const [revenuePlatformInput, setRevenuePlatformInput] = useState('');
@@ -63,6 +64,16 @@ function SettingsInner() {
             setBillingMessage('Payments are currently disabled while we configure the billing portal. Please check back later or contact support.');
         }
     }, [searchParams]);
+
+    // Dismiss toast automatically after 5 seconds
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => {
+                setToast(null);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
 
     const fetchUsage = async () => {
         try {
@@ -153,17 +164,23 @@ function SettingsInner() {
             const data = await res.json();
             if (!res.ok) {
                 setSettingsPromoStatus('error');
-                setSettingsPromoMessage(data.error || 'Invalid promo code. Please check and try again.');
+                const errMsg = data.error || 'Invalid promo code. Please check and try again.';
+                setSettingsPromoMessage(errMsg);
+                setToast({ message: errMsg, type: 'error' });
             } else {
                 setSettingsPromoStatus('success');
-                setSettingsPromoMessage(`🎉 Access unlocked! You're now on the ${data.tier === 'brother' ? 'Brother' : 'Team'} plan.`);
+                const successMsg = `🎉 Access unlocked! You're now on the ${data.tier === 'brother' ? 'Brother' : 'Team'} plan.`;
+                setSettingsPromoMessage(successMsg);
+                setToast({ message: successMsg, type: 'success' });
                 // Refresh usage to reflect updated tier
                 await fetchUsage();
                 await loadProfile();
             }
         } catch {
             setSettingsPromoStatus('error');
-            setSettingsPromoMessage('Something went wrong. Please try again.');
+            const errMsg = 'Something went wrong. Please try again.';
+            setSettingsPromoMessage(errMsg);
+            setToast({ message: errMsg, type: 'error' });
         }
     };
 
@@ -312,41 +329,175 @@ function SettingsInner() {
                 )}
             </div>
 
-            <div className={`card ${styles.section}`}>
-                <h3 className="heading-md">
-                    <CreditCard size={18} style={{ display: 'inline', verticalAlign: 'middle' }} /> Billing
+            {/* Redesigned Premium Billing Card */}
+            <div className={`card ${styles.section}`} style={{
+                background: (userProfile?.tier || usage?.tier || 'free') === 'brother' 
+                    ? 'linear-gradient(135deg, rgba(234, 179, 8, 0.04) 0%, rgba(234, 179, 8, 0.01) 100%)' 
+                    : (userProfile?.tier || usage?.tier || 'free') === 'team'
+                    ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, rgba(59, 130, 246, 0.01) 100%)'
+                    : 'var(--surface-card)',
+                border: (userProfile?.tier || usage?.tier || 'free') === 'brother'
+                    ? '1px solid rgba(234, 179, 8, 0.15)'
+                    : (userProfile?.tier || usage?.tier || 'free') === 'team'
+                    ? '1px solid rgba(59, 130, 246, 0.15)'
+                    : '1px solid var(--surface-border)',
+                position: 'relative',
+                overflow: 'hidden',
+            }}>
+                {/* Glow decorations for premium tiers */}
+                {((userProfile?.tier || usage?.tier || 'free') === 'brother' || (userProfile?.tier || usage?.tier || 'free') === 'team') && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '-50px',
+                        right: '-50px',
+                        width: '150px',
+                        height: '150px',
+                        background: (userProfile?.tier || usage?.tier || 'free') === 'brother' ? 'var(--gold-500)' : 'var(--blue-500)',
+                        opacity: 0.05,
+                        filter: 'blur(40px)',
+                        borderRadius: '50%',
+                        pointerEvents: 'none'
+                    }} />
+                )}
+
+                <h3 className="heading-md" style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--surface-border)', paddingBottom: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+                    <CreditCard size={18} />
+                    <span>Billing & Membership</span>
                 </h3>
+
                 <div className={styles.row}>
-                    <span className="text-secondary">Status</span>
-                    {isTestMode ? (
-                        <span className="badge badge-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <TestTube2 size={12} /> Test Mode (Active)
-                        </span>
-                    ) : (
-                        <span className={`badge ${userProfile?.subscription_status === 'active' ? 'badge-green' : 'badge-gold'}`}>
-                            {userProfile?.subscription_status}
-                        </span>
-                    )}
+                    <span className="text-secondary">Current Plan</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {(userProfile?.tier || usage?.tier || 'free') === 'brother' ? (
+                            <span style={{
+                                background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+                                color: '#1e1b4b',
+                                fontWeight: 700,
+                                fontSize: 'var(--text-xs)',
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                                boxShadow: '0 0 12px rgba(234, 179, 8, 0.15)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                            }}>
+                                👑 Brother Plan
+                            </span>
+                        ) : (userProfile?.tier || usage?.tier || 'free') === 'team' ? (
+                            <span style={{
+                                background: 'linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)',
+                                color: '#ffffff',
+                                fontWeight: 700,
+                                fontSize: 'var(--text-xs)',
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                                boxShadow: '0 0 12px rgba(59, 130, 246, 0.15)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                            }}>
+                                🚀 Team Plan
+                            </span>
+                        ) : (
+                            <span style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                color: 'var(--text-secondary)',
+                                fontWeight: 600,
+                                fontSize: 'var(--text-xs)',
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                                border: '1px solid var(--surface-border)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                            }}>
+                                Free Plan
+                            </span>
+                        )}
+                    </span>
                 </div>
-                <div className={styles.row}>
-                    <span className="text-secondary">Plan</span>
-                    <span>{isTestMode ? 'Founder (Test) — Free' : 'Founder — $79/mo'}</span>
+
+                {/* Features list based on tier */}
+                <div style={{
+                    background: 'rgba(255, 255, 255, 0.01)',
+                    backdropFilter: 'blur(4px)',
+                    border: '1px solid rgba(255, 255, 255, 0.03)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: 'var(--space-4)',
+                    margin: 'var(--space-3) 0 var(--space-4) 0',
+                }}>
+                    <h4 style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: 'var(--space-2)', fontWeight: 600 }}>
+                        Membership Features
+                    </h4>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {(userProfile?.tier || usage?.tier || 'free') === 'brother' ? (
+                            <>
+                                <li style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ color: 'var(--gold-400)' }}>✓</span> 40 premium AI prompts per day
+                                </li>
+                                <li style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ color: 'var(--gold-400)' }}>✓</span> Detailed decision analysis matrix
+                                </li>
+                                <li style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ color: 'var(--gold-400)' }}>✓</span> Tailored 7-day action templates
+                                </li>
+                            </>
+                        ) : (userProfile?.tier || usage?.tier || 'free') === 'team' ? (
+                            <>
+                                <li style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ color: 'var(--blue-400)' }}>✓</span> 100 premium AI prompts per day
+                                </li>
+                                <li style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ color: 'var(--blue-400)' }}>✓</span> Multi-project support
+                                </li>
+                                <li style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ color: 'var(--blue-400)' }}>✓</span> Team collaboration tools
+                                </li>
+                            </>
+                        ) : (
+                            <>
+                                <li style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ color: 'var(--text-tertiary)' }}>•</span> 10 daily prompt limit
+                                </li>
+                                <li style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ color: 'var(--text-tertiary)' }}>•</span> Standard business strategies
+                                </li>
+                            </>
+                        )}
+                    </ul>
                 </div>
 
                 {billingMessage && (
-                    <div className="disclaimer" style={{ marginTop: 'var(--space-4)' }}>
+                    <div className="disclaimer" style={{ marginTop: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
                         <TestTube2 size={16} />
                         <span>{billingMessage}</span>
                     </div>
                 )}
 
-                <button className="btn btn-secondary" onClick={handleBillingPortal} style={{ marginTop: 'var(--space-4)' }}>
-                    {isTestMode ? 'Manage Billing (Test Mode)' : 'Manage Billing'}
-                </button>
+                <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', marginTop: 'var(--space-2)' }}>
+                    <button 
+                        className="btn btn-primary"
+                        onClick={() => router.push('/upgrade')}
+                        style={{
+                            background: (userProfile?.tier || usage?.tier || 'free') === 'free' 
+                                ? 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)'
+                                : 'rgba(255, 255, 255, 0.06)',
+                            color: (userProfile?.tier || usage?.tier || 'free') === 'free' ? '#1e1b4b' : 'var(--text-primary)',
+                            border: (userProfile?.tier || usage?.tier || 'free') === 'free' ? 'none' : '1px solid var(--surface-border)',
+                            fontWeight: 700,
+                            boxShadow: (userProfile?.tier || usage?.tier || 'free') === 'free' ? '0 4px 14px rgba(234, 179, 8, 0.2)' : 'none',
+                        }}
+                    >
+                        {(userProfile?.tier || usage?.tier || 'free') === 'free' ? 'Upgrade Plan 👑' : 'View Plans / Upgrade'}
+                    </button>
+                    
+                    {!(isTestMode && (userProfile?.tier || usage?.tier || 'free') === 'free') && (
+                        <button className="btn btn-secondary" onClick={handleBillingPortal}>
+                            {isTestMode ? 'Manage Billing (Test)' : 'Manage Billing'}
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Promo Code — only for free tier users */}
-            {usage?.tier === 'free' && settingsPromoStatus !== 'success' && (
+            {(userProfile?.tier || usage?.tier || 'free') === 'free' && settingsPromoStatus !== 'success' && (
                 <div className={`card ${styles.section}`}>
                     <h3 className="heading-md">
                         <Tag size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} /> Have a Promo Code?
@@ -398,6 +549,54 @@ function SettingsInner() {
                     <LogOut size={16} /> Sign Out
                 </button>
             </div>
+
+            {/* Slide-in/Fade-in Toast Alert Popup Notification */}
+            {toast && (
+                <div style={{
+                    position: 'fixed',
+                    top: '24px',
+                    right: '24px',
+                    zIndex: 9999,
+                    background: toast.type === 'success' 
+                        ? 'rgba(16, 185, 129, 0.15)' 
+                        : 'rgba(239, 68, 68, 0.15)',
+                    backdropFilter: 'blur(16px)',
+                    border: `1px solid ${toast.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                    borderRadius: 'var(--radius-lg)',
+                    padding: 'var(--space-4) var(--space-6)',
+                    color: toast.type === 'success' ? '#34d399' : '#fca5a5',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 600,
+                    boxShadow: toast.type === 'success' 
+                        ? '0 10px 30px rgba(16, 185, 129, 0.25)' 
+                        : '0 10px 30px rgba(239, 68, 68, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-3)',
+                    animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) both',
+                }}>
+                    <span style={{ fontSize: '1.2em' }}>{toast.type === 'success' ? '🚀' : '⚠️'}</span>
+                    <span style={{ flex: 1 }}>{toast.message}</span>
+                    <button 
+                        onClick={() => setToast(null)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'inherit',
+                            cursor: 'pointer',
+                            padding: 'var(--space-1)',
+                            marginLeft: 'var(--space-2)',
+                            opacity: 0.7,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 'var(--text-base)',
+                        }}
+                    >
+                        &times;
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

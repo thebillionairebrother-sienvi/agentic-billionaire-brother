@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createMobileAwareClient } from '@/lib/supabase/server';
+import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
 import type { QuestionnairePayload } from '@/lib/types';
 
 // Allow enough time for the strategy generation sub-call
@@ -150,6 +150,40 @@ export async function POST(request: Request) {
             .update({ onboarding_complete: true })
             .eq('id', user.id);
 
+        // Create decision and generation job synchronously to prevent frontend race condition
+        const serviceClient = await createServiceClient();
+
+        // Create decision row
+        const { data: decision, error: decisionError } = await serviceClient
+            .from('decisions')
+            .insert({
+                user_id: user.id,
+                business_profile_id: profileId,
+                status: 'generating',
+            })
+            .select('id')
+            .single();
+
+        if (decisionError) throw decisionError;
+        const decisionId = decision!.id;
+
+        // Create generation job row
+        const { data: job, error: jobError } = await serviceClient
+            .from('generation_jobs')
+            .insert({
+                user_id: user.id,
+                job_type: 'strategies',
+                reference_id: decisionId,
+                status: 'processing',
+                started_at: new Date().toISOString(),
+                attempts: 1,
+            })
+            .select('id')
+            .single();
+
+        if (jobError) throw jobError;
+        const jobId = job!.id;
+
         // Fire-and-forget strategy generation — don't block the questionnaire response
         // The frontend will poll /api/jobs/[jobId] to track progress
         const generateUrl = new URL('/api/strategies/generate', request.url).toString();
@@ -159,13 +193,19 @@ export async function POST(request: Request) {
                 'Content-Type': 'application/json',
                 'Cookie': request.headers.get('cookie') || '',
             },
-            body: JSON.stringify({ business_profile_id: profileId }),
+            body: JSON.stringify({
+                business_profile_id: profileId,
+                job_id: jobId,
+                decision_id: decisionId,
+            }),
         }).catch((err) => {
             console.error('[questionnaire] Fire-and-forget strategy generation failed:', err);
         });
 
         return NextResponse.json({
             profileId,
+            jobId,
+            decisionId,
             success: true,
         });
     } catch (error) {

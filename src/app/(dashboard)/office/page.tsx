@@ -12,15 +12,13 @@ export default async function OfficePage() {
     if (!user) redirect('/auth');
 
     // Fetch user tier
-    const { data: subData } = await supabase
-        .from('subscriptions')
+    const { data: userProfile } = await supabase
+        .from('users')
         .select('tier')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .eq('id', user.id)
         .single();
 
-    const userTier = subData?.tier || 'free';
+    const userTier = userProfile?.tier || 'free';
     const isFreeTier = userTier === 'free';
 
     // Fetch all execution contracts with their strategies and latest cycle

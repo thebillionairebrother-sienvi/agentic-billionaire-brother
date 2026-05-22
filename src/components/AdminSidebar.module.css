@@ -215,3 +215,12 @@
     background: var(--accent-red-glow);
     color: var(--accent-red);
 }
+
+@media (min-width: 769px) {
+    .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        align-self: start;
+    }
+}

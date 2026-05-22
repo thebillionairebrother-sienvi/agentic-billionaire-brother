@@ -16,7 +16,24 @@ export async function getSubscriptionInfo(
     supabase: SupabaseClient,
     userId: string
 ): Promise<SubscriptionInfo> {
-    const { data } = await supabase
+    // 1. Query users table first since users has proper SELECT policies
+    const { data: userRecord } = await supabase
+        .from('users')
+        .select('tier')
+        .eq('id', userId)
+        .single();
+
+    const userTier = (userRecord?.tier as Tier) || 'free';
+
+    if (userTier === 'free') {
+        return {
+            tier: 'free' as Tier,
+            status: 'active' as SubscriptionInfo['status'],
+        };
+    }
+
+    // 2. Try to get detailed billing status from subscriptions if present
+    const { data: subRecord } = await supabase
         .from('subscriptions')
         .select('tier, status')
         .eq('user_id', userId)
@@ -24,15 +41,15 @@ export async function getSubscriptionInfo(
         .limit(1)
         .single();
 
-    if (!data) {
-        // No subscription record — default to free tier
+    if (!subRecord) {
+        // Trust users table tier and default status to active if no subscription row exists (e.g. promo code)
         return {
-            tier: 'free' as Tier,
+            tier: userTier,
             status: 'active' as SubscriptionInfo['status'],
         };
     }
 
-    if (data.status !== 'active' && data.status !== 'trialing') {
+    if (subRecord.status !== 'active' && subRecord.status !== 'trialing') {
         throw new GuardError(
             'BILLING_INACTIVE',
             'Your subscription is inactive. Please update your payment method.',
@@ -42,7 +59,7 @@ export async function getSubscriptionInfo(
     }
 
     return {
-        tier: data.tier as Tier,
-        status: data.status as SubscriptionInfo['status'],
+        tier: subRecord.tier as Tier,
+        status: subRecord.status as SubscriptionInfo['status'],
     };
 }

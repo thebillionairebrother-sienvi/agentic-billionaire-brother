@@ -20,3 +20,14 @@
     padding: var(--space-3) 0;
     font-size: var(--text-sm);
 }
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(120%) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+}

@@ -388,6 +388,16 @@
     cursor: not-allowed;
 }
 
+.btnCurrent {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-tertiary) !important;
+    border: 1px solid var(--surface-border) !important;
+    cursor: not-allowed !important;
+    pointer-events: none;
+    box-shadow: none !important;
+}
+
+
 .spinner {
     animation: spin 1s linear infinite;
 }

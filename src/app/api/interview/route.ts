@@ -211,6 +211,7 @@ export async function POST(request: Request) {
                 inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
                 outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
                 latencyMs, isDegradeMode: ctx.isDegradeMode,
+                isExempt: true,
             });
 
             return NextResponse.json({
@@ -292,6 +293,7 @@ export async function POST(request: Request) {
                 inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
                 outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
                 latencyMs: latencyMs2, isDegradeMode: ctx.isDegradeMode,
+                isExempt: true,
             });
 
             let extractedData = null;
@@ -352,6 +354,7 @@ export async function POST(request: Request) {
                     inputTokens: extractResponse.usageMetadata?.promptTokenCount ?? 0,
                     outputTokens: extractResponse.usageMetadata?.candidatesTokenCount ?? 0,
                     latencyMs: extractLatency, isDegradeMode: ctx.isDegradeMode,
+                    isExempt: true,
                 });
 
                 const rawJson = (extractResponse.text || '').trim();
@@ -383,6 +386,7 @@ export async function POST(request: Request) {
             inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
             outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
             latencyMs: latencyMs2, isDegradeMode: ctx.isDegradeMode,
+            isExempt: true,
         });
 
         return NextResponse.json({

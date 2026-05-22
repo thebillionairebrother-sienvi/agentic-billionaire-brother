@@ -105,16 +105,14 @@ export default function StrategiesPage() {
         if (!user) return;
 
         // Fetch user tier
-        const { data: subData } = await supabase
-            .from('subscriptions')
+        const { data: userProfile } = await supabase
+            .from('users')
             .select('tier')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
+            .eq('id', user.id)
             .single();
 
-        if (subData?.tier) {
-            setUserTier(subData.tier);
+        if (userProfile?.tier) {
+            setUserTier(userProfile.tier);
         }
 
         // Check for pending generation job

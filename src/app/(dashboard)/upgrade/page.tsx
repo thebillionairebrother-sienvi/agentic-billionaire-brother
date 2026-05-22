@@ -4,7 +4,9 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Crown, Check, ArrowLeft, Zap, Users, Shield, Loader2, AlertCircle, X } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import styles from './upgrade.module.css';
+
 
 const PLANS = [
     {
@@ -62,15 +64,35 @@ function UpgradePageInner() {
     const [checkoutState, setCheckoutState] = useState<CheckoutState>('idle');
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [activeTier, setActiveTier] = useState<string | null>(null);
+    const [currentTier, setCurrentTier] = useState<string | null>(null);
 
     const wasCanceled = searchParams.get('canceled') === 'true';
     const preselectedPlan = searchParams.get('plan');
+
+    useEffect(() => {
+        const fetchCurrentTier = async () => {
+            try {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data } = await supabase.from('users').select('tier').eq('id', user.id).single();
+                    if (data) {
+                        setCurrentTier(data.tier || 'free');
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching current tier:', err);
+            }
+        };
+        fetchCurrentTier();
+    }, []);
 
     useEffect(() => {
         if (preselectedPlan) {
             setActiveTier(preselectedPlan);
         }
     }, [preselectedPlan]);
+
 
     const handleCheckout = async (tier: 'brother' | 'team') => {
         setCheckoutState('loading');
@@ -207,18 +229,28 @@ function UpgradePageInner() {
                             {/* CTA */}
                             <button
                                 id={`checkout-${plan.tier}-btn`}
-                                className={`btn btn-lg ${plan.color === 'gold' ? 'btn-primary' : styles.btnBlue}`}
+                                className={`btn btn-lg ${
+                                    currentTier === plan.tier
+                                        ? styles.btnCurrent
+                                        : plan.color === 'gold'
+                                        ? 'btn-primary'
+                                        : styles.btnBlue
+                                }`}
                                 style={{ width: '100%' }}
-                                onClick={() => handleCheckout(plan.tier)}
-                                disabled={checkoutState === 'loading'}
-                                aria-label={`${plan.cta} for $${plan.price}/month (was $${plan.originalPrice})`}
+                                onClick={() => currentTier !== plan.tier && handleCheckout(plan.tier)}
+                                disabled={checkoutState === 'loading' || currentTier === plan.tier}
+                                aria-label={currentTier === plan.tier ? 'Current Plan' : `${plan.cta} for $${plan.price}/month (was $${plan.originalPrice})`}
                             >
                                 {isLoading ? (
                                     <>
                                         <Loader2 size={18} className={styles.spinner} />
                                         Redirecting to Stripe...
                                     </>
-                                ) : plan.cta}
+                                ) : currentTier === plan.tier ? (
+                                    'Current Plan'
+                                ) : (
+                                    plan.cta
+                                )}
                             </button>
 
                             {/* Subtext */}

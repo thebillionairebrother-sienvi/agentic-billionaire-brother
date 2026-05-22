@@ -11,14 +11,14 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Determine tier (default to brother)
-        const { data: sub } = await supabase
-            .from('subscriptions')
+        // Determine tier from users table (which has proper RLS policies)
+        const { data: userProfile } = await supabase
+            .from('users')
             .select('tier')
-            .eq('user_id', user.id)
+            .eq('id', user.id)
             .single();
 
-        const tier: Tier = (sub?.tier as Tier) || 'free';
+        const tier: Tier = (userProfile?.tier as Tier) || 'free';
         const config = TIER_CONFIG[tier];
 
         // Parallel fetch usage

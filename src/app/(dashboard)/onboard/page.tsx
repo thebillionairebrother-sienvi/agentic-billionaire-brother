@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Crown, Send, Sparkles, ArrowRight, CheckCircle, DollarSign } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -161,7 +161,7 @@ export default function OnboardPage() {
         }
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = useCallback(async () => {
         if (!extractedData) return;
         setSubmitting(true);
         setError(null);
@@ -201,7 +201,17 @@ export default function OnboardPage() {
             setError(err instanceof Error ? err.message : 'An error occurred');
             setSubmitting(false);
         }
-    };
+    }, [extractedData, baselineRevenue, router]);
+
+    // Automatically submit 2 seconds after onboarding chatbot finishes
+    useEffect(() => {
+        if (complete && extractedData) {
+            const timer = setTimeout(() => {
+                handleSubmit();
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [complete, extractedData, handleSubmit]);
 
     return (
         <div className={styles.page}>
