@@ -27,14 +27,15 @@ export default async function DashboardLayout({
         .single();
 
     const isAdmin = await checkIsAdmin();
+    const isBeta = profile?.tier === 'brother' || profile?.tier === 'team';
 
     return (
-        <>
+        <div className={isBeta ? 'beta-theme' : ''} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <TierBanner tier={profile?.tier || 'free'} />
             <BetaBanner />
             <DegradeBanner />
             <div className={styles.shell}>
-                <DashboardSidebar user={profile} isAdmin={isAdmin} />
+                <DashboardSidebar user={profile} isAdmin={isAdmin} isBeta={isBeta} />
                 <main className={styles.main}>
                     <OnboardingChecklist userId={user.id} />
                     <div className={styles.content}>
@@ -42,6 +43,7 @@ export default async function DashboardLayout({
                     </div>
                 </main>
             </div>
-        </>
+        </div>
     );
 }
+

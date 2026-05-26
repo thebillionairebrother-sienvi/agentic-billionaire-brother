@@ -612,3 +612,38 @@ textarea.input {
 .skip-link:focus {
   top: 0;
 }
+
+/* ─── Beta Tester Theme Overrides ─── */
+.beta-theme {
+  --gold-50: #faf5ff;
+  --gold-100: #f3e8ff;
+  --gold-200: #e9d5ff;
+  --gold-300: #d8b4fe;
+  --gold-400: #c084fc;
+  --gold-500: #a855f7; /* Vibrant Neon Purple */
+  --gold-600: #9333ea;
+  --gold-700: #7e22ce;
+  
+  --shadow-glow-gold: 0 0 40px rgba(168, 85, 247, 0.2);
+  --shadow-glow-blue: 0 0 40px rgba(139, 92, 246, 0.2);
+  
+  /* Retheme neutral backgrounds to dark obsidian with violet depth */
+  --bg-primary: #050508;
+  --bg-secondary: #0b0914;
+  --bg-tertiary: #130f22;
+  --bg-elevated: #1a152e;
+  --bg-glass: rgba(168, 85, 247, 0.03);
+  --surface-border: rgba(168, 85, 247, 0.12);
+  --surface-border-hover: rgba(168, 85, 247, 0.22);
+}
+
+@keyframes pulse-purple {
+  0%, 100% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(168, 85, 247, 0.4); }
+}
+
+@keyframes pulse-emerald {
+  0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 2px #10b981); }
+  50% { opacity: 0.6; transform: scale(0.92); filter: drop-shadow(0 0 8px #10b981); }
+}
+

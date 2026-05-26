@@ -10,6 +10,7 @@ export interface User {
     stripe_customer_id: string | null;
     subscription_status: 'none' | 'active' | 'cancelled' | 'past_due';
     subscription_plan: string;
+    tier?: string;
     onboarding_complete: boolean;
     created_at: string;
     updated_at: string;

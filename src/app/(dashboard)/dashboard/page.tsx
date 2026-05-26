@@ -20,10 +20,10 @@ export default async function DashboardPage({
 
     if (!user) redirect('/auth');
 
-    // Check onboarding status
+    // Check onboarding status and tier
     const { data: profile } = await supabase
         .from('users')
-        .select('onboarding_complete')
+        .select('onboarding_complete, tier')
         .eq('id', user.id)
         .single();
 
@@ -69,6 +69,8 @@ export default async function DashboardPage({
 
     const hasStrategy = !!contract;
 
+    const isBeta = profile?.tier === 'brother' || profile?.tier === 'team';
+
     return (
         <div className={styles.page}>
             <header className={styles.header}>
@@ -79,6 +81,12 @@ export default async function DashboardPage({
                             ? `Week ${currentCycle?.week_number || 1} — ${contract?.strategy?.archetype}`
                             : 'Welcome to The Billionaire Brother'}
                     </p>
+                    {isBeta && (
+                        <div className={styles.betaTerminalChip}>
+                            <span className={styles.betaTerminalDot} />
+                            <span>BETA SECURE SHIELD // CLIENT_v2.1</span>
+                        </div>
+                    )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                     {(totalContracts || 0) > 1 && (

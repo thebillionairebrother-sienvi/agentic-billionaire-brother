@@ -241,4 +241,74 @@
         height: 100vh;
         align-self: start;
     }
-}
+}
+
+/* ─── Beta Tester CSS Styling Overrides ─── */
+.betaSidebar {
+    background: var(--bg-secondary);
+    border-right: 1px solid rgba(168, 85, 247, 0.15);
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.4);
+}
+
+.betaBrand {
+    border-bottom: 1px solid rgba(168, 85, 247, 0.15);
+}
+
+.betaLogoMark {
+    background: linear-gradient(135deg, #a855f7, #6b21a8);
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+    color: #fff !important;
+}
+
+.brandTextWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.betaBadge {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #10b981; /* emerald green text */
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+    width: fit-content;
+    text-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
+    animation: pulse-emerald 2s infinite ease-in-out;
+}
+
+.betaActive {
+    color: #c084fc !important;
+    background: rgba(168, 85, 247, 0.06);
+    border-left: 3px solid #a855f7;
+}
+
+.betaActive::before {
+    display: none !important; /* Hide standard gold active bar */
+}
+
+.betaUserSection {
+    border-top: 1px solid rgba(168, 85, 247, 0.15);
+}
+
+.betaAvatar {
+    background: linear-gradient(135deg, #7e22ce, #1e1b4b);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+    color: #e9d5ff !important;
+}
+
+.userPlanBadge {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: #a855f7;
+    margin-top: 2px;
+    letter-spacing: 0.02em;
+}
+

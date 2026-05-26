@@ -161,35 +161,40 @@ export default function AdminDashboard() {
                             </tr>
                         </thead>
                         <tbody>
-                            {users.map((u) => (
-                                <React.Fragment key={u.id}>
-                                    <tr
-                                        className={styles.tableRow}
-                                        onClick={() => setExpandedUser(expandedUser === u.id ? null : u.id)}
-                                    >
-                                        <td>
-                                            <div className={styles.userCell}>
-                                                <div className={styles.userAvatar}>
-                                                    {u.display_name?.[0]?.toUpperCase() || u.email?.[0]?.toUpperCase() || '?'}
+                            {users.map((u) => {
+                                const isBetaUser = u.promo_code === 'BILLIONAIREBROTHER2026' || u.promo_code === 'BILLIONAIRETEAM2026' || u.tier === 'brother' || u.tier === 'team';
+                                return (
+                                    <React.Fragment key={u.id}>
+                                        <tr
+                                            className={styles.tableRow}
+                                            onClick={() => setExpandedUser(expandedUser === u.id ? null : u.id)}
+                                        >
+                                            <td>
+                                                <div className={styles.userCell}>
+                                                    <div className={`${styles.userAvatar} ${isBetaUser ? styles.betaUserAvatar : ''}`}>
+                                                        {u.display_name?.[0]?.toUpperCase() || u.email?.[0]?.toUpperCase() || '?'}
+                                                    </div>
+                                                    <div>
+                                                        <div className={styles.userName}>
+                                                            {u.display_name || 'No name'}
+                                                            {isBetaUser && <span className={styles.betaUserIndicator}>BETA</span>}
+                                                        </div>
+                                                        <div className={styles.userEmail}>{u.email}</div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div className={styles.userName}>{u.display_name || 'No name'}</div>
-                                                    <div className={styles.userEmail}>{u.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                <span className={`badge ${u.tier === 'team' ? 'badge-purple' : 'badge-blue'}`} style={{ textTransform: 'capitalize' }}>
-                                                    {u.tier}
-                                                </span>
-                                                {u.promo_code && (
-                                                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                                                        {u.promo_code}
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span className={`badge ${u.tier === 'team' ? 'badge-purple' : 'badge-blue'}`} style={{ textTransform: 'capitalize' }}>
+                                                        {u.tier}
                                                     </span>
-                                                )}
-                                            </div>
-                                        </td>
+                                                    {u.promo_code && (
+                                                        <span className={isBetaUser ? styles.betaPromoCode : ''} style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                                                            {u.promo_code}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
                                         <td>
                                             <div className={styles.businessCell}>
                                                 <span>{u.business_name || '—'}</span>
@@ -275,7 +280,8 @@ export default function AdminDashboard() {
                                         </tr>
                                     )}
                                 </React.Fragment>
-                            ))}
+                            );
+                            })}
                         </tbody>
                     </table>
                 </div>

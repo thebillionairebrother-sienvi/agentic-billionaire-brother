@@ -100,3 +100,30 @@
         gap: var(--space-4);
     }
 }
+
+/* ─── Beta Tester Indicators ─── */
+.betaTerminalChip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: rgba(168, 85, 247, 0.08);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--gold-400);
+    margin-top: var(--space-2);
+    letter-spacing: 0.06em;
+    width: fit-content;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.betaTerminalDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: pulse-emerald 2s infinite ease-in-out;
+}

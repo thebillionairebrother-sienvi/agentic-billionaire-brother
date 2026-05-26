@@ -3,23 +3,23 @@
 import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, User, ArrowRight, Crown, Tag } from 'lucide-react';
-import styles from './auth.module.css';
+import { Mail, Lock, User, ArrowRight, ShieldCheck, Tag, Terminal } from 'lucide-react';
+import styles from './beta-auth.module.css';
 
-export default function AuthPage() {
+export default function BetaAuthPage() {
     return (
-        <Suspense fallback={<div style={{ minHeight: '100vh', background: '#131313' }} />}>
-            <AuthPageInner />
+        <Suspense fallback={<div style={{ minHeight: '100vh', background: '#050508' }} />}>
+            <BetaAuthPageInner />
         </Suspense>
     );
 }
 
-function AuthPageInner() {
+function BetaAuthPageInner() {
     const [mode, setMode] = useState<'login' | 'signup'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
-    const [promoCode, setPromoCode] = useState('');
+    const [betaCode, setBetaCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
@@ -27,7 +27,6 @@ function AuthPageInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirect = searchParams.get('redirect') || '/dashboard';
-    // NOTE: createBrowserClient is designed to be called once per component mount
     const supabase = createClient();
 
     // Automatically redirect authenticated users to the dashboard
@@ -35,11 +34,11 @@ function AuthPageInner() {
         const checkSession = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-                router.push(redirect);
+                router.push('/dashboard');
             }
         };
         checkSession();
-    }, [supabase, router, redirect]);
+    }, [supabase, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,66 +48,81 @@ function AuthPageInner() {
 
         const attemptAuth = async (retriesLeft: number): Promise<void> => {
             try {
-                if (mode === 'signup') {
-                    // Validate promo code if provided (optional field)
-                    const validCodes: Record<string, string> = {
-                        'BILLIONAIREBROTHER2026': 'brother',
-                        'BILLIONAIRETEAM2026': 'team',
-                    };
-                    const trimmedPromo = promoCode.toUpperCase().trim();
-                    let tier = 'free';
+                const validCodes: Record<string, string> = {
+                    'BILLIONAIREBROTHER2026': 'brother',
+                    'BILLIONAIRETEAM2026': 'team',
+                };
+                const trimmedCode = betaCode.toUpperCase().trim();
 
-                    if (trimmedPromo) {
-                        const matchedTier = validCodes[trimmedPromo];
-                        if (!matchedTier) {
-                            setError('Invalid promo code. Please check and try again.');
-                            setLoading(false);
-                            return;
-                        }
-                        tier = matchedTier;
+                // Beta portal ALWAYS requires a valid beta code for sign up
+                if (mode === 'signup') {
+                    if (!trimmedCode) {
+                        setError('Beta access code is required for registration.');
+                        setLoading(false);
+                        return;
+                    }
+                    const tier = validCodes[trimmedCode];
+                    if (!tier) {
+                        setError('Invalid beta access code. Please check and try again.');
+                        setLoading(false);
+                        return;
                     }
 
-                    const redirectToUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirect)}`;
+                    const redirectToUrl = `${window.location.origin}/auth/callback?next=/auth/beta`;
                     const { error } = await supabase.auth.signUp({
                         email,
                         password,
                         options: {
                             emailRedirectTo: redirectToUrl,
-                            data: { display_name: displayName, tier, promo_code: trimmedPromo || null },
+                            data: { display_name: displayName, tier, promo_code: trimmedCode },
                         },
                     });
                     if (error) throw error;
 
                     // Store tier info so we can set it on first login
-                    if (trimmedPromo) {
-                        sessionStorage.setItem('pending_promo_code', trimmedPromo);
-                    }
+                    sessionStorage.setItem('pending_promo_code', trimmedCode);
                     sessionStorage.setItem('pending_tier', tier);
 
-                    setMessage('Check your email for a confirmation link!');
+                    setMessage('Beta registration successful! Check your email for a confirmation link.');
                 } else {
+                    // For Login, check if they entered a code
+                    let tier = '';
+                    if (trimmedCode) {
+                        const matched = validCodes[trimmedCode];
+                        if (!matched) {
+                            setError('Invalid beta access code. Enter a valid code or leave blank if already registered.');
+                            setLoading(false);
+                            return;
+                        }
+                        tier = matched;
+                    }
+
                     const { error } = await supabase.auth.signInWithPassword({
                         email,
                         password,
                     });
                     if (error) throw error;
 
-                    // Check if there's a pending tier from signup
-                    const pendingPromo = sessionStorage.getItem('pending_promo_code');
-                    const pendingTier = sessionStorage.getItem('pending_tier');
-                    if (pendingTier) {
+                    // If a valid code was supplied during login, or if we have pending signup info
+                    const activePromo = trimmedCode || sessionStorage.getItem('pending_promo_code');
+                    const activeTier = tier || sessionStorage.getItem('pending_tier');
+
+                    if (activeTier) {
                         try {
                             await fetch('/api/auth/set-tier', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ promoCode: pendingPromo || null, tier: pendingTier }),
+                                body: JSON.stringify({ promoCode: activePromo || null, tier: activeTier }),
                             });
                             sessionStorage.removeItem('pending_promo_code');
                             sessionStorage.removeItem('pending_tier');
                         } catch {
-                            // Non-blocking — tier can be set later
+                            // Non-blocking
                         }
                     }
+
+                    // Set a session flag to force-enable Beta UI mode
+                    sessionStorage.setItem('beta-tester-mode', 'true');
 
                     router.push(redirect);
                     router.refresh();
@@ -119,7 +133,6 @@ function AuthPageInner() {
                     || errMsg.toLowerCase().includes('load failed')
                     || errMsg.toLowerCase().includes('networkerror');
 
-                // Auto-retry once for transient network errors (common on mobile/Safari)
                 if (isNetworkError && retriesLeft > 0) {
                     await new Promise(resolve => setTimeout(resolve, 1500));
                     return attemptAuth(retriesLeft - 1);
@@ -139,49 +152,47 @@ function AuthPageInner() {
 
     return (
         <div className={styles.container}>
-
-            {/* ── Left — Brand panel ── */}
+            {/* ── Left — Beta Brand panel ── */}
             <div className={styles.leftPanel}>
                 <div className={styles.brandContent}>
                     <div className={styles.logoMark}>
-                        <Crown size={24} />
+                        <ShieldCheck size={26} />
                     </div>
 
                     <div className={styles.systemChip}>
                         <span className={styles.chipDot} />
-                        <span>SYSTEM ONLINE // DEREK_V2.0</span>
+                        <span>BETA SECURE SHIELD // ACCESS_STAGE_2026</span>
                     </div>
 
                     <h1 className={styles.brandTitle}>
-                        The Billionaire<br />
-                        <span>Brother.</span>
+                        Billionaire Brother<br />
+                        <span>Beta Portal.</span>
                     </h1>
                     <p className={styles.brandTagline}>
-                        Your business strategist. Built to execute.<br />
-                        No fluff. Just metrics and relentless action.
+                        Welcome to the exclusive environment. As an early beta tester, you have secure access to premium features, testing new automation systems before public launch.
                     </p>
 
                     <div className={styles.features}>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />
-                            <span>Strategy built by your Brother Derek</span>
+                            <span>Exclusive Obsidian & Dynamic Purple UI</span>
                         </div>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />
-                            <span>Decision Scores with transparent reasoning</span>
+                            <span>Direct Beta Feedback Channel Access</span>
                         </div>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />
-                            <span>Weekly Action Steps with actionable tasks</span>
+                            <span>Unlimited Strategy Generations & cycles</span>
                         </div>
                         <div className={styles.featureItem}>
                             <div className={styles.featureDot} />
-                            <span>Weekly check-ins that keep you honest</span>
+                            <span>Unreleased feature tests & Derek integrations</span>
                         </div>
                     </div>
 
                     <p className={styles.leftFooter}>
-                        © {new Date().getFullYear()} THE BILLIONAIRE BROTHER
+                        SECURE // © {new Date().getFullYear()} THE BILLIONAIRE BROTHER LABS
                     </p>
                 </div>
             </div>
@@ -191,16 +202,36 @@ function AuthPageInner() {
                 <div className={styles.formWrapper}>
                     <div className={styles.formHeader}>
                         <h2 className={styles.formTitle}>
-                            {mode === 'login' ? 'Access Terminal' : 'Initialize Account'}
+                            {mode === 'login' ? 'Beta Access' : 'Create Beta Account'}
                         </h2>
                         <p className={styles.formSubtitle}>
                             {mode === 'login'
-                                ? 'AUTHENTICATE // DEREK SYSTEM'
-                                : 'CREATE CREDENTIALS // BEGIN PROTOCOL'}
+                                ? 'SECURE LOG IN // VERIFY PROTOCOL'
+                                : 'ENTER SYSTEM PASSKEY // INITIALIZE'}
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className={styles.form}>
+                        {/* Always require or show Promo Code for Beta Login/Signup */}
+                        <div className={styles.field}>
+                            <label className={styles.fieldLabel} htmlFor="betaCode">
+                                Beta Access Code
+                                {mode === 'login' && <span className={styles.fieldLabelOptional}>(optional if registered)</span>}
+                            </label>
+                            <div className={styles.inputWrapper}>
+                                <Tag size={16} className={styles.inputIcon} />
+                                <input
+                                    id="betaCode"
+                                    type="text"
+                                    className="input"
+                                    style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}
+                                    placeholder="ENTER CODE"
+                                    value={betaCode}
+                                    onChange={(e) => setBetaCode(e.target.value)}
+                                    required={mode === 'signup'}
+                                />
+                            </div>
+                        </div>
 
                         {mode === 'signup' && (
                             <div className={styles.field}>
@@ -213,31 +244,10 @@ function AuthPageInner() {
                                         id="displayName"
                                         type="text"
                                         className="input"
-                                        placeholder="Derek Junior"
+                                        placeholder="Beta Tester"
                                         value={displayName}
                                         onChange={(e) => setDisplayName(e.target.value)}
                                         required
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {mode === 'signup' && (
-                            <div className={styles.field}>
-                                <label className={styles.fieldLabel} htmlFor="promoCode">
-                                    Promo Code
-                                    <span className={styles.fieldLabelOptional}>(optional)</span>
-                                </label>
-                                <div className={styles.inputWrapper}>
-                                    <Tag size={16} className={styles.inputIcon} />
-                                    <input
-                                        id="promoCode"
-                                        type="text"
-                                        className="input"
-                                        style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}
-                                        placeholder="ENTER CODE"
-                                        value={promoCode}
-                                        onChange={(e) => setPromoCode(e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -253,7 +263,7 @@ function AuthPageInner() {
                                     id="email"
                                     type="email"
                                     className="input"
-                                    placeholder="you@company.com"
+                                    placeholder="beta@company.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -284,16 +294,16 @@ function AuthPageInner() {
                         {message && <div className={styles.success}>{message}</div>}
 
                         <button
-                            id="auth-submit-btn"
+                            id="beta-auth-submit-btn"
                             type="submit"
                             className={styles.submitBtn}
                             disabled={loading}
                         >
                             {loading
-                                ? 'CONNECTING...'
+                                ? 'DECRYPTING...'
                                 : mode === 'login'
-                                    ? 'ACCESS SYSTEM'
-                                    : 'INITIALIZE ACCOUNT'}
+                                    ? 'SECURE VERIFY'
+                                    : 'INITIALIZE BETA PORT'}
                             {!loading && <ArrowRight size={16} />}
                         </button>
                     </form>
@@ -301,11 +311,11 @@ function AuthPageInner() {
                     <div className={styles.switchMode}>
                         <span>
                             {mode === 'login'
-                                ? "No account yet?"
-                                : 'Already registered?'}
+                                ? "Register beta access?"
+                                : 'Already have beta access?'}
                         </span>
                         <button
-                            id="auth-mode-toggle"
+                            id="beta-auth-mode-toggle"
                             className={styles.switchModeBtn}
                             onClick={() => {
                                 setMode(mode === 'login' ? 'signup' : 'login');
@@ -313,12 +323,11 @@ function AuthPageInner() {
                                 setMessage(null);
                             }}
                         >
-                            {mode === 'login' ? 'CREATE ACCOUNT →' : 'SIGN IN →'}
+                            {mode === 'login' ? 'INITIALIZE CREDENTIALS →' : 'SECURE SIGN IN →'}
                         </button>
                     </div>
                 </div>
             </div>
-
         </div>
     );
 }
