@@ -56,9 +56,9 @@ export const TIER_CONFIG: Record<Tier, TierEntitlements> = {
 // ─── Pricing ───
 // Budget pricing (2.5× safety margin) used for cap enforcement
 // Actual pricing used for cost reporting only
-// Model: gemini-3-pro-preview
+// Model: gemini-2.5-pro
 export const MODEL_PRICING = {
-    model: 'gemini-3-pro-preview' as const,
+    model: 'gemini-2.5-pro' as const,
     actual: {
         input_per_1m_tokens: 1.25,
         output_per_1m_tokens: 10.00,
@@ -156,7 +156,7 @@ export const KILL_SWITCH_IDS = {
     TOOLS: 'tools',
 } as const;
 
-// ─── Thinking Config (gemini-3-pro-preview) ───
+// ─── Thinking Config (gemini-2.5-pro) ───
 // Maps endpoints to thinking levels for optimal cost/quality tradeoff
 export const THINKING_LEVELS = {
     // Heavy analysis — full reasoning
