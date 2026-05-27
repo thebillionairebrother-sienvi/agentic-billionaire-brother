@@ -178,6 +178,22 @@ export default function OnboardPage() {
                 throw new Error(body.error || 'Failed to save');
             }
 
+            const data = await res.json();
+            const { profileId, jobId, decisionId } = data;
+
+            // Trigger the strategy generation from the client browser actively (so connection is held open)
+            fetch('/api/strategies/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    business_profile_id: profileId,
+                    job_id: jobId,
+                    decision_id: decisionId,
+                }),
+            }).catch((err) => {
+                console.error('Client-side strategy generation trigger failed:', err);
+            });
+
             // Clear persisted interview state after successful submission
             localStorage.removeItem(INTERVIEW_STORAGE_KEY);
             localStorage.removeItem(INTERVIEW_COMPLETE_KEY);
@@ -202,16 +218,6 @@ export default function OnboardPage() {
             setSubmitting(false);
         }
     }, [extractedData, baselineRevenue, router]);
-
-    // Automatically submit 2 seconds after onboarding chatbot finishes
-    useEffect(() => {
-        if (complete && extractedData) {
-            const timer = setTimeout(() => {
-                handleSubmit();
-            }, 2000);
-            return () => clearTimeout(timer);
-        }
-    }, [complete, extractedData, handleSubmit]);
 
     return (
         <div className={styles.page}>

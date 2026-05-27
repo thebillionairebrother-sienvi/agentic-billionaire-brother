@@ -184,24 +184,6 @@ export async function POST(request: Request) {
         if (jobError) throw jobError;
         const jobId = job!.id;
 
-        // Fire-and-forget strategy generation — don't block the questionnaire response
-        // The frontend will poll /api/jobs/[jobId] to track progress
-        const generateUrl = new URL('/api/strategies/generate', request.url).toString();
-        fetch(generateUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Cookie': request.headers.get('cookie') || '',
-            },
-            body: JSON.stringify({
-                business_profile_id: profileId,
-                job_id: jobId,
-                decision_id: decisionId,
-            }),
-        }).catch((err) => {
-            console.error('[questionnaire] Fire-and-forget strategy generation failed:', err);
-        });
-
         return NextResponse.json({
             profileId,
             jobId,
