@@ -25,8 +25,11 @@ export async function POST(request: Request) {
 
         // Determine tier: promo code validation takes priority, then explicit tier, then default to free
         let tier = 'free';
+        const isScott = user.email?.toLowerCase() === 'scott@siemvi.com';
 
-        if (promoCode && typeof promoCode === 'string') {
+        if (isScott) {
+            tier = 'team';
+        } else if (promoCode && typeof promoCode === 'string') {
             const matched = PROMO_CODES[promoCode.toUpperCase().trim()];
             if (!matched) {
                 return NextResponse.json({ error: 'Invalid promo code' }, { status: 400 });

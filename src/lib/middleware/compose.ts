@@ -46,7 +46,10 @@ export async function buildAiContext(
         supabase,
         user.id,
         subscription.tier,
-        { isRegen: options.isRegen }
+        { 
+            isRegen: options.isRegen,
+            email: subscription.email || user.email
+        }
     );
 
     // 4. Resolve token budget based on tier + degrade state

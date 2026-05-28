@@ -63,15 +63,27 @@ export async function checkUsageGuard(
     supabase: SupabaseClient,
     userId: string,
     tier: Tier,
-    options: { isRegen?: boolean } = {}
+    options: { isRegen?: boolean; email?: string } = {}
 ): Promise<UsageCheckResult> {
-    const config = TIER_CONFIG[tier];
+    const isScott = options.email?.toLowerCase() === 'scott@siemvi.com';
 
     // Fetch daily and monthly usage counters in parallel
     const [daily, monthly] = await Promise.all([
         getDailyUsage(supabase, userId),
         getMonthlyUsage(supabase, userId),
     ]);
+
+    if (isScott) {
+        // Scott gets full access with no limitations and never encounters degrade mode or hard stops
+        return {
+            isDegradeMode: false,
+            isHardStop: false,
+            daily,
+            monthly,
+        };
+    }
+
+    const config = TIER_CONFIG[tier];
 
     // ── Hard stops (100% caps) ──
 

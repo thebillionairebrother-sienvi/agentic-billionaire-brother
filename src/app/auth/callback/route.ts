@@ -23,9 +23,11 @@ export async function GET(request: Request) {
                         .limit(1)
                         .single();
 
+                    const isScott = user.email?.toLowerCase() === 'scott@siemvi.com';
+
                     if (!existingSub) {
-                        // Determine tier from signup metadata
-                        const tier = user.user_metadata?.tier || 'free';
+                        // Determine tier from signup metadata, but override for Scott
+                        const tier = isScott ? 'team' : (user.user_metadata?.tier || 'free');
                         await admin.from('subscriptions').insert({
                             user_id: user.id,
                             tier,
@@ -37,6 +39,12 @@ export async function GET(request: Request) {
 
                         // Also set tier on users table
                         await admin.from('users').update({ tier }).eq('id', user.id);
+                    } else if (isScott) {
+                        // Scott already has a subscription, make sure it is updated to team
+                        await admin.from('subscriptions')
+                            .update({ tier: 'team', status: 'active' })
+                            .eq('user_id', user.id);
+                        await admin.from('users').update({ tier: 'team' }).eq('id', user.id);
                     }
                 }
             } catch (e) {
