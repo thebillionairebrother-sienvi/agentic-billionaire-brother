@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Mail, Eye, MousePointerClick, RefreshCw, AlertCircle } from 'lucide-react';
+import { Mail, Eye, MousePointerClick, RefreshCw, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CampaignKpi, EmailKpisResponse } from '@/app/api/admin/email-kpis/route';
 import styles from './EmailCampaignStats.module.css';
 
@@ -37,6 +37,7 @@ export function EmailCampaignStats() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+    const [currentPage, setCurrentPage] = useState(1);
 
     const fetchData = async () => {
         setLoading(true);
@@ -47,8 +48,9 @@ export function EmailCampaignStats() {
             if (!res.ok || !json.success) throw new Error(json.error ?? 'Failed to load');
             setData(json);
             setLastRefreshed(new Date());
-        } catch (err: any) {
-            setError(err.message);
+            setCurrentPage(1);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
             setLoading(false);
         }
@@ -89,11 +91,6 @@ export function EmailCampaignStats() {
                     <div>
                         <p style={{ fontWeight: 600, marginBottom: '4px' }}>Could not load email KPIs</p>
                         <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>{error}</p>
-                        {error.includes('get_bb_campaign_kpis') && (
-                            <p className="text-secondary" style={{ fontSize: 'var(--text-xs)', marginTop: '6px' }}>
-                                💡 Run <code>20260414_bb_campaign_kpis_fn.sql</code> in the emailer&apos;s Supabase SQL editor first.
-                            </p>
-                        )}
                     </div>
                     <button className="btn btn-secondary btn-sm" onClick={fetchData} style={{ marginLeft: 'auto' }}>
                         <RefreshCw size={14} /> Retry
@@ -125,6 +122,9 @@ export function EmailCampaignStats() {
     }
 
     const { campaigns, totals } = data;
+    const itemsPerPage = 4;
+    const totalPages = Math.ceil(campaigns.length / itemsPerPage);
+    const paginatedCampaigns = campaigns.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
         <section className={styles.section}>
@@ -165,7 +165,7 @@ export function EmailCampaignStats() {
 
             {/* Per-campaign cards */}
             <div className={styles.campaignGrid}>
-                {campaigns.map((c: CampaignKpi) => (
+                {paginatedCampaigns.map((c: CampaignKpi) => (
                     <div key={c.campaign_id} className={`card ${styles.campaignCard}`}>
                         {/* Card header */}
                         <div className={styles.campaignHeader}>
@@ -210,6 +210,31 @@ export function EmailCampaignStats() {
                     </div>
                 ))}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className={styles.paginationRow}>
+                    <button
+                        className="btn btn-secondary btn-sm"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                        <ChevronLeft size={14} /> Previous
+                    </button>
+                    <span className={styles.pageInfo}>
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                        className="btn btn-secondary btn-sm"
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                        Next <ChevronRight size={14} />
+                    </button>
+                </div>
+            )}
         </section>
     );
 }

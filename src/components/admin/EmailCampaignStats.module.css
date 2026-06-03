@@ -177,3 +177,18 @@
     text-align: center;
     padding: var(--space-12);
 }
+
+/* ─── Pagination row ─── */
+.paginationRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+}
+
+.pageInfo {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+}
