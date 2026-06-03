@@ -27,7 +27,7 @@ function StrategyCard({ strategy, onSelect, isLocked }: { strategy: StrategyOpti
                         <Lock size={28} />
                         <span className={styles.lockLabel}>Premium Strategy</span>
                         <p className={styles.lockText}>Upgrade to unlock this higher-ranked strategy path</p>
-                        <a href="/billing" className="btn btn-primary" style={{ marginTop: 'var(--space-3)' }}>
+                        <a href="/upgrade" className="btn btn-primary" style={{ marginTop: 'var(--space-3)' }}>
                             Upgrade Now <ArrowRight size={14} />
                         </a>
                     </div>
@@ -292,7 +292,7 @@ export default function StrategiesPage() {
                     <div className={styles.upgradeBanner}>
                         <Lock size={16} />
                         <span>You&apos;re on the <strong>Free</strong> plan. Upgrade to unlock all strategies.</span>
-                        <a href="/billing" className="btn btn-primary btn-sm">Upgrade</a>
+                        <a href="/upgrade" className="btn btn-primary btn-sm">Upgrade</a>
                     </div>
                 )}
             </header>
