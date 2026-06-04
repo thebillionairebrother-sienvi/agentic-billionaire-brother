@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Users, Target, CheckCircle, DollarSign, UserCheck } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 import { ExecutiveMetricsGrid } from '@/components/admin/ExecutiveMetricsGrid';
+
 import { EmailCampaignStats } from '@/components/admin/EmailCampaignStats';
 import styles from './page.module.css';
 
@@ -47,6 +48,67 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expandedUser, setExpandedUser] = useState<string | null>(null);
+    
+    // Admin user downgrade actions
+    const [downgradingUser, setDowngradingUser] = useState<UserData | null>(null);
+    const [confirmEmail, setConfirmEmail] = useState('');
+    const [actionLoading, setActionLoading] = useState(false);
+    const [actionError, setActionError] = useState<string | null>(null);
+
+    const handleDowngrade = async () => {
+        if (!downgradingUser) return;
+        setActionLoading(true);
+        setActionError(null);
+        try {
+            const res = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: downgradingUser.id,
+                    action: 'downgrade',
+                }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to downgrade user');
+            }
+
+            // Success! Update local state to reflect the downgrade
+            setUsers(prevUsers =>
+                prevUsers.map(u => {
+                    if (u.id === downgradingUser.id) {
+                        return {
+                            ...u,
+                            tier: 'free',
+                            subscription_status: 'cancelled',
+                            promo_code: null,
+                        };
+                    }
+                    return u;
+                })
+            );
+
+            // Update local statistics counters
+            if (stats) {
+                setStats({
+                    ...stats,
+                    brotherUsers: downgradingUser.tier === 'brother' ? stats.brotherUsers - 1 : stats.brotherUsers,
+                    teamUsers: downgradingUser.tier === 'team' ? stats.teamUsers - 1 : stats.teamUsers,
+                });
+            }
+
+            setDowngradingUser(null);
+            setConfirmEmail('');
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : 'Unknown error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -237,7 +299,7 @@ export default function AdminDashboard() {
                                     </tr>
                                     {expandedUser === u.id && (
                                         <tr key={`${u.id}-detail`} className={styles.expandedRow}>
-                                            <td colSpan={7}>
+                                            <td colSpan={8}>
                                                 <div className={styles.expandedContent}>
                                                     <div className={styles.detailGrid}>
                                                         <div className={styles.detailItem}>
@@ -275,10 +337,29 @@ export default function AdminDashboard() {
                                                             </span>
                                                         </div>
                                                     </div>
+                                                    
+                                                    <div className={styles.actionsRow}>
+                                                        {u.tier !== 'free' ? (
+                                                            <button
+                                                                className={styles.downgradeButton}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setDowngradingUser(u);
+                                                                    setConfirmEmail('');
+                                                                    setActionError(null);
+                                                                }}
+                                                            >
+                                                                Remove Plan Access (Downgrade to Free)
+                                                            </button>
+                                                        ) : (
+                                                            <span className={styles.freePlanLabel}>User is on Free tier</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
                                     )}
+
                                 </React.Fragment>
                             );
                             })}
@@ -293,6 +374,67 @@ export default function AdminDashboard() {
                     API cost estimates are heuristic-based approximations using Gemini 2.0 Flash pricing. Actual costs may vary.
                 </span>
             </div>
+
+            {downgradingUser && (
+                <div className={styles.modalOverlay} onClick={() => !actionLoading && setDowngradingUser(null)}>
+                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className={styles.modalCloseButton}
+                            onClick={() => setDowngradingUser(null)}
+                            disabled={actionLoading}
+                            aria-label="Close"
+                        >
+                            <X size={18} />
+                        </button>
+                        
+                        <div className={styles.modalWarningIcon}>
+                            <AlertTriangle size={32} />
+                        </div>
+                        
+                        <h2 className={styles.modalTitle}>Remove Plan Access?</h2>
+                        <p className={styles.modalText}>
+                            You are about to downgrade <strong>{downgradingUser.display_name || downgradingUser.email}</strong> (email: <code>{downgradingUser.email}</code>) from the <strong style={{ textTransform: 'capitalize' }}>{downgradingUser.tier}</strong> plan to the <strong>free</strong> plan.
+                        </p>
+                        
+                        <p className={styles.modalWarningText}>
+                            ⚠️ This will change their tier and subscription status in the database to <strong>free</strong>/<strong>cancelled</strong>. If they have an active Stripe subscription, it will also be cancelled.
+                        </p>
+                        
+                        <div className={styles.modalInputGroup}>
+                            <label className={styles.modalInputLabel}>
+                                To confirm, type the user&apos;s email address:
+                            </label>
+                            <input
+                                type="text"
+                                className={styles.modalInput}
+                                value={confirmEmail}
+                                onChange={(e) => setConfirmEmail(e.target.value)}
+                                placeholder={downgradingUser.email}
+                                disabled={actionLoading}
+                            />
+                        </div>
+                        
+                        {actionError && <p className={styles.modalError}>{actionError}</p>}
+                        
+                        <div className={styles.modalActions}>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setDowngradingUser(null)}
+                                disabled={actionLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={`${styles.modalConfirmButton} btn`}
+                                onClick={handleDowngrade}
+                                disabled={actionLoading || confirmEmail !== downgradingUser.email}
+                            >
+                                {actionLoading ? 'Downgrading...' : 'Yes, Downgrade User'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

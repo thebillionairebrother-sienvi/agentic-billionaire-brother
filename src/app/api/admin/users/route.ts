@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/admin';
 import { MODEL_PRICING } from '@/lib/ai-config';
+import { stripe, STRIPE_TEST_MODE } from '@/lib/stripe';
+
 
 export async function GET() {
     try {
@@ -139,3 +141,98 @@ export async function GET() {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+
+export async function POST(request: Request) {
+    try {
+        // Auth check — must be admin
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user || !isAdmin(user.email)) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        const body = await request.json();
+        const { userId, action } = body;
+
+        if (!userId) {
+            return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+        }
+
+        if (action !== 'downgrade') {
+            return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        }
+
+        const admin = await createServiceClient();
+
+        // 1. Fetch user to verify they exist
+        const { data: userData, error: userFetchError } = await admin
+            .from('users')
+            .select('id, email, stripe_customer_id')
+            .eq('id', userId)
+            .single();
+
+        if (userFetchError || !userData) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // 2. Fetch user's subscription to check for Stripe subscription ID
+        const { data: subData } = await admin
+            .from('subscriptions')
+            .select('stripe_subscription_id, status')
+            .eq('user_id', userId)
+            .single();
+
+        // 3. Cancel active Stripe subscription if any
+        let stripeCancelled = false;
+        if (subData?.stripe_subscription_id && !STRIPE_TEST_MODE && stripe) {
+            try {
+                await stripe.subscriptions.cancel(subData.stripe_subscription_id);
+                stripeCancelled = true;
+            } catch (stripeErr) {
+                console.error(`[admin-downgrade] Stripe cancel subscription failed for sub ID ${subData.stripe_subscription_id}:`, stripeErr);
+            }
+        }
+
+        // 4. Update subscriptions table
+        const { error: subUpdateError } = await admin
+            .from('subscriptions')
+            .update({
+                tier: 'free',
+                status: 'cancelled',
+                promo_code: null,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId);
+
+        if (subUpdateError) {
+            console.error('[admin-downgrade] subscriptions table update error:', subUpdateError);
+        }
+
+        // 5. Update users table
+        const { error: userUpdateError } = await admin
+            .from('users')
+            .update({
+                subscription_status: 'cancelled',
+                subscription_plan: 'free',
+                tier: 'free',
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+
+        if (userUpdateError) {
+            console.error('[admin-downgrade] users table update error:', userUpdateError);
+            return NextResponse.json({ error: 'Failed to update user record' }, { status: 500 });
+        }
+
+        return NextResponse.json({
+            success: true,
+            stripeCancelled,
+            message: `User ${userData.email} successfully downgraded to free tier.`
+        });
+    } catch (err) {
+        console.error('Admin user POST error:', err);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
+
