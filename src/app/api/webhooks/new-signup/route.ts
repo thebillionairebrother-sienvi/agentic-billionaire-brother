@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 
 export const dynamic = 'force-dynamic';
 
-const NOTIFY_EMAIL = 'yourbro@mybillionairebrother.com';
+const NOTIFY_EMAIL = 'tech@sienvi.com';
 const FROM_EMAIL = 'noreply@mybillionairebrother.com';
 const WEBHOOK_SECRET = process.env.SIGNUP_WEBHOOK_SECRET;
 
