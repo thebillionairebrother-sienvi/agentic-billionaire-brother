@@ -1007,10 +1007,234 @@
   }
 
   .footerLinks {
-    display: none;
+    display: flex;
+    justify-content: center;
+    gap: var(--space-3) var(--space-4);
+    width: 100%;
+    margin: var(--space-4) 0;
   }
 
   .footerCopy {
     margin-left: 0;
+    text-align: center;
+    width: 100%;
+  }
+}
+
+/* ─── Added Sections & Custom Styling ─── */
+.onboardingSection,
+.audienceFit,
+.testimonialsShowcase {
+  background: var(--surface);
+  padding: 96px var(--space-6);
+  border-top: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.onboardingSection {
+  background: var(--surface-low);
+}
+
+.sectionTaglineCenter {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 480px;
+  margin: 12px auto 0;
+  text-align: center;
+}
+
+.sectionPricingSub {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--gold-400);
+  margin-top: 8px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.simulatorWrapper {
+  margin-top: 80px;
+  padding-top: 48px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.simulatorHeader {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.simulatorDesc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto 36px;
+}
+
+.testimonialShowcaseGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+  margin-top: 48px;
+}
+
+.showcaseCard {
+  background: rgba(255, 255, 255, 0.015);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  transition: all var(--duration-base) var(--ease-out);
+}
+
+.showcaseCard:hover {
+  border-color: var(--surface-border-hover);
+  background: rgba(255, 255, 255, 0.025);
+  transform: translateY(-2px);
+}
+
+.quoteIconRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.quoteIcon {
+  color: var(--gold-500);
+  opacity: 0.8;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.showcaseQuote {
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.showcaseAuthor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--surface-border);
+  padding-top: var(--space-4);
+}
+
+.authorBadge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  color: var(--text-inverse);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.authorName {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.authorRole {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+.testimonialsLink {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--gold-400);
+  text-decoration: underline;
+  transition: color var(--duration-fast) linear;
+}
+
+.testimonialsLink:hover {
+  color: var(--text-primary);
+}
+
+.pricingGuaranteeSub {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  text-align: center;
+  margin-top: 24px;
+}
+
+.pricingTierPurpose {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.05em;
+  color: var(--gold-400);
+  margin-top: -8px;
+  margin-bottom: var(--space-4);
+  text-transform: uppercase;
+}
+
+.disclaimerSection {
+  background: var(--surface-low);
+  padding: 48px var(--space-6);
+  border-top: 1px solid var(--surface-border);
+}
+
+.disclaimerGrid {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.disclaimerCard {
+  background: rgba(245, 158, 11, 0.02);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  padding: var(--space-6);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.disclaimerTitle {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--accent-amber);
+  margin-bottom: var(--space-2);
+}
+
+.disclaimerText {
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+
+.disclaimerText strong {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .testimonialShowcaseGrid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
   }
 }

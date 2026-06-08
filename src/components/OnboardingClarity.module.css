@@ -1,0 +1,77 @@
+.container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.stepper {
+  display: flex;
+  flex-direction: column;
+}
+
+.step {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.iconContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+}
+
+.iconCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-400);
+  transition: all var(--duration-fast) linear;
+  flex-shrink: 0;
+}
+
+.step:hover .iconCircle {
+  border-color: var(--gold-500);
+  background: rgba(254, 240, 138, 0.05);
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.15);
+  color: var(--text-primary);
+}
+
+.progressLine {
+  width: 2px;
+  flex: 1;
+  background: var(--surface-border);
+  min-height: 30px;
+  margin: 6px 0;
+}
+
+.content {
+  padding-top: 6px;
+  padding-bottom: var(--space-6);
+}
+
+.title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+
+.desc {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding-bottom: var(--space-4);
+  }
+}

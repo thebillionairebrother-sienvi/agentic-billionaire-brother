@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, Users, Terminal, ChevronRight, X } from 'lucide-react';
+import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, Users, Terminal, ChevronRight, X, Star, Quote } from 'lucide-react';
 import styles from './page.module.css';
 import { useEffect, useState, useRef } from 'react';
 import { motion, useScroll, useTransform, useMotionValue, useSpring, Variants } from 'framer-motion';
 import SocialProofNotification from '@/components/SocialProofNotification';
+import DecisionSimulator from '@/components/DecisionSimulator';
+import WhoIsNotFor from '@/components/WhoIsNotFor';
+import OnboardingClarity from '@/components/OnboardingClarity';
 
 /* ── 3D Tilt Wrapper Animation ── */
 function TiltWrapper({ children }: { children: React.ReactNode }) {
@@ -320,6 +323,7 @@ export default function LandingPage() {
           </Link>
           <div className={styles.navLinks}>
             <Link href="/guide" className={styles.navLink}>PLAYBOOK</Link>
+            <Link href="/testimonials" className={styles.navLink}>TESTIMONIALS</Link>
             <Link href="/#pricing" className={styles.navLink}>PRICING</Link>
             <Link href="/#features" className={styles.navLink}>FEATURES</Link>
           </div>
@@ -379,14 +383,7 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ── VSL ── */}
-      <section className={styles.vslSection}>
-        <div className={styles.vslInner}>
-          <div className={styles.vslPlaceholder}>
-            <span className={styles.vslText}>[ VIDEO COMING SOON ]</span>
-          </div>
-        </div>
-      </section>
+
 
 
       {/* ── How It Works ── */}
@@ -448,6 +445,20 @@ export default function LandingPage() {
             </motion.div>
           </motion.div>
         </motion.div>
+      </section>
+
+      {/* ── Onboarding Pipeline ── */}
+      <section className={styles.onboardingSection}>
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionMetaCenter}>
+            <span className={styles.sectionLabel}>ONBOARDING CADENCE</span>
+            <h2 className={styles.sectionTitleLg}>What Happens After You Join?</h2>
+            <p className={styles.sectionTaglineCenter}>
+              A structured roadmap from your initial assessment to your weekly board review cycles.
+            </p>
+          </div>
+          <OnboardingClarity />
+        </div>
       </section>
 
       {/* ── Features / Arsenal ── */}
@@ -514,7 +525,120 @@ export default function LandingPage() {
               </div>
             </motion.div>
           </motion.div>
+
+          {/* Interactive Decision Simulator Widget */}
+          <motion.div className={styles.simulatorWrapper} variants={fadeUpVariant}>
+            <h3 className={styles.simulatorHeader}>Stress-Test Your Strategy</h3>
+            <p className={styles.simulatorDesc}>
+              Select a standard business decision below to see how Derek audits and refines the execution logic.
+            </p>
+            <DecisionSimulator />
+          </motion.div>
         </motion.div>
+      </section>
+
+      {/* ── Audience Fit ── */}
+      <section className={styles.audienceFit}>
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionMetaCenter}>
+            <span className={styles.sectionLabel}>AUDIENCE SELECTION</span>
+            <h2 className={styles.sectionTitleLg}>Who This Is Not For</h2>
+            <p className={styles.sectionTaglineCenter}>
+              We filter out the talkers to protect the execution velocity of our builders.
+            </p>
+          </div>
+          <WhoIsNotFor />
+        </div>
+      </section>
+
+      {/* ── Testimonial Showcase ── */}
+      <section className={styles.testimonialsShowcase}>
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionMetaCenter}>
+            <span className={styles.sectionLabel}>PROOF IN ACTION</span>
+            <h2 className={styles.sectionTitleLg}>Bet On Yourself</h2>
+            <p className={styles.sectionTaglineCenter}>
+              Hear from founders who stopped making excuses, locked in their strategy, and started shipping.
+            </p>
+          </div>
+          
+          <div className={styles.testimonialShowcaseGrid}>
+            <div className={styles.showcaseCard}>
+              <div className={styles.quoteIconRow}>
+                <Quote className={styles.quoteIcon} size={18} />
+                <div className={styles.stars}>
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                </div>
+              </div>
+              <p className={styles.showcaseQuote}>
+                "Derek called out every excuse I was making and gave me a real plan. Within 2 weeks, I went from spinning my wheels to actually shipping."
+              </p>
+              <div className={styles.showcaseAuthor}>
+                <div className={styles.authorBadge}>M</div>
+                <div>
+                  <span className={styles.authorName}>Marcus T.</span>
+                  <span className={styles.authorRole}>E-commerce Founder</span>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.showcaseCard}>
+              <div className={styles.quoteIconRow}>
+                <Quote className={styles.quoteIcon} size={18} />
+                <div className={styles.stars}>
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                </div>
+              </div>
+              <p className={styles.showcaseQuote}>
+                "I was drowning in ideas and couldn't commit. The Decision Scores made it crystal clear which path had the highest success probability."
+              </p>
+              <div className={styles.showcaseAuthor}>
+                <div className={styles.authorBadge} style={{ background: 'var(--accent-blue)' }}>S</div>
+                <div>
+                  <span className={styles.authorName}>Sarah K.</span>
+                  <span className={styles.authorRole}>SaaS Startup Founder</span>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.showcaseCard}>
+              <div className={styles.quoteIconRow}>
+                <Quote className={styles.quoteIcon} size={18} />
+                <div className={styles.stars}>
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                  <Star size={12} fill="var(--gold-400)" color="var(--gold-400)" />
+                </div>
+              </div>
+              <p className={styles.showcaseQuote}>
+                "Derek doesn't sugarcoat anything. He told me my first idea was trash, explained exactly why, and helped me pivot to $10K/mo in 3 months."
+              </p>
+              <div className={styles.showcaseAuthor}>
+                <div className={styles.authorBadge} style={{ background: 'var(--accent-green)' }}>J</div>
+                <div>
+                  <span className={styles.authorName}>James L.</span>
+                  <span className={styles.authorRole}>Agency Owner</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--space-8)' }}>
+            <Link href="/testimonials" className={styles.testimonialsLink}>
+              See More Founder Outcomes →
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* ── Pricing ── */}
@@ -529,6 +653,7 @@ export default function LandingPage() {
           <div className={styles.sectionMetaCenter}>
             <span className={styles.sectionLabel}>ACCESS TIERS</span>
             <h2 className={styles.sectionTitleLg}>Invest in Discipline.</h2>
+            <p className={styles.sectionPricingSub}>14-day money-back guarantee. Self-service cancel in 1 click.</p>
             <div className={styles.pricingUrgencyBanner}>
               <span className={styles.pricingUrgencyDot} />
               <span>LAUNCH PRICING — Limited spots at these rates. Lock in before the price increases.</span>
@@ -547,6 +672,7 @@ export default function LandingPage() {
               <TiltWrapper>
                 <div className={styles.pricingCard}>
                   <div className={styles.pricingTierLabel}>FREE</div>
+                  <div className={styles.pricingTierPurpose}>For validating initial ideas</div>
                   <div className={styles.pricingPrice}>
                     <span className={styles.priceCurrency}>$</span>
                     <span className={styles.priceAmount}>0</span>
@@ -572,6 +698,7 @@ export default function LandingPage() {
                 <div className={`${styles.pricingCard} ${styles.pricingCardFeatured}`}>
                   <div className={styles.mostPopularBadge}>MOST POPULAR</div>
                   <div className={styles.pricingTierLabel}>BROTHER PLAN</div>
+                  <div className={styles.pricingTierPurpose}>For solopreneurs &amp; operators</div>
                   <div className={styles.pricingPrice}>
                     <div className={styles.priceStack}>
                       <div className={styles.priceOriginalRow}>
@@ -606,6 +733,7 @@ export default function LandingPage() {
               <TiltWrapper>
                 <div className={styles.pricingCard}>
                   <div className={styles.pricingTierLabel}>TEAM PLAN</div>
+                  <div className={styles.pricingTierPurpose}>For small product &amp; SaaS teams</div>
                   <div className={styles.pricingPrice}>
                     <div className={styles.priceStack}>
                       <div className={styles.priceOriginalRow}>
@@ -635,15 +763,29 @@ export default function LandingPage() {
               </TiltWrapper>
             </motion.div>
           </motion.div>
+          <div className={styles.pricingGuaranteeSub}>
+            * All paid tiers include our 14-day risk-free guarantee. If Derek does not improve your shipping speed, email us for a full refund. Cancel anytime in one click.
+          </div>
         </motion.div>
       </section>
 
       {/* ── Disclaimer ── */}
-      <div className={styles.disclaimer}>
+      <div className={styles.disclaimerSection}>
         <div className={styles.sectionInner}>
-          ⚠️&nbsp; Decision Scores are model-based estimates, not guarantees. They reflect pattern
-          matching against stated inputs and documented assumptions. Results depend on execution
-          quality and market conditions.
+          <div className={styles.disclaimerGrid}>
+            <div className={styles.disclaimerCard}>
+              <h4 className={styles.disclaimerTitle}>⚠️ SYSTEM LIMITATIONS &amp; DISCLAIMER</h4>
+              <p className={styles.disclaimerText}>
+                <strong>Model-Based Estimation:</strong> Decision Scores, KPI recommendations, and weekly action items are algorithmic predictions generated by large language models based on patterns and stated inputs. They do not guarantee market viability, product success, or revenue outcomes.
+              </p>
+              <p className={styles.disclaimerText}>
+                <strong>Not Professional Counsel:</strong> Derek is an AI simulation. The Billionaire Brother does not provide certified legal, tax, financial, or investment advice. You must consult licensed professionals and utilize your own independent business judgment before executing any strategy.
+              </p>
+              <p className={styles.disclaimerText}>
+                <strong>Operational Scope:</strong> Derek acts as an execution framework and accountability auditor. The Service cannot execute code, make sales calls, or recruit customers for you. Execution is entirely your responsibility.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -655,10 +797,12 @@ export default function LandingPage() {
             <span>THE BILLIONAIRE BROTHER</span>
           </Link>
           <div className={styles.footerLinks}>
-            <Link href="/framework" className={styles.footerLink}>Terms of Service</Link>
-            <Link href="/framework" className={styles.footerLink}>Privacy Policy</Link>
-            <Link href="/framework" className={styles.footerLink}>Contact Strategist</Link>
-            <Link href="/auth" className={styles.footerLink}>System Status</Link>
+            <Link href="/terms" className={styles.footerLink}>Terms of Service</Link>
+            <Link href="/privacy" className={styles.footerLink}>Privacy Policy</Link>
+            <Link href="/contact" className={styles.footerLink}>Contact Strategist</Link>
+            <Link href="/refunds" className={styles.footerLink}>Refund Policy</Link>
+            <Link href="/data-usage" className={styles.footerLink}>AI Data Usage</Link>
+            <Link href="/delete-account" className={styles.footerLink}>Delete Account</Link>
           </div>
           <span className={styles.footerCopy}>
             © {new Date().getFullYear()} The Billionaire Brother. All rights reserved.

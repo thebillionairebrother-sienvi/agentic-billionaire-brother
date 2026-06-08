@@ -1,0 +1,244 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+}
+
+.tabsList {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--surface-border);
+  padding-bottom: var(--space-4);
+  justify-content: center;
+}
+
+.tabBtn {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--surface-border);
+  color: var(--text-secondary);
+  border-radius: 2px;
+  transition: all var(--duration-fast) linear;
+  cursor: pointer;
+  text-align: center;
+}
+
+.tabBtn:hover {
+  border-color: var(--surface-border-hover);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.tabBtnActive {
+  background: rgba(254, 240, 138, 0.05);
+  border-color: var(--gold-500);
+  color: var(--gold-400);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr;
+  align-items: stretch;
+  gap: var(--space-4);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.015);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--surface-border);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
+}
+
+.cardBefore {
+  border-left: 3px solid var(--accent-red);
+}
+
+.cardAfter {
+  border-left: 3px solid var(--gold-500);
+  background: rgba(234, 179, 8, 0.01);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.cardLabel {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 2px;
+}
+
+.statusWeak {
+  background: var(--accent-red-glow);
+  color: var(--accent-red);
+}
+
+.statusStrong {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--accent-green);
+}
+
+.scoreContainer {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: var(--space-4);
+}
+
+.scoreNum {
+  font-family: var(--font-mono);
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.scoreMax {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text-tertiary);
+  margin-left: 2px;
+}
+
+.goldText {
+  color: var(--gold-400);
+}
+
+.feedbackSection, .planSection {
+  margin-bottom: var(--space-6);
+}
+
+.feedbackLabel {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-2);
+}
+
+.feedbackText {
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  font-style: italic;
+  border-left: 2px solid rgba(239, 68, 68, 0.2);
+  padding-left: var(--space-3);
+}
+
+.directivesList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.directiveItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.bulletIcon {
+  color: var(--gold-400);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.verdictBar {
+  margin-top: auto;
+  border-top: 1px solid var(--surface-border);
+  padding-top: var(--space-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+}
+
+.verdictLabel {
+  color: var(--text-tertiary);
+}
+
+.verdictValue {
+  color: var(--gold-400);
+  font-weight: 700;
+}
+
+/* Arrow spacer styling */
+.arrowContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrowLine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+}
+
+.arrowIcon {
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--surface-border);
+  padding: 6px;
+  border-radius: 50%;
+  z-index: 2;
+  box-shadow: var(--shadow-sm);
+}
+
+.arrowLine::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--surface-border);
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .arrowContainer {
+    display: none;
+  }
+
+  .card {
+    min-height: auto;
+  }
+}

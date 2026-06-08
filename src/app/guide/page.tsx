@@ -205,9 +205,12 @@ export default function PlaybookPage() {
             <span>THE BILLIONAIRE BROTHER</span>
           </Link>
           <div className={styles.footerLinks}>
-            <Link href="/framework" className={styles.footerLink}>Terms of Service</Link>
-            <Link href="/framework" className={styles.footerLink}>Privacy Policy</Link>
-            <Link href="/auth" className={styles.footerLink}>System Status</Link>
+            <Link href="/terms" className={styles.footerLink}>Terms of Service</Link>
+            <Link href="/privacy" className={styles.footerLink}>Privacy Policy</Link>
+            <Link href="/contact" className={styles.footerLink}>Contact Strategist</Link>
+            <Link href="/refunds" className={styles.footerLink}>Refund Policy</Link>
+            <Link href="/data-usage" className={styles.footerLink}>AI Data Usage</Link>
+            <Link href="/delete-account" className={styles.footerLink}>Delete Account</Link>
           </div>
           <span className={styles.footerCopy}>
             © {new Date().getFullYear()} The Billionaire Brother. All rights reserved.
