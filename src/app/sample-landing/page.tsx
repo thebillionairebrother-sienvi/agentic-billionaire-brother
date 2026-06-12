@@ -71,6 +71,44 @@ const fadeUpVariant: Variants = {
   }
 };
 
+/* ── Meme Carousel ── */
+function MemeCarousel() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const memes = [
+    '/memes/meme1.jpg',
+    '/memes/meme2.jpg',
+    '/memes/meme3.gif',
+    '/memes/meme4.gif',
+    '/memes/meme5.jpg',
+    '/memes/meme6.jpg',
+    '/memes/meme7.jpg',
+    '/memes/meme8.jpg',
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % memes.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', minHeight: '380px', height: '100%', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'rgba(0, 0, 0, 0.2)', border: '1px solid rgba(255, 215, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+      {memes.map((src, index) => (
+        <motion.div
+          key={src}
+          initial={false}
+          animate={{ opacity: index === currentIndex ? 1 : 0 }}
+          transition={{ duration: 0.5 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: index === currentIndex ? 'auto' : 'none' }}
+        >
+          <Image src={src} alt={`Meme ${index + 1}`} fill style={{ objectFit: 'contain', padding: '16px' }} unoptimized={src.endsWith('.gif')} />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 export default function SampleLandingPage() {
   const [mounted, setMounted] = useState(false);
 
@@ -126,6 +164,7 @@ export default function SampleLandingPage() {
             onClick: () => { window.location.href = '/auth'; }
           }
         }}
+        rightContent={<MemeCarousel />}
       />
 
       {/* ── How It Works ── */}

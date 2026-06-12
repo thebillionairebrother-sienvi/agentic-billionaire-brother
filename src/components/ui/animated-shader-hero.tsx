@@ -23,6 +23,7 @@ interface HeroProps {
       onClick?: () => void;
     };
   };
+  rightContent?: React.ReactNode;
   className?: string;
 }
 
@@ -325,6 +326,7 @@ const Hero: React.FC<HeroProps> = ({
   headline,
   subtitle,
   buttons,
+  rightContent,
   className = ""
 }) => {
   const canvasRef = useShaderBackground();
@@ -333,8 +335,9 @@ const Hero: React.FC<HeroProps> = ({
     <div className={`hero-container ${className}`} style={{
       position: 'relative',
       width: '100%',
-      height: '92vh',
-      minHeight: '600px',
+      minHeight: rightContent ? '95vh' : '92vh',
+      height: 'auto',
+      padding: '120px 0 80px 0',
       overflow: 'hidden',
       backgroundColor: '#000',
       color: '#fff',
@@ -342,7 +345,8 @@ const Hero: React.FC<HeroProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       fontFamily: 'var(--font-sans)',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      zIndex: 5
     }}>
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes hero-fade-in-down {
@@ -445,10 +449,88 @@ const Hero: React.FC<HeroProps> = ({
 
         .hero-title-line {
           font-family: inherit;
-          font-size: clamp(2rem, 5vw, 4.5rem);
+          font-size: clamp(2rem, 4.5vw, 4rem);
           font-weight: 900;
           line-height: 1.15;
           letter-spacing: -0.02em;
+        }
+
+        .hero-content-wrapper {
+          position: relative;
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 40px;
+          box-sizing: border-box;
+        }
+
+        .hero-left-col {
+          display: flex;
+          flex-direction: column;
+          box-sizing: border-box;
+        }
+
+        .hero-right-col {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .hero-buttons-wrapper {
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+
+        /* Responsive Layout Rules */
+        @media (min-width: 769px) {
+          .hero-content-wrapper-split {
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            gap: 48px !important;
+          }
+          .hero-left-col-split {
+            flex: 1 1 550px !important;
+            align-items: flex-start !important;
+            text-align: left !important;
+          }
+          .hero-right-col-split {
+            flex: 0 1 450px !important;
+            max-width: 450px !important;
+          }
+          .hero-buttons-left {
+            justify-content: flex-start !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .hero-content-wrapper {
+            flex-direction: column !important;
+            text-align: center !important;
+            padding: 0 24px !important;
+            gap: 40px !important;
+            justify-content: center !important;
+          }
+          .hero-left-col {
+            align-items: center !important;
+            text-align: center !important;
+            flex: 1 1 auto !important;
+          }
+          .hero-right-col {
+            flex: 1 1 auto !important;
+            max-width: 100% !important;
+          }
+          .hero-buttons-wrapper {
+            justify-content: center !important;
+          }
         }
       `}} />
       
@@ -476,112 +558,108 @@ const Hero: React.FC<HeroProps> = ({
         pointerEvents: 'none'
       }} />
       
-      {/* Hero Content Overlay */}
-      <div style={{
-        position: 'relative',
-        zIndex: 10,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        maxWidth: '960px',
-        margin: '0 auto',
-        padding: '0 24px',
-        boxSizing: 'border-box'
-      }}>
-        {/* Trust Badge */}
-        {trustBadge && (
-          <div className="hero-animate-fade-in-down" style={{ marginBottom: '28px' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 24px',
-              backgroundColor: 'rgba(254, 249, 195, 0.05)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(234, 179, 8, 0.25)',
-              borderRadius: '9999px',
-              fontSize: '12px',
-              fontWeight: 600,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--gold-100)'
-            }}>
-              {trustBadge.icons && (
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {trustBadge.icons.map((icon, index) => (
-                    <span key={index} style={{ color: 'var(--gold-400)' }}>
-                      {icon}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <span>{trustBadge.text}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Main Headings */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
-          <h1 className="hero-title-line hero-animate-fade-in-up hero-delay-200" style={{
-            color: 'var(--text-primary)',
-            margin: 0
-          }}>
-            {headline.line1}
-          </h1>
-          <h1 className="hero-title-line hero-animate-fade-in-up hero-delay-400" style={{
-            backgroundImage: 'linear-gradient(135deg, var(--gold-300), var(--gold-500))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            margin: 0
-          }}>
-            {headline.line2}
-          </h1>
-        </div>
+      {/* Hero Content Wrapper */}
+      <div className={`hero-content-wrapper ${rightContent ? 'hero-content-wrapper-split' : ''}`}>
         
-        {/* Subtitle */}
-        <div className="hero-animate-fade-in-up hero-delay-600" style={{
-          maxWidth: '680px',
-          margin: '0 auto 40px auto'
+        {/* Left Column (Main Text & Actions) */}
+        <div className={`hero-left-col ${rightContent ? 'hero-left-col-split' : ''}`} style={{
+          alignItems: rightContent ? undefined : 'center',
+          textAlign: rightContent ? undefined : 'center'
         }}>
-          <p style={{
-            fontSize: 'clamp(1rem, 2vw, 1.15rem)',
-            color: 'var(--text-secondary)',
-            fontWeight: 400,
-            lineHeight: 1.6,
-            margin: 0
+          {/* Trust Badge */}
+          {trustBadge && (
+            <div className="hero-animate-fade-in-down" style={{ marginBottom: '28px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 24px',
+                backgroundColor: 'rgba(254, 249, 195, 0.05)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                border: '1px solid rgba(234, 179, 8, 0.25)',
+                borderRadius: '9999px',
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--gold-100)'
+              }}>
+                {trustBadge.icons && (
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {trustBadge.icons.map((icon, index) => (
+                      <span key={index} style={{ color: 'var(--gold-400)' }}>
+                        {icon}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <span>{trustBadge.text}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Headings */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', width: '100%' }}>
+            <h1 className="hero-title-line hero-animate-fade-in-up hero-delay-200" style={{
+              color: 'var(--text-primary)',
+              margin: 0
+            }}>
+              {headline.line1}
+            </h1>
+            <h1 className="hero-title-line hero-animate-fade-in-up hero-delay-400" style={{
+              backgroundImage: 'linear-gradient(135deg, var(--gold-300), var(--gold-500))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              margin: 0
+            }}>
+              {headline.line2}
+            </h1>
+          </div>
+          
+          {/* Subtitle */}
+          <div className="hero-animate-fade-in-up hero-delay-600" style={{
+            maxWidth: rightContent ? '540px' : '680px',
+            margin: rightContent ? '0 0 40px 0' : '0 auto 40px auto'
           }}>
-            {subtitle}
-          </p>
+            <p style={{
+              fontSize: 'clamp(0.95rem, 1.8vw, 1.1rem)',
+              color: 'var(--text-secondary)',
+              fontWeight: 400,
+              lineHeight: 1.6,
+              margin: 0
+            }}>
+              {subtitle}
+            </p>
+          </div>
+          
+          {/* Action Buttons */}
+          {buttons && (
+            <div className={`hero-buttons-wrapper hero-animate-fade-in-up hero-delay-800 ${rightContent ? 'hero-buttons-left' : 'hero-buttons-centered'}`}>
+              {buttons.primary && (
+                <button 
+                  onClick={buttons.primary.onClick}
+                  className="hero-btn-primary"
+                >
+                  {buttons.primary.text}
+                </button>
+              )}
+              {buttons.secondary && (
+                <button 
+                  onClick={buttons.secondary.onClick}
+                  className="hero-btn-secondary"
+                >
+                  {buttons.secondary.text}
+                </button>
+              )}
+            </div>
+          )}
         </div>
-        
-        {/* CTA Buttons */}
-        {buttons && (
-          <div className="hero-animate-fade-in-up hero-delay-800" style={{
-            display: 'flex',
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: '16px',
-            justifyContent: 'center'
-          }}>
-            {buttons.primary && (
-              <button 
-                onClick={buttons.primary.onClick}
-                className="hero-btn-primary"
-              >
-                {buttons.primary.text}
-              </button>
-            )}
-            {buttons.secondary && (
-              <button 
-                onClick={buttons.secondary.onClick}
-                className="hero-btn-secondary"
-              >
-                {buttons.secondary.text}
-              </button>
-            )}
+
+        {/* Right Column (Custom Content / Carousel) */}
+        {rightContent && (
+          <div className="hero-right-col hero-right-col-split hero-animate-fade-in-up hero-delay-600">
+            {rightContent}
           </div>
         )}
       </div>
