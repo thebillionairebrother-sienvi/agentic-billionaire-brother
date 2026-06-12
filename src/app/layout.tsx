@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './tailwind.css';
 import { FloatingDerekChat } from '@/components/FloatingDerekChat';
 import { GoogleAnalytics } from '@next/third-parties/google';
 
