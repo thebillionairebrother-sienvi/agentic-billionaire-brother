@@ -4,7 +4,9 @@
 @import "tailwindcss/utilities" layer(utilities);
 
 @source "../components/ui/animated-shader-hero.tsx";
+@source "../components/ui/phosphor-30.tsx";
 @source "./sample-landing/page.tsx";
+@source "./sample-landing2/page.tsx";
 
 @theme {
   --color-gold-50: var(--gold-50);
