@@ -162,7 +162,7 @@ export default function SampleLandingPage2() {
             y: scrollY
           }}
         >
-          <ShaderCanvas fragSource={SHADER_SRC} />
+          <ShaderCanvas fragSource={SHADER_SRC} useScrollTime={true} />
           {/* Smooth overlay to tone down neon gold brightness and protect readability */}
           <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(5, 5, 8, 0.76)', zIndex: 2 }} />
         </motion.div>

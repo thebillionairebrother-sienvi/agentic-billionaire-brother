@@ -115,9 +115,11 @@ function drawError(gl: WebGL2RenderingContext, msg: string) {
 export const ShaderCanvas = React.memo(({
   fragSource,
   pixelRatio,
+  useScrollTime = false,
 }: {
   fragSource: string;
   pixelRatio?: number;
+  useScrollTime?: boolean;
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -127,6 +129,22 @@ export const ShaderCanvas = React.memo(({
 
   useEffect(() => {
     if (!canvasRef.current) return;
+    
+    const targetScrollRef = { current: 0 };
+    const currentScrollRef = { current: 0 };
+    let scrollListenerActive = false;
+
+    const onScroll = () => {
+      // 180px scroll = 1s shader animation time progress
+      targetScrollRef.current = window.scrollY / 180;
+    };
+
+    if (useScrollTime) {
+      window.addEventListener("scroll", onScroll, { passive: true });
+      targetScrollRef.current = window.scrollY / 180;
+      currentScrollRef.current = targetScrollRef.current;
+      scrollListenerActive = true;
+    }
     const canvas = canvasRef.current;
     const gl = canvas.getContext("webgl2", { premultipliedAlpha: false })!;
     if (!gl) return;
@@ -225,7 +243,16 @@ export const ShaderCanvas = React.memo(({
       if (disposed) return;
       if (gl.isContextLost()) { rafRef.current = requestAnimationFrame(tick); return; }
 
-      const t = (now - startRef.current) / 1000;
+      let t = 0;
+      if (useScrollTime) {
+        // Smoothly interpolate current scroll time towards target scroll time
+        // 0.065 ease factor creates an organic spring-like deceleration
+        currentScrollRef.current += (targetScrollRef.current - currentScrollRef.current) * 0.065;
+        t = currentScrollRef.current;
+      } else {
+        t = (now - startRef.current) / 1000;
+      }
+
       frameRef.current += 1;
 
       try {
@@ -273,6 +300,9 @@ export const ShaderCanvas = React.memo(({
         ctxBound = false;
       }
       if (ro) { try { ro.disconnect(); } catch {} ro = null; }
+      if (scrollListenerActive) {
+        window.removeEventListener("scroll", onScroll);
+      }
       if (gl) {
         if (vbo) { try { gl.deleteBuffer(vbo); } catch {} vbo = null; }
         if (vao) { try { gl.deleteVertexArray(vao); } catch {} vao = null; }
@@ -281,7 +311,7 @@ export const ShaderCanvas = React.memo(({
     }
 
     return cleanup;
-  }, [fragSource, pixelRatio]);
+  }, [fragSource, pixelRatio, useScrollTime]);
 
   return (
     <div style={{ position: "absolute", inset: 0, zIndex: 1 }}>
