@@ -135,13 +135,13 @@ export const ShaderCanvas = React.memo(({
     let scrollListenerActive = false;
 
     const onScroll = () => {
-      // 180px scroll = 1s shader animation time progress
-      targetScrollRef.current = window.scrollY / 180;
+      // 240px scroll = 1s shader animation time progress (25% slower than 180px)
+      targetScrollRef.current = window.scrollY / 240;
     };
 
     if (useScrollTime) {
       window.addEventListener("scroll", onScroll, { passive: true });
-      targetScrollRef.current = window.scrollY / 180;
+      targetScrollRef.current = window.scrollY / 240;
       currentScrollRef.current = targetScrollRef.current;
       scrollListenerActive = true;
     }
@@ -244,13 +244,15 @@ export const ShaderCanvas = React.memo(({
       if (gl.isContextLost()) { rafRef.current = requestAnimationFrame(tick); return; }
 
       let t = 0;
+      const elapsed = (now - startRef.current) / 1000;
       if (useScrollTime) {
         // Smoothly interpolate current scroll time towards target scroll time
         // 0.065 ease factor creates an organic spring-like deceleration
         currentScrollRef.current += (targetScrollRef.current - currentScrollRef.current) * 0.065;
-        t = currentScrollRef.current;
+        // Combine slow idle movement (5% speed) with scroll-driven time progress
+        t = (elapsed * 0.05) + currentScrollRef.current;
       } else {
-        t = (now - startRef.current) / 1000;
+        t = elapsed;
       }
 
       frameRef.current += 1;
