@@ -10,6 +10,7 @@ import SocialProofNotification from '@/components/SocialProofNotification';
 import DecisionSimulator from '@/components/DecisionSimulator';
 import WhoIsNotFor from '@/components/WhoIsNotFor';
 import OnboardingClarity from '@/components/OnboardingClarity';
+import VslPlayer from '@/components/VslPlayer';
 
 /* ── 3D Tilt Wrapper Animation ── */
 function TiltWrapper({ children }: { children: React.ReactNode }) {
@@ -383,8 +384,16 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-
-
+      {/* ── Video Sales Letter (VSL) ── */}
+      <section className={styles.vslSection}>
+        <VslPlayer
+          videoId="93z_nUCGTRo"
+          badgeText="Strategic Overview"
+          badgeIcon={<Terminal size={14} />}
+          title="Build a Legacy"
+          subtitle="With Your Bare Hands"
+        />
+      </section>
 
       {/* ── How It Works ── */}
       <section className={styles.howItWorks}>

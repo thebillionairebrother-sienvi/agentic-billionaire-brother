@@ -1238,3 +1238,12 @@
     gap: var(--space-4);
   }
 }
+
+.vslSection {
+  width: 100%;
+  padding: 96px var(--space-6);
+  background: var(--surface-bg-dark, #0a0a0c);
+  border-bottom: 1px solid var(--surface-border);
+  display: flex;
+  justify-content: center;
+}

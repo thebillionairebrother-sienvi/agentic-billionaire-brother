@@ -55,8 +55,8 @@ const nextConfig: NextConfig = {
                             "img-src 'self' data: blob: https://media.giphy.com https://media1.giphy.com https://media2.giphy.com https://media3.giphy.com https://media4.giphy.com https://www.google-analytics.com https://*.supabase.co",
                             // Connections: self + Supabase + Gemini + Stripe + GA
                             "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://api.stripe.com https://www.google-analytics.com https://analytics.google.com https://api.giphy.com",
-                            // Frames: Stripe checkout only
-                            "frame-src 'none'",
+                            // Frames: Allow same-origin, YouTube embeds, and Stripe
+                            "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://js.stripe.com",
                             // Disallow plugins
                             "object-src 'none'",
                             // Restrict base URI to self
