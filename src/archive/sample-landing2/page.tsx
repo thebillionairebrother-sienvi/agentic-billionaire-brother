@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, X, Star, Quote, ChevronRight } from 'lucide-react';
-import styles from '../page.module.css';
+import { Crown, Target, TrendingUp, Shield, Check, X, Star, Quote, ChevronRight } from 'lucide-react';
+import styles from '@/app/page.module.css';
 import { useEffect, useState, useRef } from 'react';
-import { motion, useScroll, useTransform, useMotionValue, useSpring, Variants } from 'framer-motion';
+import { motion, useScroll, useTransform, useMotionValue, useSpring, Variants, useInView } from 'framer-motion';
 import SocialProofNotification from '@/components/SocialProofNotification';
 import DecisionSimulator from '@/components/DecisionSimulator';
 import WhoIsNotFor from '@/components/WhoIsNotFor';
 import OnboardingClarity from '@/components/OnboardingClarity';
-import Hero from '@/components/ui/animated-shader-hero';
+import PhosphorHero, { ShaderCanvas, SHADER_SRC } from '@/components/ui/phosphor-30';
 
 /* ── 3D Tilt Wrapper Animation ── */
 function TiltWrapper({ children }: { children: React.ReactNode }) {
@@ -109,8 +109,36 @@ function MemeCarousel() {
   );
 }
 
-export default function SampleLandingPage() {
+interface ParallaxSectionProps {
+  children: React.ReactNode;
+  id?: string;
+  className?: string;
+  style?: React.CSSProperties;
+  as?: React.ElementType;
+}
+
+function ParallaxSection({ children, id, className, style, as: Component = 'section' }: ParallaxSectionProps) {
+  return (
+    <Component
+      id={id}
+      className={className}
+      style={{
+        ...style,
+        position: 'relative',
+        background: 'transparent',
+      }}
+    >
+      {/* Foreground Content */}
+      <div style={{ position: 'relative', zIndex: 1, height: '100%', width: '100%' }}>
+        {children}
+      </div>
+    </Component>
+  );
+}
+
+export default function SampleLandingPage2() {
   const [mounted, setMounted] = useState(false);
+  const { scrollY } = useScroll();
 
   useEffect(() => {
     setMounted(true);
@@ -119,13 +147,32 @@ export default function SampleLandingPage() {
   if (!mounted) return null;
 
   return (
-    <main id="main-content" className={styles.page}>
-      <SocialProofNotification />
+    <>
+      <main id="main-content" className={styles.page} style={{ background: 'transparent', position: 'relative', zIndex: 10 }}>
+        {/* Single Global viewport-locked WebGL background using hardware-accelerated transform */}
+        <motion.div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '100vh',
+            zIndex: 0,
+            pointerEvents: 'none',
+            y: scrollY
+          }}
+        >
+          <ShaderCanvas fragSource={SHADER_SRC} useScrollTime={true} />
+          {/* Smooth overlay to tone down neon gold brightness and protect readability */}
+          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(5, 5, 8, 0.76)', zIndex: 2 }} />
+        </motion.div>
+
+        <SocialProofNotification />
 
       {/* ── Nav ── */}
       <nav className={styles.nav}>
         <div className={styles.navInner}>
-          <Link href="/sample-landing" className={styles.navBrand}>
+          <Link href="/sample-landing2" className={styles.navBrand}>
             <div className={styles.logoMark}>
               <Crown size={16} />
             </div>
@@ -134,8 +181,8 @@ export default function SampleLandingPage() {
           <div className={styles.navLinks}>
             <Link href="/guide" className={styles.navLink}>PLAYBOOK</Link>
             <Link href="/testimonials" className={styles.navLink}>TESTIMONIALS</Link>
-            <Link href="/sample-landing#pricing" className={styles.navLink}>PRICING</Link>
-            <Link href="/sample-landing#features" className={styles.navLink}>FEATURES</Link>
+            <Link href="/sample-landing2#pricing" className={styles.navLink}>PRICING</Link>
+            <Link href="/sample-landing2#features" className={styles.navLink}>FEATURES</Link>
           </div>
           <Link href="/auth" className={styles.navCta}>
             ACCESS TERMINAL →
@@ -143,32 +190,35 @@ export default function SampleLandingPage() {
         </div>
       </nav>
 
-      {/* ── Modern Shader Hero ── */}
-      <Hero
-        trustBadge={{
-          text: "SYSTEM ONLINE // DEREK_V2.0",
-          icons: ["🔥", "⚡"]
-        }}
-        headline={{
-          line1: "Your Strategy.",
-          line2: "No Excuses."
-        }}
-        subtitle="Derek isn't here to be your friend. He's a blunt, strategic AI billionaire designed to audit your decisions, ruthlessly optimize your workflow, and force you to ship via the BILLIONAIRE BROTHER'S REVENUE VELOCITY MACHINE™. No fluff. Just metrics and execution."
-        buttons={{
-          primary: {
-            text: "START FREE QUESTIONNAIRE →",
-            onClick: () => { window.location.href = '/auth'; }
-          },
-          secondary: {
-            text: "ACCESS COMMAND CENTER",
-            onClick: () => { window.location.href = '/auth'; }
-          }
-        }}
-        rightContent={<MemeCarousel />}
-      />
+      {/* ── Modern Phosphor Fractal Hero ── */}
+      <ParallaxSection id="hero" style={{ paddingTop: 0, paddingBottom: 0 }}>
+        <PhosphorHero
+          trustBadge={{
+            text: "SYSTEM ONLINE // DEREK_V2.0",
+            icons: ["🔥", "⚡"]
+          }}
+          headline={{
+            line1: "Your Strategy.",
+            line2: "No Excuses."
+          }}
+          subtitle="Derek isn't here to be your friend. He's a blunt, strategic AI billionaire designed to audit your decisions, ruthlessly optimize your workflow, and force you to ship via the BILLIONAIRE BROTHER'S REVENUE VELOCITY MACHINE™. No fluff. Just metrics and execution."
+          buttons={{
+            primary: {
+              text: "START FREE QUESTIONNAIRE →",
+              onClick: () => { window.location.href = '/auth'; }
+            },
+            secondary: {
+              text: "ACCESS COMMAND CENTER",
+              onClick: () => { window.location.href = '/auth'; }
+            }
+          }}
+          rightContent={<MemeCarousel />}
+          hideBackground={true}
+        />
+      </ParallaxSection>
 
       {/* ── How It Works ── */}
-      <section className={styles.howItWorks} id="protocol">
+      <ParallaxSection className={styles.howItWorks} id="protocol">
         <motion.div
           className={styles.sectionInner}
           initial={{ opacity: 0, y: 40 }}
@@ -226,10 +276,10 @@ export default function SampleLandingPage() {
             </motion.div>
           </motion.div>
         </motion.div>
-      </section>
+      </ParallaxSection>
 
       {/* ── Onboarding Pipeline ── */}
-      <section className={styles.onboardingSection}>
+      <ParallaxSection className={styles.onboardingSection}>
         <div className={styles.sectionInner}>
           <div className={styles.sectionMetaCenter}>
             <span className={styles.sectionLabel}>ONBOARDING CADENCE</span>
@@ -240,10 +290,10 @@ export default function SampleLandingPage() {
           </div>
           <OnboardingClarity />
         </div>
-      </section>
+      </ParallaxSection>
 
       {/* ── Features / Arsenal ── */}
-      <section className={styles.arsenal} id="features">
+      <ParallaxSection className={styles.arsenal} id="features">
         <motion.div
           className={styles.sectionInner}
           initial={{ opacity: 0, y: 40 }}
@@ -316,10 +366,10 @@ export default function SampleLandingPage() {
             <DecisionSimulator />
           </motion.div>
         </motion.div>
-      </section>
+      </ParallaxSection>
 
       {/* ── Audience Fit ── */}
-      <section className={styles.audienceFit}>
+      <ParallaxSection className={styles.audienceFit}>
         <div className={styles.sectionInner}>
           <div className={styles.sectionMetaCenter}>
             <span className={styles.sectionLabel}>AUDIENCE SELECTION</span>
@@ -330,10 +380,10 @@ export default function SampleLandingPage() {
           </div>
           <WhoIsNotFor />
         </div>
-      </section>
+      </ParallaxSection>
 
       {/* ── Testimonial Showcase ── */}
-      <section className={styles.testimonialsShowcase}>
+      <ParallaxSection className={styles.testimonialsShowcase}>
         <div className={styles.sectionInner}>
           <div className={styles.sectionMetaCenter}>
             <span className={styles.sectionLabel}>PROOF IN ACTION</span>
@@ -420,10 +470,10 @@ export default function SampleLandingPage() {
             </Link>
           </div>
         </div>
-      </section>
+      </ParallaxSection>
 
       {/* ── Pricing ── */}
-      <section className={styles.pricing} id="pricing">
+      <ParallaxSection className={styles.pricing} id="pricing">
         <motion.div
           className={styles.sectionInner}
           initial={{ opacity: 0, y: 40 }}
@@ -548,10 +598,10 @@ export default function SampleLandingPage() {
             * All paid tiers include our 14-day risk-free guarantee. If Derek does not improve your shipping speed, email us for a full refund. Cancel anytime in one click.
           </div>
         </motion.div>
-      </section>
+      </ParallaxSection>
 
       {/* ── Disclaimer ── */}
-      <div className={styles.disclaimerSection}>
+      <ParallaxSection className={styles.disclaimerSection} as="div">
         <div className={styles.sectionInner}>
           <div className={styles.disclaimerGrid}>
             <div className={styles.disclaimerCard}>
@@ -568,10 +618,10 @@ export default function SampleLandingPage() {
             </div>
           </div>
         </div>
-      </div>
+      </ParallaxSection>
 
       {/* ── Footer ── */}
-      <footer className={styles.footer}>
+      <ParallaxSection className={styles.footer} as="footer">
         <div className={styles.footerInner}>
           <Link href="/" className={styles.footerBrand}>
             <Crown size={14} />
@@ -589,7 +639,8 @@ export default function SampleLandingPage() {
             © {new Date().getFullYear()} The Billionaire Brother. All rights reserved.
           </span>
         </div>
-      </footer>
+      </ParallaxSection>
     </main>
+    </>
   );
 }
