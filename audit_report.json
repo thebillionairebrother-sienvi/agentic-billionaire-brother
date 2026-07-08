@@ -1,0 +1,16 @@
+{
+  "file": "downloaded_screen.html",
+  "issues": [
+    "Missing HTML5 doctype declaration (<!DOCTYPE html>)",
+    "Missing viewport meta tag for responsive design",
+    "Missing 'lang' attribute on <html> element",
+    "Missing <title> tag",
+    "Missing meta description tag",
+    "Missing main heading (<h1>)"
+  ],
+  "warnings": [
+    "Missing or non-UTF-8 charset declaration"
+  ],
+  "issueCount": 6,
+  "warningCount": 1
+}

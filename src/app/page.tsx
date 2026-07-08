@@ -11,6 +11,7 @@ import DecisionSimulator from '@/components/DecisionSimulator';
 import WhoIsNotFor from '@/components/WhoIsNotFor';
 import OnboardingClarity from '@/components/OnboardingClarity';
 import VslPlayer from '@/components/VslPlayer';
+import VideoBackground from '@/components/VideoBackground';
 
 /* ── 3D Tilt Wrapper Animation ── */
 function TiltWrapper({ children }: { children: React.ReactNode }) {
@@ -311,6 +312,7 @@ export default function LandingPage() {
 
   return (
     <main id="main-content" className={styles.page}>
+      <VideoBackground />
       <SocialProofNotification />
 
       {/* ── Nav ── */}

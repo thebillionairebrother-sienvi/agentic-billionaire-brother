@@ -1,0 +1,1 @@
+[Wed 2026-07-08 16:39 GMT+8] Read the handoff task checklist in C:/Users/spenc/projects/agentic-billionaire-brother/task.md, run the audit.py script using Python, check layout.tsx, and write the report to drafts/seo_aeo_report.md.
