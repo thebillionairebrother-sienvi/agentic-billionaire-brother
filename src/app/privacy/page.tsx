@@ -1,5 +1,15 @@
 import { PolicyLayout } from '@/components/PolicyLayout';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy | The Billionaire Brother',
+  description: 'Read the Privacy Policy for The Billionaire Brother. Understand how we secure, process, and protect your business data and strategy parameters.',
+  alternates: {
+    canonical: '/privacy',
+  },
+};
+
 
 export default function PrivacyPolicy() {
   return (

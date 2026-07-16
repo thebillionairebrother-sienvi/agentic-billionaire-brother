@@ -1,4 +1,14 @@
 import { PolicyLayout } from '@/components/PolicyLayout';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service | The Billionaire Brother',
+  description: 'Review the Terms of Service for The Billionaire Brother. Understand the rules of conduct, subscription policies, and our AI strategy liability disclaimer.',
+  alternates: {
+    canonical: '/terms',
+  },
+};
+
 
 export default function TermsOfService() {
   return (

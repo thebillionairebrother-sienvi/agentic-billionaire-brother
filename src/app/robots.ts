@@ -5,8 +5,26 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/admin/', '/api/'],
+      disallow: [
+        '/admin/', 
+        '/api/', 
+        '/board-meeting/', 
+        '/brief/', 
+        '/chat/', 
+        '/commit/', 
+        '/dashboard/', 
+        '/office/', 
+        '/onboard/', 
+        '/playbook/', 
+        '/settings/', 
+        '/ship-pack/', 
+        '/strategies/', 
+        '/tasks/', 
+        '/upgrade/',
+        '/delete-account/'
+      ],
     },
-    sitemap: 'https://thebillionairebrother.com/sitemap.xml',
+    sitemap: 'https://mybillionairebrother.com/sitemap.xml',
   };
 }
+

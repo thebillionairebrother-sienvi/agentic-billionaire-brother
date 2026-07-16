@@ -1,5 +1,15 @@
 import { PolicyLayout } from '@/components/PolicyLayout';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Account Deletion Guide | The Billionaire Brother',
+  description: 'Learn how to delete your Billionaire Brother account, cancel active Stripe billing subscriptions, and permanently purge strategic business parameters.',
+  alternates: {
+    canonical: '/delete-account',
+  },
+};
+
 
 export default function AccountDeletion() {
   return (
