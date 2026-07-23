@@ -1,5 +1,15 @@
 import { PolicyLayout } from '@/components/PolicyLayout';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'AI Data Usage Policy | The Billionaire Brother',
+  description: 'Understand how we protect your business secrets, data transmission to AI APIs, database storage, and secure AI reasoning standards.',
+  alternates: {
+    canonical: '/data-usage',
+  },
+};
+
 
 export default function AiDataUsage() {
   return (

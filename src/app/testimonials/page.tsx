@@ -1,6 +1,16 @@
 import Link from 'next/link';
 import { Crown, ArrowRight, Star, Quote } from 'lucide-react';
+import type { Metadata } from 'next';
 import styles from './page.module.css';
+
+export const metadata: Metadata = {
+  title: 'Founder Outcomes & Testimonials | The Billionaire Brother',
+  description: 'Hear from real founders who stopped making excuses, committed to a strategy, and started shipping with Derek, their AI business strategist.',
+  alternates: {
+    canonical: '/testimonials',
+  },
+};
+
 
 const testimonials = [
     {

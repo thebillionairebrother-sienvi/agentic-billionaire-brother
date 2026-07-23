@@ -1,7 +1,17 @@
 import { PlaybookContent } from '@/components/PlaybookContent';
 import Link from 'next/link';
 import { Crown, ArrowLeft } from 'lucide-react';
+import type { Metadata } from 'next';
 import styles from './framework.module.css';
+
+export const metadata: Metadata = {
+  title: 'Business Frameworks & AI Playbook | The Billionaire Brother',
+  description: 'Explore our modular operational frameworks and tactical business guides. Calibrate your execution cadence with Derek, your AI business strategist.',
+  alternates: {
+    canonical: '/framework',
+  },
+};
+
 
 export default function FrameworkPage() {
     return (

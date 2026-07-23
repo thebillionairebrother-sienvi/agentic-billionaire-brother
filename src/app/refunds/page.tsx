@@ -1,5 +1,15 @@
 import { PolicyLayout } from '@/components/PolicyLayout';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Refund & Cancellation Policy | The Billionaire Brother',
+  description: 'Understand the 14-day risk-free money-back guarantee and cancellation policies for The Billionaire Brother subscription plans.',
+  alternates: {
+    canonical: '/refunds',
+  },
+};
+
 
 export default function RefundPolicy() {
   return (
