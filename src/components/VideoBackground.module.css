@@ -28,10 +28,10 @@
   
   /* Vignette & Gradients to dim video details, boost text legibility, and fade seamlessly at top/bottom */
   background: 
-    /* Soft dark vignette around the screen edges */
-    radial-gradient(circle at center, rgba(10, 10, 15, 0.2) 0%, rgba(10, 10, 15, 0.85) 100%),
+    /* Soft dark vignette around the screen center & edges for pristine text readability */
+    radial-gradient(circle at center, rgba(10, 10, 15, 0.45) 0%, rgba(10, 10, 15, 0.88) 100%),
     /* Horizontal gradients to darken edges */
-    linear-gradient(to right, rgba(10, 10, 15, 0.7) 0%, transparent 15%, transparent 85%, rgba(10, 10, 15, 0.7) 100%),
+    linear-gradient(to right, rgba(10, 10, 15, 0.75) 0%, transparent 15%, transparent 85%, rgba(10, 10, 15, 0.75) 100%),
     /* Vertical gradients to fade at the top (nav) and bottom (next section blocks) */
     linear-gradient(to bottom, rgba(10, 10, 15, 0.9) 0%, transparent 12%, transparent 88%, rgba(10, 10, 15, 0.9) 100%);
 }

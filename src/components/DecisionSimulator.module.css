@@ -49,11 +49,13 @@
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.015);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-glass-card, rgba(12, 12, 18, 0.75));
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--surface-border);
   padding: var(--space-6);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   min-height: 340px;
@@ -65,7 +67,7 @@
 
 .cardAfter {
   border-left: 3px solid var(--gold-500);
-  background: rgba(234, 179, 8, 0.01);
+  background: rgba(20, 18, 12, 0.78);
 }
 
 .cardHeader {
@@ -77,9 +79,10 @@
 
 .cardLabel {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   letter-spacing: 0.08em;
   color: var(--text-tertiary);
+  font-weight: 600;
 }
 
 .statusBadge {
@@ -135,18 +138,20 @@
 .feedbackLabel {
   display: block;
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   letter-spacing: 0.05em;
-  color: var(--text-tertiary);
+  color: var(--gold-400);
+  font-weight: 600;
   margin-bottom: var(--space-2);
 }
 
 .feedbackText {
-  font-size: 0.82rem;
-  line-height: 1.65;
+  font-size: 0.88rem;
+  line-height: 1.7;
   color: var(--text-secondary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   font-style: italic;
-  border-left: 2px solid rgba(239, 68, 68, 0.2);
+  border-left: 2px solid rgba(239, 68, 68, 0.4);
   padding-left: var(--space-3);
 }
 
@@ -161,9 +166,10 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  font-size: 0.82rem;
-  line-height: 1.6;
+  font-size: 0.88rem;
+  line-height: 1.7;
   color: var(--text-secondary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .bulletIcon {

@@ -22,13 +22,15 @@
   --bg-tertiary: #1a1a24;
   --bg-elevated: #222230;
   --bg-glass: rgba(255, 255, 255, 0.04);
+  --bg-glass-card: rgba(12, 12, 18, 0.72);
+  --bg-glass-card-hover: rgba(18, 18, 26, 0.82);
 
   --surface-border: rgba(255, 255, 255, 0.08);
   --surface-border-hover: rgba(255, 255, 255, 0.14);
 
   --text-primary: #f5f5f7;
-  --text-secondary: #a1a1aa;
-  --text-tertiary: #9ca3af;
+  --text-secondary: #e2e8f0;
+  --text-tertiary: #cbd5e1;
   --text-inverse: #0a0a0f;
 
   /* Accent Colors */
