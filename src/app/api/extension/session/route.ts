@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createMobileAwareClient } from '@/lib/supabase/server';
+import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
 
 function getCorsHeaders(request: Request) {
     const origin = request.headers.get('origin') || '*';
@@ -24,8 +24,41 @@ export async function GET(request: Request) {
             );
         }
 
+        // Use service client to bypass RLS restrictions on system tables
+        const serviceClient = await createServiceClient();
+        const [{ data: userProfile }, { data: subRecord }, { data: profile }] = await Promise.all([
+            serviceClient
+                .from('users')
+                .select('tier, email')
+                .eq('id', user.id)
+                .maybeSingle(),
+            serviceClient
+                .from('subscriptions')
+                .select('tier, status')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle(),
+            serviceClient
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .maybeSingle(),
+        ]);
+
+        const email = userProfile?.email || user.email || '';
+        const tier = (subRecord?.tier || userProfile?.tier || 'free').toLowerCase();
+        const isAdmin = profile?.role === 'admin';
+        const hasRequiredPlan = tier === 'brother' || tier === 'team' || isAdmin;
+
         return NextResponse.json(
-            { userId: user.id, isAdmin: true },
+            {
+                userId: user.id,
+                email,
+                tier,
+                isAdmin,
+                hasRequiredPlan,
+            },
             { status: 200, headers: corsHeaders }
         );
     } catch (error) {

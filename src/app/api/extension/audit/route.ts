@@ -35,10 +35,11 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
 
         // Prepare the prompt for Gemini
         const systemInstruction = DEREK_FULL_PROMPT + `\n\n` + 
-            `You are performing a webpage quality and conversion audit for a user's page snapshot. ` +
+            `You are performing a webpage quality, conversion, and legal technicality audit for a user's page snapshot. ` +
             `Review the HTML/DOM signals extracted from the active page. ` +
             `Provide extremely blunt, strategic, and high-roi feedback in Derek's voice. ` +
             `Identify critical conversion leaks, what they are doing right, and what they are doing wrong. ` +
+            `In addition, perform a thorough LEGAL TECHNICALITIES & COMPLIANCE audit of the webpage. Evaluate privacy disclaimers, Terms of Service visibility, earnings disclaimers, FTC compliance, CAN-SPAM rules, cookie/GDPR compliance cues, refund policies, deceptive guarantees, or dark patterns. ` +
             `You must return a structured JSON response matching the required schema. Do not include markdown wraps or anything other than the JSON object.`;
 
         const userPrompt = `Here is the PageSnapshot payload extracted from the page:
@@ -58,7 +59,7 @@ Repeated phrases: ${JSON.stringify(snapshot.repeatedPhrases)}
 User selected text: "${snapshot.selectedText}"
 Visible button labels: ${JSON.stringify(snapshot.visibleButtonLabels)}
 
-Analyze this snapshot and give me the audit results.`;
+Analyze this snapshot, evaluate conversion performance, and perform Derek's Legal & Compliance technicality audit.`;
 
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
@@ -83,9 +84,25 @@ Analyze this snapshot and give me the audit results.`;
                             type: Type.ARRAY,
                             items: { type: Type.STRING }
                         },
-                        bestNextMove: { type: Type.STRING }
+                        bestNextMove: { type: Type.STRING },
+                        legalTechnicalities: {
+                            type: Type.OBJECT,
+                            properties: {
+                                summary: { type: Type.STRING },
+                                dos: {
+                                    type: Type.ARRAY,
+                                    items: { type: Type.STRING }
+                                },
+                                donts: {
+                                    type: Type.ARRAY,
+                                    items: { type: Type.STRING }
+                                },
+                                complianceRisk: { type: Type.STRING }
+                            },
+                            required: ['summary', 'dos', 'donts', 'complianceRisk']
+                        }
                     },
-                    required: ['whatThisPageSells', 'whoItIsFor', 'whatIsStrong', 'whatIsWeak', 'topConversionLeaks', 'bestNextMove']
+                    required: ['whatThisPageSells', 'whoItIsFor', 'whatIsStrong', 'whatIsWeak', 'topConversionLeaks', 'bestNextMove', 'legalTechnicalities']
                 }
             }
         });
@@ -137,6 +154,39 @@ export async function POST(request: Request) {
             );
         }
 
+        // Verify Brother or Team Plan subscription using service client
+        const serviceClient = await createServiceClient();
+        const [{ data: userProfile }, { data: subRecord }, { data: profile }] = await Promise.all([
+            serviceClient
+                .from('users')
+                .select('tier, email')
+                .eq('id', user.id)
+                .maybeSingle(),
+            serviceClient
+                .from('subscriptions')
+                .select('tier, status')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle(),
+            serviceClient
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .maybeSingle(),
+        ]);
+
+        const tier = (subRecord?.tier || userProfile?.tier || 'free').toLowerCase();
+        const isAdmin = profile?.role === 'admin';
+        const hasRequiredPlan = tier === 'brother' || tier === 'team' || isAdmin;
+
+        if (!hasRequiredPlan) {
+            return NextResponse.json(
+                { error: 'An active Brother or Team plan subscription is required to run audits with the extension.' },
+                { status: 403, headers: corsHeaders }
+            );
+        }
+
         const body = await request.json();
         const { snapshot } = body;
 
@@ -148,7 +198,6 @@ export async function POST(request: Request) {
         }
 
         // Insert new audit log record
-        const serviceClient = await createServiceClient();
         const { data: auditLog, error: dbError } = await serviceClient
             .from('audit_logs')
             .insert({
