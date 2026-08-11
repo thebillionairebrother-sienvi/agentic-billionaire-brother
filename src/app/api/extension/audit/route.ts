@@ -14,7 +14,7 @@ function getCorsHeaders(request: Request) {
     };
 }
 
-export async function runAuditAnalysis(runId: string, snapshot: any, userId: string) {
+export async function runAuditAnalysis(runId: string, snapshot: any, userId: string, auditScope: string = 'page') {
     const serviceClient = await createServiceClient();
 
     try {
@@ -25,41 +25,58 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
                 metadata: {
                     status: 'processing',
                     snapshot,
+                    auditScope,
                     result: null,
                     error_message: null
                 }
             })
             .eq('id', runId);
 
-        console.log(`[extension/audit] Job ${runId} started processing...`);
+        console.log(`[extension/audit] Job ${runId} (Scope: ${auditScope}) started processing...`);
 
         // Prepare the prompt for Gemini
+        const isMultiPage = auditScope === 'domain' || auditScope === 'subpath';
         const systemInstruction = DEREK_FULL_PROMPT + `\n\n` + 
-            `You are performing a webpage quality, conversion, and legal technicality audit for a user's page snapshot. ` +
-            `Review the HTML/DOM signals extracted from the active page. ` +
+            `You are performing a ${isMultiPage ? 'complete website and multi-page conversion' : 'webpage quality, conversion,'} and legal technicality audit for a user's page snapshot. ` +
+            `Review the HTML/DOM signals extracted from the active page ${isMultiPage ? 'and key sub-pages across the domain.' : '.'} ` +
             `Provide extremely blunt, strategic, and high-roi feedback in Derek's voice. ` +
-            `Identify critical conversion leaks, what they are doing right, and what they are doing wrong. ` +
-            `In addition, perform a thorough LEGAL TECHNICALITIES & COMPLIANCE audit of the webpage. Evaluate privacy disclaimers, Terms of Service visibility, earnings disclaimers, FTC compliance, CAN-SPAM rules, cookie/GDPR compliance cues, refund policies, deceptive guarantees, or dark patterns. ` +
+            `Identify critical conversion leaks, cross-page funnel gaps, what they are doing right, and what they are doing wrong. ` +
+            `In addition, perform a thorough LEGAL TECHNICALITIES & COMPLIANCE audit of the webpage/website. Evaluate privacy disclaimers, Terms of Service visibility, earnings disclaimers, FTC compliance, CAN-SPAM rules, cookie/GDPR compliance cues, refund policies, deceptive guarantees, or dark patterns. ` +
             `You must return a structured JSON response matching the required schema. Do not include markdown wraps or anything other than the JSON object.`;
 
-        const userPrompt = `Here is the PageSnapshot payload extracted from the page:
-URL: ${snapshot.url}
-Title: ${snapshot.title}
-Meta Description: ${snapshot.metaDescription}
-H1 headings: ${JSON.stringify(snapshot.h1)}
-H2 headings: ${JSON.stringify(snapshot.h2)}
-H3 headings: ${JSON.stringify(snapshot.h3)}
-Hero text block: "${snapshot.heroCopy}"
-Call-to-Action texts: ${JSON.stringify(snapshot.ctaText)}
-Pricing elements: ${JSON.stringify(snapshot.pricingBlocks)}
-Testimonials/Reviews: ${JSON.stringify(snapshot.testimonials)}
-FAQs: ${JSON.stringify(snapshot.faqs)}
-Form labels: ${JSON.stringify(snapshot.formLabels)}
-Repeated phrases: ${JSON.stringify(snapshot.repeatedPhrases)}
-User selected text: "${snapshot.selectedText}"
-Visible button labels: ${JSON.stringify(snapshot.visibleButtonLabels)}
+        let subPagesText = '';
+        if (snapshot.subPages && Array.isArray(snapshot.subPages) && snapshot.subPages.length > 0) {
+            subPagesText = `\n\nCross-analyzed Sub-Pages Data (${snapshot.subPages.length} additional pages scanned on site):\n` +
+                snapshot.subPages.map((sub: any, idx: number) => 
+                    `Sub-page #${idx + 1}: ${sub.url}\n` +
+                    `Title: ${sub.title}\n` +
+                    `Hero: "${sub.heroCopy}"\n` +
+                    `CTAs: ${JSON.stringify(sub.ctaText)}\n` +
+                    `Pricing: ${JSON.stringify(sub.pricingBlocks)}`
+                ).join('\n---\n');
+        }
 
-Analyze this snapshot, evaluate conversion performance, and perform Derek's Legal & Compliance technicality audit.`;
+        const scopeTitle = auditScope === 'domain' ? 'ENTIRE WEBSITE / DOMAIN' : auditScope === 'subpath' ? 'SUB-PAGES PATH' : 'SINGLE ACTIVE PAGE';
+
+        const userPrompt = `Audit Target Scope: ${scopeTitle}\n` +
+            `Here is the PageSnapshot payload extracted from the page:\n` +
+            `URL: ${snapshot.url}\n` +
+            `Title: ${snapshot.title}\n` +
+            `Meta Description: ${snapshot.metaDescription}\n` +
+            `H1 headings: ${JSON.stringify(snapshot.h1)}\n` +
+            `H2 headings: ${JSON.stringify(snapshot.h2)}\n` +
+            `H3 headings: ${JSON.stringify(snapshot.h3)}\n` +
+            `Hero text block: "${snapshot.heroCopy}"\n` +
+            `Call-to-Action texts: ${JSON.stringify(snapshot.ctaText)}\n` +
+            `Pricing elements: ${JSON.stringify(snapshot.pricingBlocks)}\n` +
+            `Testimonials/Reviews: ${JSON.stringify(snapshot.testimonials)}\n` +
+            `FAQs: ${JSON.stringify(snapshot.faqs)}\n` +
+            `Form labels: ${JSON.stringify(snapshot.formLabels)}\n` +
+            `Repeated phrases: ${JSON.stringify(snapshot.repeatedPhrases)}\n` +
+            `User selected text: "${snapshot.selectedText}"\n` +
+            `Visible button labels: ${JSON.stringify(snapshot.visibleButtonLabels)}` +
+            `${subPagesText}\n\n` +
+            `Analyze this ${scopeTitle} snapshot, evaluate conversion performance, and perform Derek's Legal & Compliance technicality audit.`;
 
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
@@ -117,6 +134,7 @@ Analyze this snapshot, evaluate conversion performance, and perform Derek's Lega
                 metadata: {
                     status: 'completed',
                     snapshot,
+                    auditScope,
                     result,
                     error_message: null
                 }
@@ -134,6 +152,7 @@ Analyze this snapshot, evaluate conversion performance, and perform Derek's Lega
                 metadata: {
                     status: 'failed',
                     snapshot,
+                    auditScope,
                     result: null,
                     error_message: err.message || 'Unknown audit error'
                 }
@@ -188,7 +207,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { snapshot } = body;
+        const { snapshot, auditScope = 'page' } = body;
 
         if (!snapshot) {
             return NextResponse.json(
@@ -207,6 +226,7 @@ export async function POST(request: Request) {
                 metadata: {
                     status: 'queued',
                     snapshot,
+                    auditScope,
                     result: null,
                     error_message: null
                 }
@@ -221,7 +241,7 @@ export async function POST(request: Request) {
         const runId = auditLog.id;
 
         // Trigger analysis in background asynchronously (do not await)
-        runAuditAnalysis(runId, snapshot, user.id).catch(err => {
+        runAuditAnalysis(runId, snapshot, user.id, auditScope).catch(err => {
             console.error(`[extension/audit] Background process error for job ${runId}:`, err);
         });
 

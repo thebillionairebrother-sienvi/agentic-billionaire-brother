@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Website Handoff Map - The Billionaire Brother</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #1e293b;
+      background-color: #ffffff;
+      font-size: 10.5pt;
+      line-height: 1.45;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      page-break-after: always;
+      position: relative;
+      background: #ffffff;
+      overflow: hidden;
+      padding: 18mm 18mm 18mm 18mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1.5px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #1d63ed;
+      text-transform: uppercase;
+    }
+
+    .header .doc-title {
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .footer {
+      border-top: 1.5px solid #e2e8f0;
+      padding-top: 8px;
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8.5pt;
+      color: #64748b;
+    }
+
+    .footer .page-num {
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .content-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Page 1 Cover Styles */
+    .color-stripe {
+      display: flex;
+      height: 22px;
+      width: 100%;
+      margin: 20px 0 35px 0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .stripe-blue { flex: 1.2; background: #1d63ed; }
+    .stripe-cyan { flex: 1; background: #38c6ff; }
+    .stripe-dark { flex: 1; background: #0a0f1d; }
+
+    h1.main-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 36pt;
+      font-weight: 700;
+      margin: 0;
+      line-height: 1.1;
+      color: #0a0f1d;
+    }
+    .main-title span {
+      color: #1d63ed;
+      display: block;
+    }
+
+    .subtitle {
+      font-size: 13pt;
+      color: #475569;
+      margin-top: 16px;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    .callout-box {
+      background-color: #e6f4ff;
+      border-left: 4px solid #1d63ed;
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 24px;
+    }
+    .callout-box h3 {
+      margin: 0 0 4px 0;
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .callout-box p {
+      margin: 0;
+      font-size: 9.5pt;
+      color: #334155;
+      line-height: 1.45;
+    }
+
+    .callout-blue-bg {
+      background-color: #1d63ed;
+      color: #ffffff;
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .callout-blue-bg h3 {
+      margin: 0 0 4px 0;
+      font-size: 11pt;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .callout-blue-bg p {
+      margin: 0;
+      font-size: 9.5pt;
+      color: #e0f2fe;
+      line-height: 1.45;
+    }
+
+    .metadata-block {
+      margin-top: auto;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 18px 22px;
+    }
+    .metadata-row {
+      display: flex;
+      margin-bottom: 10px;
+      font-size: 10pt;
+    }
+    .metadata-row:last-child {
+      margin-bottom: 0;
+    }
+    .metadata-label {
+      width: 140px;
+      font-weight: 700;
+      color: #475569;
+    }
+    .metadata-value {
+      flex: 1;
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    /* Section Banner Header */
+    .section-header-banner {
+      display: flex;
+      align-items: stretch;
+      background: #0a0f1d;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .section-num-box {
+      background: #1d63ed;
+      color: #ffffff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18pt;
+      font-weight: 700;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .section-title-box {
+      color: #ffffff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15pt;
+      font-weight: 700;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      letter-spacing: 0.5px;
+    }
+
+    /* General Typography & Lists */
+    h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15pt;
+      color: #0f172a;
+      margin: 0 0 12px 0;
+    }
+    h3 {
+      font-size: 11pt;
+      color: #1e293b;
+      margin: 14px 0 6px 0;
+    }
+    p {
+      margin: 0 0 10px 0;
+      color: #334155;
+      font-size: 9.5pt;
+    }
+
+    /* Grid layout for 6 sections on page 2 */
+    .sections-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .section-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #ffffff;
+    }
+    .section-card-num {
+      font-weight: 800;
+      color: #1d63ed;
+      font-size: 10pt;
+      margin-bottom: 3px;
+    }
+    .section-card-title {
+      font-weight: 700;
+      font-size: 10.5pt;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .section-card-desc {
+      font-size: 8.5pt;
+      color: #64748b;
+      line-height: 1.35;
+    }
+
+    /* Checklists */
+    .checklist-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+      margin-bottom: 16px;
+    }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      font-size: 9pt;
+      color: #334155;
+      line-height: 1.3;
+    }
+    .check-box {
+      width: 13px;
+      height: 13px;
+      border: 1.5px solid #1d63ed;
+      border-radius: 3px;
+      margin-right: 7px;
+      margin-top: 1px;
+      flex-shrink: 0;
+      background: #f0f7ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      color: #1d63ed;
+      font-weight: bold;
+    }
+    .check-box.checked::after {
+      content: "✓";
+    }
+
+    /* Tables */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 8.5pt;
+    }
+    table.data-table th {
+      background: #0a0f1d;
+      color: #ffffff;
+      text-align: left;
+      padding: 7px 10px;
+      font-weight: 600;
+      font-size: 8.5pt;
+      border: 1px solid #0a0f1d;
+    }
+    table.data-table td {
+      padding: 7px 10px;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+      vertical-align: top;
+      line-height: 1.35;
+    }
+    table.data-table tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    /* Sitemap Dark Tree */
+    .sitemap-tree {
+      background: #0a0f1d;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-family: 'JetBrains Mono', monospace, sans-serif;
+      font-size: 8.5pt;
+      line-height: 1.55;
+      margin-bottom: 16px;
+    }
+    .tree-node { margin-left: 0; }
+    .tree-node-1 { margin-left: 16px; color: #38c6ff; }
+    .tree-node-2 { margin-left: 32px; color: #94a3b8; }
+    .tree-root { font-weight: 700; color: #ffffff; font-size: 10pt; }
+    .bullet-blue { color: #1d63ed; }
+
+    /* Flowcharts */
+    .flow-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+    .flow-box {
+      width: 100%;
+      border: 1.5px solid #1d63ed;
+      border-radius: 6px;
+      padding: 8px 14px;
+      text-align: center;
+      background: #ffffff;
+    }
+    .flow-box-title {
+      font-weight: 700;
+      font-size: 9.5pt;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+    .flow-box-desc {
+      font-size: 8pt;
+      color: #64748b;
+    }
+    .flow-arrow {
+      color: #1d63ed;
+      font-size: 12pt;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1: COVER -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <div style="font-size: 10pt; font-weight: 700; color: #1d63ed; text-transform: uppercase; letter-spacing: 1px;">SIENVI AGENCY</div>
+      
+      <div class="color-stripe">
+        <div class="stripe-blue"></div>
+        <div class="stripe-cyan"></div>
+        <div class="stripe-dark"></div>
+      </div>
+
+      <h1 class="main-title">
+        Website
+        <span>Handoff Map</span>
+      </h1>
+
+      <div class="subtitle">
+        A clear, client-friendly guide to the website structure, features, workflows, editing tasks, integrations, and ownership.
+      </div>
+
+      <div class="callout-box">
+        <h3>Purpose of this document</h3>
+        <p>Make the website understandable after handoff. The client should know what exists, how it works, what they can safely change, where information goes, and who is responsible for each part.</p>
+      </div>
+
+      <div class="metadata-block">
+        <div style="font-size: 8.5pt; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 10px;">Prepared for:</div>
+        <div class="metadata-row">
+          <div class="metadata-label">CLIENT / PROJECT:</div>
+          <div class="metadata-value">The Billionaire Brother (Agentic Executive Platform)</div>
+        </div>
+        <div class="metadata-row">
+          <div class="metadata-label">Website URL:</div>
+          <div class="metadata-value">https://mybillionairebrother.com</div>
+        </div>
+        <div class="metadata-row">
+          <div class="metadata-label">Handoff date:</div>
+          <div class="metadata-value">August 5, 2026</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">1</div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: HOW TO USE THIS MAP -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <h2>HOW TO USE THIS MAP</h2>
+      <p>This is not a technical manual. It is a plain-language operating map that helps the client understand the website as a working business system.</p>
+
+      <div class="callout-blue-bg">
+        <h3>Clarity standard</h3>
+        <p>A person with very little technical experience should be able to follow this document without guessing, decoding jargon, or contacting the developer for every small task.</p>
+      </div>
+
+      <h3>The six sections</h3>
+      <div class="sections-grid">
+        <div class="section-card">
+          <div class="section-card-num">01 Website Snapshot</div>
+          <div class="section-card-desc">The one-page summary: purpose, audience, goal, features, responsibilities, and critical links.</div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-num">02 Visual Sitemap</div>
+          <div class="section-card-desc">A map of every page and how the pages are grouped and connected.</div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-num">03 Feature Map</div>
+          <div class="section-card-desc">A practical inventory of what the website does and who can manage each feature.</div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-num">04 User Journey Flow</div>
+          <div class="section-card-desc">The path visitors take from arrival to the main business outcome.</div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-num">05 Admin Editing Guide</div>
+          <div class="section-card-desc">Simple instructions for common updates without breaking the website.</div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-num">06 Integration / Data Flow</div>
+          <div class="section-card-desc">A map showing where form, booking, sales, email, analytics, and customer data go.</div>
+        </div>
+      </div>
+
+      <h3>Recommended delivery format</h3>
+      <div class="checklist-grid" style="grid-template-columns: 1fr;">
+        <div class="check-item"><div class="check-box checked"></div> <div><strong>PDF copy</strong> for easy reference and client handoff.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div><strong>Editable working copy</strong> stored in the project folder.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div><strong>Screenshots & Diagrams</strong> for every task that could confuse a non-technical user.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div><strong>Direct links</strong> to the correct admin tools, dashboards, and SOPs.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div><strong>Passwords shared</strong> through a secure password manager, never written in this document.</div></div>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">2</div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: 01 WEBSITE SNAPSHOT -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <div class="section-header-banner">
+        <div class="section-num-box">01</div>
+        <div class="section-title-box">WEBSITE SNAPSHOT</div>
+      </div>
+
+      <p>This is the one-page summary. It should explain the website in plain English before the client reads anything else.</p>
+
+      <div class="callout-box">
+        <h3>The test</h3>
+        <p>The client should understand what the site is for, who it serves, what action visitors should take, what the site includes, and who owns each responsibility in under two minutes.</p>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 30%;">Area</th>
+            <th>What to show</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Website purpose</strong></td>
+            <td>High-performance AI business mentorship & execution platform ("Derek - Your Billionaire Brother") that turns goals into daily execution.</td>
+          </tr>
+          <tr>
+            <td><strong>Primary audience</strong></td>
+            <td>Founders, startup creators, solo entrepreneurs, and executives looking for elite business guidance and accountability.</td>
+          </tr>
+          <tr>
+            <td><strong>Main conversion goal</strong></td>
+            <td>Complete onboarding interview, generate AI business strategy blueprint, and subscribe to Pro / Billionaire Tier.</td>
+          </tr>
+          <tr>
+            <td><strong>Key features</strong></td>
+            <td>AI Board Meeting Simulator, Daily Office Chat, Onboarding Calibration, Ship-Pack Exporter, Weekly Action Step Tracker, Admin Cost Analytics.</td>
+          </tr>
+          <tr>
+            <td><strong>Owner responsibilities</strong></td>
+            <td>Client manages business goals & email marketing; Sienvi Agency manages Next.js codebase, Supabase DB, Stripe, and Gemini AI integration.</td>
+          </tr>
+          <tr>
+            <td><strong>Important links</strong></td>
+            <td>App URL (mybillionairebrother.com), Admin Portal (/admin), Vercel Hosting, Supabase Console, Stripe Dashboard, Resend Console.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Snapshot summary template</h3>
+      <table class="data-table">
+        <tbody>
+          <tr>
+            <td style="width: 25%;"><strong>Project / website</strong></td>
+            <td>The Billionaire Brother (https://mybillionairebrother.com)</td>
+          </tr>
+          <tr>
+            <td><strong>Purpose</strong></td>
+            <td>Empower founders with AI executive strategy, C-suite advisory board simulation, and weekly execution tracking.</td>
+          </tr>
+          <tr>
+            <td><strong>Primary audience</strong></td>
+            <td>Entrepreneurs, venture founders, and high-performance business builders.</td>
+          </tr>
+          <tr>
+            <td><strong>Main conversion</strong></td>
+            <td>Interactive onboarding completion & paid monthly/annual Pro subscription via Stripe.</td>
+          </tr>
+          <tr>
+            <td><strong>Client manages</strong></td>
+            <td>Strategic goals, daily mentor chats, marketing campaigns, testimonial reviews, and business offer content.</td>
+          </tr>
+          <tr>
+            <td><strong>Sienvi Agency manages</strong></td>
+            <td>Full-stack Next.js maintenance, Supabase database, Gemini AI API integration, payment webhooks, and security.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">3</div>
+    </div>
+  </div>
+
+  <!-- PAGE 4: 02 VISUAL SITEMAP -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <div class="section-header-banner">
+        <div class="section-num-box">02</div>
+        <div class="section-title-box">VISUAL SITEMAP</div>
+      </div>
+
+      <p>This answers: What pages exist, how are they grouped, and how does someone move between them?</p>
+
+      <div class="callout-blue-bg">
+        <h3>Why clients value this</h3>
+        <p>A sitemap gives the client a map of the house. It prevents forgotten pages, hidden content, and confusion about where information belongs.</p>
+      </div>
+
+      <h3>Complete Site Map Tree</h3>
+      <div class="sitemap-tree">
+        <div class="tree-root"><span class="bullet-blue">●</span> Home (https://mybillionairebrother.com)</div>
+        <div class="tree-node tree-node-1">• Public Pages</div>
+        <div class="tree-node tree-node-2">○ Onboarding Interview (/onboard)</div>
+        <div class="tree-node tree-node-2">○ Interactive Guide (/guide) & Framework (/framework)</div>
+        <div class="tree-node tree-node-2">○ Public Testimonials (/testimonials) & Contact (/contact)</div>
+        <div class="tree-node tree-node-1">• Auth & Security</div>
+        <div class="tree-node tree-node-2">○ User Login & Signup (/auth/login, /auth/signup)</div>
+        <div class="tree-node tree-node-1">• Authenticated App Dashboard (/(dashboard))</div>
+        <div class="tree-node tree-node-2">○ Main Overview Dashboard (/dashboard)</div>
+        <div class="tree-node tree-node-2">○ AI Board Meeting Simulator (/board-meeting)</div>
+        <div class="tree-node tree-node-2">○ Daily Executive Office Chat (/office) & General Chat (/chat)</div>
+        <div class="tree-node tree-node-2">○ Business Strategy & Strategy Brief (/strategies, /brief)</div>
+        <div class="tree-node tree-node-2">○ Ship-Pack Exporter (/ship-pack) & Playbook (/playbook)</div>
+        <div class="tree-node tree-node-2">○ Execution Tasks & Commit Tracker (/tasks, /commit)</div>
+        <div class="tree-node tree-node-2">○ Social Proof Generator (/social) & Account Settings (/settings, /upgrade)</div>
+        <div class="tree-node tree-node-1">• Administrative Portal (/(admin)/admin)</div>
+        <div class="tree-node tree-node-2">○ AI Token & Budget Analytics (/admin/costs)</div>
+        <div class="tree-node tree-node-2">○ Email Marketing & Campaign Sender (/admin/email-marketing)</div>
+        <div class="tree-node tree-node-2">○ Testimonials & Social Proof Management (/admin/social-proof)</div>
+        <div class="tree-node tree-node-1">• Legal & Utility Pages</div>
+        <div class="tree-node tree-node-2">○ Terms (/terms), Privacy (/privacy), Refunds (/refunds), Data Usage (/data-usage), Delete Account (/delete-account)</div>
+      </div>
+
+      <h3>What the tech team captured</h3>
+      <div class="checklist-grid">
+        <div class="check-item"><div class="check-box checked"></div> <div>Every live page, including unlinked dashboard & admin subroutes.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Parent pages and child routes clearly nested.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Dynamic template pages (Strategies, Playbooks, Ship Packs).</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Utility pages (Auth login, billing checkout, terms, privacy).</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>API endpoints & webhooks mapped for background sync.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Primary navigation, sidebar navigation, and admin security bounds.</div></div>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">4</div>
+    </div>
+  </div>
+
+  <!-- PAGE 5: 03 FEATURE MAP -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <div class="section-header-banner">
+        <div class="section-num-box">03</div>
+        <div class="section-title-box">FEATURE MAP</div>
+      </div>
+
+      <p>This answers: What does the website actually do, where does each feature appear, and who can manage it?</p>
+
+      <div class="callout-box">
+        <h3>Why this is the most important section</h3>
+        <p>Clients often think a website is only a set of pages. Operationally, it is a collection of features, visitor flows, integrations, and responsibilities. The feature map makes those moving parts visible.</p>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>What it does</th>
+            <th>Where it appears</th>
+            <th>Client edit?</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Derek AI Mentor</strong></td>
+            <td>Interactive AI strategist providing real-time advice & floating chat.</td>
+            <td>Global widget & /office</td>
+            <td>Limited</td>
+            <td>Persona calibrated via knowledge files & system prompt.</td>
+          </tr>
+          <tr>
+            <td><strong>AI Board Meeting</strong></td>
+            <td>Simulates C-suite advisory board (CEO, CMO, CTO, CFO) for strategic decisions.</td>
+            <td>/board-meeting</td>
+            <td>No</td>
+            <td>Powered by Google Gemini 3.1 Pro API.</td>
+          </tr>
+          <tr>
+            <td><strong>Onboarding Questionnaire</strong></td>
+            <td>Captures user business goals, revenue targets, and operational challenges.</td>
+            <td>/onboard</td>
+            <td>Yes</td>
+            <td>Form fields & step logic edited in Next.js component.</td>
+          </tr>
+          <tr>
+            <td><strong>Ship-Pack Generator</strong></td>
+            <td>Packages AI strategy into downloadable execution blueprints.</td>
+            <td>/ship-pack</td>
+            <td>Yes</td>
+            <td>Exports formatted PDF / Markdown for team execution.</td>
+          </tr>
+          <tr>
+            <td><strong>Stripe Billing</strong></td>
+            <td>Processes monthly/annual subscription upgrades for Pro tier.</td>
+            <td>/upgrade & /api/billing</td>
+            <td>Limited</td>
+            <td>Price IDs & plans configured in Stripe Dashboard.</td>
+          </tr>
+          <tr>
+            <td><strong>AI Cost Analytics</strong></td>
+            <td>Monitors API token usage, cost per session, and cost guardrails.</td>
+            <td>/admin/costs</td>
+            <td>Yes</td>
+            <td>Admin can set max spend limits & alert thresholds.</td>
+          </tr>
+          <tr>
+            <td><strong>Email Campaigns</strong></td>
+            <td>Sends automated weekly action steps & promotional newsletters.</td>
+            <td>/admin/email-marketing</td>
+            <td>Yes</td>
+            <td>Template editor connects to Resend Email API.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Feature inventory checklist</h3>
+      <div class="checklist-grid">
+        <div class="check-item"><div class="check-box checked"></div> <div>AI Questionnaire & Calibration</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Stripe Subscription & Checkout</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>AI C-Suite Board Meeting Simulator</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Ship-Pack Exporter & Playbooks</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Weekly Action Item Commit Tracker</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Floating Derek AI Chat Assistant</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Supabase Auth & Session Security</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Admin AI Token Cost Analytics</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Resend Email Newsletter Engine</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Social Proof & Testimonial Manager</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Google Analytics 4 Telemetry</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Chrome Extension API Endpoints</div></div>
+      </div>
+
+      <div class="callout-blue-bg" style="margin-top: 8px;">
+        <h3>Ownership rule</h3>
+        <p>Never write only "Yes" or "No" when editing is limited. State exactly what the client can change, where they change it, and what requires technical agency support.</p>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">5</div>
+    </div>
+  </div>
+
+  <!-- PAGE 6: 04 USER JOURNEY FLOW -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <div class="section-header-banner">
+        <div class="section-num-box">04</div>
+        <div class="section-title-box">USER JOURNEY FLOW</div>
+      </div>
+
+      <p>This answers: How does a visitor move through the website and reach the main business outcome?</p>
+
+      <h3>Primary Journey: Founder Strategy & Subscription Flow</h3>
+
+      <div class="flow-container">
+        <div class="flow-box">
+          <div class="flow-box-title">1. Visitor lands on Homepage</div>
+          <div class="flow-box-desc">Traffic arrives from organic search, social ads, direct referral, or Chrome Extension.</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">2. Meets Derek AI & Reads Value Proposition</div>
+          <div class="flow-box-desc">Visitor interacts with sample AI prompt or reads value proposition ("No fluff, just metrics").</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">3. Starts Onboarding Interview (/onboard)</div>
+          <div class="flow-box-desc">Completes multi-step business questionnaire (niche, revenue goal, team size, bottleneck).</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">4. Generates Initial Business Strategy</div>
+          <div class="flow-box-desc">Google Gemini API analyzes inputs and builds a customized 90-day execution strategy preview.</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">5. Upgrades to Pro / Billionaire Tier</div>
+          <div class="flow-box-desc">User clicks "Unlock Pro Execution", completes checkout via Stripe Payment Gateway.</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">6. Accesses C-Suite Board Meeting & Daily Office</div>
+          <div class="flow-box-desc">Holds AI Board Meetings, tracks weekly commits, and exports monthly Ship-Packs.</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">7. Automated Follow-Up & Weekly Action Steps</div>
+          <div class="flow-box-desc">Receives automated email reminders via Resend API and tracks revenue wins over time.</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">6</div>
+    </div>
+  </div>
+
+  <!-- PAGE 7: 04 USER JOURNEY FLOW: BUSINESS LOGIC -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <div class="section-header-banner">
+        <div class="section-num-box">04</div>
+        <div class="section-title-box">USER JOURNEY: BUSINESS LOGIC</div>
+      </div>
+
+      <p>Document the website as a business machine, not only as a digital brochure.</p>
+
+      <div class="callout-blue-bg">
+        <h3>What the journey should prove</h3>
+        <p>The website should connect visitor demand to a measurable outcome. Each major step should reduce confusion, build trust, and move the visitor closer to action.</p>
+      </div>
+
+      <h3>Journey Element Record</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 25%;">Journey element</th>
+            <th>What to record</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Entry point</strong></td>
+            <td>Homepage (`/`), Onboarding landing (`/onboard`), Framework overview (`/framework`), or Chrome extension.</td>
+          </tr>
+          <tr>
+            <td><strong>Visitor problem</strong></td>
+            <td>Lack of clarity on business growth priorities, lack of executive accountability, and inefficient execution.</td>
+          </tr>
+          <tr>
+            <td><strong>Decision content</strong></td>
+            <td>Interactive Derek preview, pricing plans comparison, client testimonials, and sample Board Meeting transcript.</td>
+          </tr>
+          <tr>
+            <td><strong>Conversion action</strong></td>
+            <td>Submitting the onboarding interview and purchasing a Pro membership via Stripe checkout.</td>
+          </tr>
+          <tr>
+            <td><strong>System response</strong></td>
+            <td>Instant Supabase session auth, automated welcome email via Resend, and generation of strategy profile.</td>
+          </tr>
+          <tr>
+            <td><strong>Owner follow-up</strong></td>
+            <td>Automated weekly action email + client dashboard notifications + agency support escalation if flagged.</td>
+          </tr>
+          <tr>
+            <td><strong>Success measurement</strong></td>
+            <td>Tracked via Google Analytics 4 (conversions), Stripe Dashboard (MRR), and Admin Cost Analytics (user retention).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout-box">
+        <h3>Demand check</h3>
+        <p>Real demand is tied to problem intensity, urgency, how easily the audience can be reached, and whether people already take action or pay for a solution. The journey map shows how the website turns that demand into a business result.</p>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">7</div>
+    </div>
+  </div>
+
+  <!-- PAGE 8: 05 ADMIN EDITING GUIDE -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <div class="section-header-banner">
+        <div class="section-num-box">05</div>
+        <div class="section-title-box">ADMIN EDITING GUIDE</div>
+      </div>
+
+      <p>This answers: How can the client update the website without accidentally breaking it?</p>
+
+      <div class="callout-box">
+        <h3>Simple SOP rule</h3>
+        <p>Each instruction should name the exact menu, page, field, button, and final check. Add screenshots beside the steps whenever the interface is not obvious.</p>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 25%;">Task</th>
+            <th>Steps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Edit homepage copy</strong></td>
+            <td>Go to `src/app/page.tsx` or CMS -> Edit hero headline / copy -> Save file -> Run `npm run build` or push git commit -> Verify live site.</td>
+          </tr>
+          <tr>
+            <td><strong>Update Derek AI Persona</strong></td>
+            <td>Go to `knowledge files/` or Admin Portal -> Edit calibration text file -> Re-deploy -> Test Derek response in `/office` chat.</td>
+          </tr>
+          <tr>
+            <td><strong>Send Email Newsletter</strong></td>
+            <td>Go to `/admin/email-marketing` -> Click New Campaign -> Enter Subject & Body -> Select Audience -> Click Send via Resend.</td>
+          </tr>
+          <tr>
+            <td><strong>Monitor AI Costs</strong></td>
+            <td>Go to `/admin/costs` -> Review daily token spend graphs -> Verify budget guardrail limits ($50/day max) -> Adjust if needed.</td>
+          </tr>
+          <tr>
+            <td><strong>Manage Beta Testers</strong></td>
+            <td>Go to `/admin/beta-testers` -> View applicant queue -> Click Approve/Reject -> System sends automated invitation email.</td>
+          </tr>
+          <tr>
+            <td><strong>Manage Testimonials</strong></td>
+            <td>Go to `/admin/social-proof` -> Click Add Testimonial -> Enter founder name, photo, quote, rating -> Click Publish.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Every SOP should include</h3>
+      <div class="checklist-grid">
+        <div class="check-item"><div class="check-box checked"></div> <div>The purpose of the task.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>The exact admin area or tool to open.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Numbered steps in the correct order.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Screenshots with correct buttons highlighted.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>What should not be changed.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>How to preview before publishing.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>How to confirm the update worked.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Who to contact when the result looks wrong.</div></div>
+      </div>
+
+      <div class="callout-blue-bg" style="margin-top: 8px;">
+        <h3>Before making a change (Safe Editing Rules)</h3>
+        <p>Create a backup or git branch when the task affects layout, code, database schemas, integrations, navigation, payments, or API keys. Small content edits should still be previewed on staging before publishing.</p>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">8</div>
+    </div>
+  </div>
+
+  <!-- PAGE 9: 06 INTEGRATION / DATA FLOW MAP -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <div class="section-header-banner">
+        <div class="section-num-box">06</div>
+        <div class="section-title-box">INTEGRATION & DATA FLOW MAP</div>
+      </div>
+
+      <p>This answers: Where does information go after a visitor submits a form, books, buys, signs up, or logs in?</p>
+
+      <h3>Flow 1: User Onboarding & AI Strategy Generation</h3>
+      <div class="flow-container">
+        <div class="flow-box">
+          <div class="flow-box-title">Onboarding Form Submission</div>
+          <div class="flow-box-desc">Visitor completes business questionnaire on `/onboard`.</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">Next.js API Route (/api/questionnaire)</div>
+          <div class="flow-box-desc">Validates payload, sanitize inputs via DOMPurify.</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">Google Gemini AI SDK (@google/genai)</div>
+          <div class="flow-box-desc">Processes prompt with knowledge files calibration & generates executive strategy.</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">Supabase Database Storage</div>
+          <div class="flow-box-desc">Stores user profile, strategy blueprint JSON, and initial action steps.</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">Resend Email Welcome Notification</div>
+          <div class="flow-box-desc">Automated email dispatched with strategy summary and login magic link.</div>
+        </div>
+      </div>
+
+      <h3>Flow 2: Pro Tier Subscription & Stripe Billing</h3>
+      <div class="flow-container">
+        <div class="flow-box">
+          <div class="flow-box-title">Checkout Click on /upgrade</div>
+          <div class="flow-box-desc">User selects Pro monthly ($49/mo) or annual plan ($490/yr).</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">Stripe Hosted Checkout Page</div>
+          <div class="flow-box-desc">Securely handles credit card processing & PCI compliance.</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-box">
+          <div class="flow-box-title">Stripe Webhook Handler (/api/webhooks/stripe)</div>
+          <div class="flow-box-desc">Receives `checkout.session.completed` & updates user subscription status in Supabase.</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">9</div>
+    </div>
+  </div>
+
+  <!-- PAGE 10: 06 INTEGRATION INVENTORY -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <div class="section-header-banner">
+        <div class="section-num-box">06</div>
+        <div class="section-title-box">INTEGRATION INVENTORY</div>
+      </div>
+
+      <p>Record the systems, owners, access links, data handled, and failure checks for every important connection.</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>System / integration</th>
+            <th>Purpose</th>
+            <th>Data handled</th>
+            <th>Owner</th>
+            <th>Failure check</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Supabase Auth & DB</strong></td>
+            <td>User authentication & relational data storage.</td>
+            <td>User credentials, session tokens, strategy records, commit logs.</td>
+            <td>Sienvi / Client</td>
+            <td>Test signup on `/auth/login` & inspect Supabase console logs.</td>
+          </tr>
+          <tr>
+            <td><strong>Stripe Gateway</strong></td>
+            <td>Payment authorization & recurring subscription billing.</td>
+            <td>Credit card tokens, customer IDs, plan tiers, payment events.</td>
+            <td>Client</td>
+            <td>Perform test purchase using Stripe test card & verify webhook.</td>
+          </tr>
+          <tr>
+            <td><strong>Google Gemini API</strong></td>
+            <td>Powers Derek AI, C-Suite Board Meetings, and Ship Packs.</td>
+            <td>User prompt text, persona calibration context, token usage.</td>
+            <td>Sienvi Agency</td>
+            <td>Check `/api/chat` response & verify API key validity in `.env.local`.</td>
+          </tr>
+          <tr>
+            <td><strong>Resend Email API</strong></td>
+            <td>Transactional emails, welcome messages, and newsletter campaigns.</td>
+            <td>Recipient email, subscriber status, email templates.</td>
+            <td>Client / Sienvi</td>
+            <td>Send test campaign via `/admin/email-marketing` & check inbox.</td>
+          </tr>
+          <tr>
+            <td><strong>Google Analytics 4</strong></td>
+            <td>Tracks website traffic, conversion events, and page views.</td>
+            <td>Anonymous visitor behavior, page hits, UTM parameters.</td>
+            <td>Client</td>
+            <td>Open GA4 Realtime Dashboard & trigger test page view.</td>
+          </tr>
+          <tr>
+            <td><strong>Chrome Extension API</strong></td>
+            <td>Enables quick chat & prompt insertion from browser bar.</td>
+            <td>Auth session key, page context snippets.</td>
+            <td>Sienvi Agency</td>
+            <td>Verify response on `/api/extension` endpoint.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout-blue-bg">
+        <h3>Priority systems</h3>
+        <p>This map is essential for AI strategy generation, subscription payment processing, database security, email deliverability, token cost monitoring, and Chrome extension cross-platform sync.</p>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">10</div>
+    </div>
+  </div>
+
+  <!-- PAGE 11: COMPLETION CHECKLIST -->
+  <div class="page">
+    <div class="header">
+      <div>SIENVI AGENCY</div>
+      <div class="doc-title">WEBSITE HANDOFF MAP</div>
+    </div>
+    <div class="content-body">
+      <h2>WEBSITE HANDOFF COMPLETION CHECKLIST</h2>
+      <p>Use this before the project is marked complete or the client becomes responsible for ongoing website management.</p>
+
+      <h3>Website overview</h3>
+      <div class="checklist-grid" style="grid-template-columns: 1fr; margin-bottom: 12px;">
+        <div class="check-item"><div class="check-box checked"></div> <div>Website purpose, audience, and main conversion are written in plain language.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Client and Sienvi Agency responsibilities are clearly separated.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>All important links (App, Admin, Supabase, Stripe, Resend, Vercel) are included and tested.</div></div>
+      </div>
+
+      <h3>Structure and features</h3>
+      <div class="checklist-grid" style="grid-template-columns: 1fr; margin-bottom: 12px;">
+        <div class="check-item"><div class="check-box checked"></div> <div>Every live page and subroute is included in the sitemap.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Every important feature (AI Board Meeting, Derek Chat, Ship Packs, Stripe, Admin) is included in the feature map.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Editing permissions and technical limitations are clearly documented.</div></div>
+      </div>
+
+      <h3>Journeys and data</h3>
+      <div class="checklist-grid" style="grid-template-columns: 1fr; margin-bottom: 12px;">
+        <div class="check-item"><div class="check-box checked"></div> <div>The primary visitor journey is mapped from entry to business outcome.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Every form, onboarding interview, purchase, signup, and login flow is tested.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Integrations and data destinations are fully documented in the inventory map.</div></div>
+      </div>
+
+      <h3>Client operations & security</h3>
+      <div class="checklist-grid" style="grid-template-columns: 1fr; margin-bottom: 12px;">
+        <div class="check-item"><div class="check-box checked"></div> <div>Common editing SOPs (copy, persona calibration, email campaigns, cost guardrails) are complete.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Admin roles use minimum required access rights.</div></div>
+        <div class="check-item"><div class="check-box checked"></div> <div>Passwords & API keys stored in secure environment variables / 1Password.</div></div>
+      </div>
+
+      <div class="callout-box" style="margin-top: 12px;">
+        <h3>Final standard</h3>
+        <p>A handoff is complete only when the client can understand the website, operate the common tasks, recognize the limits of their access, and know exactly where to go when something fails.</p>
+      </div>
+    </div>
+    <div class="footer">
+      <div>Client Handoff Documentation</div>
+      <div>sienvi.com</div>
+      <div class="page-num">11</div>
+    </div>
+  </div>
+
+</body>
+</html>
