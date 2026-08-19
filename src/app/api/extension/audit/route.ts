@@ -14,6 +14,40 @@ function getCorsHeaders(request: Request) {
     };
 }
 
+const RETAIL_SEASON_HINTS: Record<number, string> = {
+    0: 'Winter clearance / New Year, New You',
+    1: "Valentine's Day into early spring",
+    2: 'Early spring, spring break travel',
+    3: 'Spring, Easter, spring refresh',
+    4: 'Late spring, Mother\'s Day, wedding season ramp-up',
+    5: 'Early summer, Father\'s Day, summer kickoff',
+    6: 'Peak summer',
+    7: 'Late summer, back-to-school',
+    8: 'Early fall, back-to-school tail, football season',
+    9: 'Fall, Halloween, harvest/pumpkin season',
+    10: 'Late fall, Thanksgiving, Black Friday/Cyber Monday lead-up',
+    11: 'Holiday season, Christmas/Hanukkah, year-end gifting',
+};
+
+function getRetailSeasonHint(date: Date): string {
+    return RETAIL_SEASON_HINTS[date.getMonth()] || 'current retail season';
+}
+
+function looksLikeRetail(snapshot: any): boolean {
+    const haystack = [
+        snapshot?.title,
+        snapshot?.metaDescription,
+        ...(snapshot?.h1 || []),
+        ...(snapshot?.h2 || []),
+        ...(snapshot?.ctaText || []),
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    // Pricing blocks alone are not distinctive (SaaS plan pages have them too) —
+    // require at least one product/ecommerce-specific keyword as well.
+    const retailKeywords = ['shop', 'cart', 'checkout', 'shipping', 'add to cart', 'product', 'collection', 'sale', 'store'];
+    return retailKeywords.some(k => haystack.includes(k));
+}
+
 export async function runAuditAnalysis(runId: string, snapshot: any, userId: string, auditScope: string = 'page') {
     const serviceClient = await createServiceClient();
 
@@ -36,13 +70,22 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
 
         // Prepare the prompt for Gemini
         const isMultiPage = auditScope === 'domain' || auditScope === 'subpath';
-        const systemInstruction = DEREK_FULL_PROMPT + `\n\n` + 
+        const isRetail = looksLikeRetail(snapshot);
+        const today = new Date();
+        const seasonalInstruction = isRetail
+            ? `\n\nSEASONAL CONTEXT: Today's date is ${today.toDateString()} (${getRetailSeasonHint(today)}). ` +
+              `This page appears to sell physical/retail products. ALSO evaluate whether its copy, imagery cues, offers, and on-page SEO signals (headings, meta description, product/category naming) are aligned with the current retail season. ` +
+              `Flag missed seasonal merchandising opportunities and suggest specific, concrete seasonal copy/SEO angles the page could adopt. Set seasonalRelevance.applicable to true and fill in the seasonal fields. ` +
+              `If the page is not retail/ecommerce, set seasonalRelevance.applicable to false and leave the other seasonal fields empty.`
+            : `\n\nThis page does not appear to be retail/ecommerce. Set seasonalRelevance.applicable to false and leave the other seasonal fields empty.`;
+        const systemInstruction = DEREK_FULL_PROMPT + `\n\n` +
             `You are performing a ${isMultiPage ? 'complete website and multi-page conversion' : 'webpage quality, conversion,'} and legal technicality audit for a user's page snapshot. ` +
             `Review the HTML/DOM signals extracted from the active page ${isMultiPage ? 'and key sub-pages across the domain.' : '.'} ` +
             `Provide extremely blunt, strategic, and high-roi feedback in Derek's voice. ` +
             `Identify critical conversion leaks, cross-page funnel gaps, what they are doing right, and what they are doing wrong. ` +
             `In addition, perform a thorough LEGAL TECHNICALITIES & COMPLIANCE audit of the webpage/website. Evaluate privacy disclaimers, Terms of Service visibility, earnings disclaimers, FTC compliance, CAN-SPAM rules, cookie/GDPR compliance cues, refund policies, deceptive guarantees, or dark patterns. ` +
-            `You must return a structured JSON response matching the required schema. Do not include markdown wraps or anything other than the JSON object.`;
+            seasonalInstruction +
+            `\n\nYou must return a structured JSON response matching the required schema. Do not include markdown wraps or anything other than the JSON object.`;
 
         let subPagesText = '';
         if (snapshot.subPages && Array.isArray(snapshot.subPages) && snapshot.subPages.length > 0) {
@@ -117,6 +160,22 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
                                 complianceRisk: { type: Type.STRING }
                             },
                             required: ['summary', 'dos', 'donts', 'complianceRisk']
+                        },
+                        seasonalRelevance: {
+                            type: Type.OBJECT,
+                            properties: {
+                                applicable: { type: Type.BOOLEAN },
+                                currentSeason: { type: Type.STRING },
+                                misalignment: {
+                                    type: Type.ARRAY,
+                                    items: { type: Type.STRING }
+                                },
+                                suggestedSeasonalMoves: {
+                                    type: Type.ARRAY,
+                                    items: { type: Type.STRING }
+                                }
+                            },
+                            required: ['applicable']
                         }
                     },
                     required: ['whatThisPageSells', 'whoItIsFor', 'whatIsStrong', 'whatIsWeak', 'topConversionLeaks', 'bestNextMove', 'legalTechnicalities']
