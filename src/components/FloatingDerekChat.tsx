@@ -249,7 +249,11 @@ export function FloatingDerekChat() {
     }
 
     const handleMaximize = () => {
-        sessionStorage.setItem('derek_chat_return_url', pathname);
+        if (pathname && pathname !== '/' && pathname !== '/chat') {
+            try {
+                sessionStorage.setItem('derek_chat_return_url', pathname);
+            } catch { /* ignore storage errors */ }
+        }
         setOpen(false);
     };
 

@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/ses';
 
 export const dynamic = 'force-dynamic';
 
 const NOTIFY_EMAIL = 'tech@sienvi.com';
-const FROM_EMAIL = 'noreply@mybillionairebrother.com';
 const WEBHOOK_SECRET = process.env.SIGNUP_WEBHOOK_SECRET;
 
 /**
  * POST /api/webhooks/new-signup
  *
  * Called by a Supabase Database webhook on INSERT to auth.users.
- * Sends an internal notification email to the admin address.
+ * Sends an internal notification email to the admin address via Amazon SES.
  *
  * Supabase webhook payload shape (auth.users INSERT):
  * {
@@ -122,40 +121,19 @@ export async function POST(req: NextRequest) {
 </html>`;
 
     try {
-        const resendApiKey = process.env.RESEND_API_KEY;
-        if (!resendApiKey) {
-            console.error('[new-signup webhook] RESEND_API_KEY is not configured');
-            return NextResponse.json({ error: 'Email service not configured' }, { status: 500 });
-        }
-        const resend = new Resend(resendApiKey);
-
-        let sendResult = await resend.emails.send({
-            from: `The Billionaire Brother <${FROM_EMAIL}>`,
-            to: [NOTIFY_EMAIL],
+        const sendResult = await sendEmail({
+            to: NOTIFY_EMAIL,
             subject: `👑 New Signup: ${email} [${tier.toUpperCase()}]`,
             html: htmlBody,
         });
 
-        // Smart Fallback for unverified domains / sandbox mode
-        if (sendResult.error && (sendResult.error as any).statusCode === 403) {
-            console.warn(
-                `[new-signup webhook] Main send failed (domain unverified). Falling back to Resend Sandbox mode.`
-            );
-            sendResult = await resend.emails.send({
-                from: 'The Billionaire Brother Sandbox <onboarding@resend.dev>',
-                to: ['teamsienvi@gmail.com'],
-                subject: `👑 [Sandbox] New Signup: ${email} [${tier.toUpperCase()}]`,
-                html: htmlBody + '<p style="color:#FFD700; font-size:12px; margin-top:20px;">⚠️ Note: This email was sent using Resend Sandbox fallback because the domain <strong>mybillionairebrother.com</strong> is not verified.</p>',
-            });
-        }
-
-        if (sendResult.error) {
-            console.error('[new-signup webhook] Resend error:', sendResult.error);
+        if (!sendResult.success) {
+            console.error('[new-signup webhook] AWS SES send error:', sendResult.error);
             return NextResponse.json({ error: 'Email send failed', details: sendResult.error }, { status: 500 });
         }
 
-        console.log(`[new-signup webhook] Notification sent for ${email}, resend id: ${sendResult.data?.id}`);
-        return NextResponse.json({ success: true, emailId: sendResult.data?.id });
+        console.log(`[new-signup webhook] Notification sent for ${email}, SES Message ID: ${sendResult.messageId}`);
+        return NextResponse.json({ success: true, messageId: sendResult.messageId });
     } catch (err) {
         console.error('[new-signup webhook] Unexpected error:', err);
         return NextResponse.json({ error: 'Unexpected error' }, { status: 500 });

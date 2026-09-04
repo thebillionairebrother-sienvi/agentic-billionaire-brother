@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { CreditCard, User, LogOut, TestTube2, Zap, Tag, DollarSign, TrendingUp, Save } from 'lucide-react';
+import { CreditCard, User, LogOut, TestTube2, Zap, Tag, DollarSign, TrendingUp, Save, RotateCcw, AlertTriangle, X } from 'lucide-react';
 
 interface UsageStatus {
     tier: string;
@@ -51,9 +51,37 @@ function SettingsInner() {
     const [revenuePlatformInput, setRevenuePlatformInput] = useState('');
     const [revenueSaving, setRevenueSaving] = useState(false);
     const [revenueSaved, setRevenueSaved] = useState(false);
+    const [showResetModal, setShowResetModal] = useState(false);
+    const [resettingAccount, setResettingAccount] = useState(false);
     const supabase = createClient();
     const router = useRouter();
     const searchParams = useSearchParams();
+
+    const handleAccountReset = async () => {
+        setResettingAccount(true);
+        try {
+            const res = await fetch('/api/reset-strategy', { method: 'POST' });
+            if (!res.ok) throw new Error('Failed to reset account data');
+            try {
+                localStorage.removeItem('derek_interview_history');
+                localStorage.removeItem('derek_interview_complete');
+                localStorage.removeItem('derek_interview_extracted');
+                localStorage.removeItem('bb_checklist_pos');
+                localStorage.removeItem('bb_checklist_dismissed');
+            } catch {
+                // ignore
+            }
+            setToast({ message: 'Account data reset successfully! Redirecting...', type: 'success' });
+            setTimeout(() => {
+                router.push('/onboard');
+                router.refresh();
+            }, 800);
+        } catch (err) {
+            setToast({ message: err instanceof Error ? err.message : 'Reset failed', type: 'error' });
+            setResettingAccount(false);
+            setShowResetModal(false);
+        }
+    };
 
     useEffect(() => {
         loadProfile();
@@ -127,12 +155,17 @@ function SettingsInner() {
     };
 
     const loadProfile = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
-        const { data } = await supabase.from('users').select('*').eq('id', user.id).single();
-        if (data) setUserProfile(data);
-        setLoading(false);
+            const { data } = await supabase.from('users').select('*').eq('id', user.id).single();
+            if (data) setUserProfile(data);
+        } catch {
+            // ignore
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleBillingPortal = async () => {
@@ -544,11 +577,124 @@ function SettingsInner() {
                 </div>
             )}
 
+            {/* Danger Zone: Reset Account Data */}
+            <div className={`card ${styles.section}`} style={{
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                background: 'rgba(239, 68, 68, 0.03)',
+            }}>
+                <h3 className="heading-md" style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AlertTriangle size={18} /> Danger Zone: Reset Account Data
+                </h3>
+                <p className="text-secondary" style={{ fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', lineHeight: 1.5 }}>
+                    Permanently wipe your current strategy, business profile answers, execution contract, deliverables, and daily tasks. Your account will return to the initial onboarding phase so you can start a fresh interview with Derek.
+                </p>
+                <button
+                    id="settings-reset-account-btn"
+                    className="btn btn-danger"
+                    onClick={() => setShowResetModal(true)}
+                    style={{ alignSelf: 'flex-start' }}
+                >
+                    <RotateCcw size={15} /> Reset Account Data
+                </button>
+            </div>
+
             <div className={`card ${styles.section}`}>
-                <button className="btn btn-danger" onClick={handleSignOut}>
+                <button className="btn btn-secondary" onClick={handleSignOut} style={{ color: 'var(--text-secondary)' }}>
                     <LogOut size={16} /> Sign Out
                 </button>
             </div>
+
+            {/* Account Reset Confirmation Modal */}
+            {showResetModal && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 1000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(0, 0, 0, 0.75)',
+                        backdropFilter: 'blur(6px)',
+                    }}
+                    onClick={() => !resettingAccount && setShowResetModal(false)}
+                >
+                    <div
+                        style={{
+                            position: 'relative',
+                            background: 'var(--surface-card, #1c1c1c)',
+                            border: '1px solid var(--surface-border, rgba(255, 255, 255, 0.1))',
+                            borderRadius: 'var(--radius-xl, 16px)',
+                            padding: 'var(--space-8, 2rem)',
+                            maxWidth: '460px',
+                            width: '90vw',
+                            textAlign: 'center',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            style={{
+                                position: 'absolute',
+                                top: '16px',
+                                right: '16px',
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-tertiary, #888)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                            }}
+                            onClick={() => setShowResetModal(false)}
+                            disabled={resettingAccount}
+                        >
+                            <X size={18} />
+                        </button>
+
+                        <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '60px',
+                            height: '60px',
+                            borderRadius: '50%',
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            color: '#ef4444',
+                            marginBottom: '1rem',
+                        }}>
+                            <AlertTriangle size={30} />
+                        </div>
+
+                        <h2 style={{ fontSize: 'var(--text-xl, 1.25rem)', fontWeight: 700, marginBottom: '0.75rem', color: '#fff' }}>
+                            Reset Account Data?
+                        </h2>
+                        <p style={{ fontSize: 'var(--text-sm, 0.875rem)', color: 'var(--text-secondary, #aaa)', lineHeight: 1.6, marginBottom: '0.5rem' }}>
+                            This will <strong>permanently delete</strong> all active strategies, business profile data, execution contracts, deliverables, and tasks.
+                        </p>
+                        <p style={{ fontSize: 'var(--text-xs, 0.75rem)', color: '#ef4444', fontWeight: 600, marginBottom: '1.5rem' }}>
+                            You will be redirected to the onboarding interview to restart from scratch.
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setShowResetModal(false)}
+                                disabled={resettingAccount}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                id="settings-confirm-reset-btn"
+                                className="btn btn-danger"
+                                onClick={handleAccountReset}
+                                disabled={resettingAccount}
+                                style={{ fontWeight: 600 }}
+                            >
+                                {resettingAccount ? 'Resetting...' : 'Yes, Reset Account'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Slide-in/Fade-in Toast Alert Popup Notification */}
             {toast && (

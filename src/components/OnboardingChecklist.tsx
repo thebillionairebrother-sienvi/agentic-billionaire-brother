@@ -67,12 +67,12 @@ function clamp(val: number, min: number, max: number) {
     return Math.min(Math.max(val, min), max);
 }
 
-/** Returns a safe default position: bottom-center of the viewport, clear of the sidebar */
+/** Returns a safe default position: bottom-right of the viewport */
 function defaultPos(): DragPos {
-    if (typeof window === 'undefined') return { x: 400, y: 700 };
+    if (typeof window === 'undefined') return { x: 1000, y: 700 };
     return {
-        x: Math.round(window.innerWidth / 2 - 80),
-        y: window.innerHeight - 68,
+        x: Math.max(16, window.innerWidth - 180),
+        y: Math.max(16, window.innerHeight - 56),
     };
 }
 
@@ -84,8 +84,8 @@ function loadPos(): DragPos {
             const p = JSON.parse(raw) as DragPos;
             // Clamp against current viewport in case screen size changed
             return {
-                x: clamp(p.x, 0, window.innerWidth - 160),
-                y: clamp(p.y, 0, window.innerHeight - 48),
+                x: clamp(p.x, 16, window.innerWidth - 180),
+                y: clamp(p.y, 16, window.innerHeight - 56),
             };
         }
     } catch { /* ignore */ }
@@ -280,11 +280,11 @@ export function OnboardingChecklist({ userId }: Props) {
         zIndex: 800,
     };
 
-    // Panel anchors just above the trigger
+    // Panel anchors just above the trigger in the bottom-right
     const panelStyle: React.CSSProperties = {
         position: 'fixed',
-        left: Math.min(pos.x, window.innerWidth - 360),
-        top: Math.max(8, pos.y - 460),
+        left: Math.max(16, Math.min(pos.x - 170, window.innerWidth - 360)),
+        top: Math.max(16, pos.y - 480),
         zIndex: 801,
     };
 

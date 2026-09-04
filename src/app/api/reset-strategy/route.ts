@@ -70,16 +70,35 @@ export async function POST() {
         // 11. Generation jobs
         await admin.from('generation_jobs').delete().eq('user_id', uid);
 
-        // 12. Reset onboarding flag so user goes through interview again
+        // 12. Chat messages and conversations
+        const { data: conversations } = await admin
+            .from('chat_conversations')
+            .select('id')
+            .eq('user_id', uid);
+
+        const convIds = (conversations || []).map((c: { id: string }) => c.id);
+        if (convIds.length > 0) {
+            await admin.from('chat_messages').delete().in('conversation_id', convIds);
+            await admin.from('chat_conversations').delete().eq('user_id', uid);
+        }
+
+        // 13. Reset onboarding flag and revenue fields on user record
         await admin
             .from('users')
-            .update({ onboarding_complete: false })
+            .update({
+                onboarding_complete: false,
+                current_revenue_range: null,
+                baseline_monthly_revenue: null,
+                current_monthly_revenue: null,
+                revenue_platform: null,
+                revenue_updated_at: null,
+            })
             .eq('id', uid);
 
         // Log the reset action
         await admin.from('audit_logs').insert({
             user_id: uid,
-            action: 'strategy_reset',
+            action: 'account_reset',
             entity_type: 'user',
             entity_id: uid,
             metadata: { reset_at: new Date().toISOString() },

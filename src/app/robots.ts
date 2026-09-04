@@ -24,7 +24,7 @@ export default function robots(): MetadataRoute.Robots {
         '/delete-account/'
       ],
     },
-    sitemap: 'https://mybillionairebrother.com/sitemap.xml',
+    sitemap: 'https://thebillionairebrother.com/sitemap.xml',
   };
 }
 

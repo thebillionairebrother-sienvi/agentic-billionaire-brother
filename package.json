@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.1119.0",
     "@google/adk": "^1.0.0",
     "@google/genai": "^1.44.0",
     "@next/third-parties": "^16.2.4",
@@ -21,7 +22,6 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
-    "resend": "^6.12.3",
     "stripe": "^20.3.1"
   },
   "devDependencies": {
@@ -33,6 +33,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "playwright": "^1.62.1",
     "postcss": "^8.5.15",
     "tailwindcss": "^4.3.0",
     "typescript": "^5"

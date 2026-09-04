@@ -15,6 +15,15 @@ export function ResetStrategyButton() {
         try {
             const res = await fetch('/api/reset-strategy', { method: 'POST' });
             if (!res.ok) throw new Error('Failed to reset');
+            try {
+                localStorage.removeItem('derek_interview_history');
+                localStorage.removeItem('derek_interview_complete');
+                localStorage.removeItem('derek_interview_extracted');
+                localStorage.removeItem('bb_checklist_pos');
+                localStorage.removeItem('bb_checklist_dismissed');
+            } catch {
+                // ignore
+            }
             router.push('/onboard');
             router.refresh();
         } catch (err) {

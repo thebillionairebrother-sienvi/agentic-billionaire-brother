@@ -117,8 +117,8 @@ export default function PrivacyPolicy() {
           extension audit page content is not sent to Google Analytics for advertising.
         </li>
         <li>
-          <strong>Resend:</strong> Delivers account and service-related email communications; extension webpage
-          content is not sent to Resend.
+          <strong>Amazon Simple Email Service (SES):</strong> Delivers account and service-related email communications; extension webpage
+          content is not sent to Amazon SES.
         </li>
       </ul>
       <p>

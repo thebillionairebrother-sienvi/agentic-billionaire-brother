@@ -18,6 +18,7 @@ import {
     HelpCircle,
     Mail,
     Shield,
+    MessageSquare,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { User } from '@/lib/types';
@@ -32,6 +33,7 @@ interface DashboardSidebarProps {
 const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/office', icon: Briefcase, label: 'Your Office' },
+    { href: '/chat', icon: MessageSquare, label: 'Chat with Derek' },
     { href: '/ship-pack', icon: Package, label: 'Action Steps' },
     { href: '/board-meeting', icon: CalendarCheck, label: 'Weekly Check-in' },
     { href: '/brief', icon: FileText, label: 'Strategy Brief' },
@@ -121,7 +123,14 @@ export function DashboardSidebar({ user, isAdmin, isBeta }: DashboardSidebarProp
                                 key={item.href}
                                 href={item.href}
                                 className={`${styles.navItem} ${isBeta && isActive ? styles.betaActive : isActive ? styles.active : ''}`}
-                                onClick={() => setMobileOpen(false)}
+                                onClick={() => {
+                                    setMobileOpen(false);
+                                    if (item.href === '/chat' && pathname && pathname !== '/chat' && pathname !== '/') {
+                                        try {
+                                            sessionStorage.setItem('derek_chat_return_url', pathname);
+                                        } catch { /* storage unavailable */ }
+                                    }
+                                }}
                             >
                                 <item.icon size={20} />
                                 {!collapsed && <span>{item.label}</span>}

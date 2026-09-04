@@ -37,8 +37,16 @@ export default function ChatPage() {
     const router = useRouter();
 
     const handleMinimize = () => {
-        const returnUrl = sessionStorage.getItem('derek_chat_return_url') || '/';
-        sessionStorage.setItem('open_derek_chat', 'true');
+        let returnUrl = '/dashboard';
+        try {
+            const storedUrl = sessionStorage.getItem('derek_chat_return_url');
+            sessionStorage.removeItem('derek_chat_return_url');
+            if (storedUrl && storedUrl !== '/' && storedUrl !== '/chat') {
+                returnUrl = storedUrl;
+            }
+            sessionStorage.setItem('open_derek_chat', 'true');
+        } catch { /* ignore storage errors */ }
+
         router.push(returnUrl);
     };
 

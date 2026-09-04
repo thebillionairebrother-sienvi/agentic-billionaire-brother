@@ -17,7 +17,7 @@ They are **one product split across two repos** — the extension is a client of
 
 ## Main web platform (`agentic-billionaire-brother`)
 
-- **Stack**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Supabase (`@supabase/ssr`, `@supabase/supabase-js`) for auth/DB, Stripe for billing, Resend for email, Google GenAI/ADK (`@google/genai`, `@google/adk`) for the AI layer.
+- **Stack**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Supabase (`@supabase/ssr`, `@supabase/supabase-js`) for auth/DB, Stripe for billing, Amazon SES for email, Google GenAI/ADK (`@google/genai`, `@google/adk`) for the AI layer.
 - **Deploy**: Vercel (`vercel.json`) and/or Firebase App Hosting (`apphosting.yaml`).
 - **Structure**:
   - `src/app/` — App Router pages: `(admin)`, `(dashboard)`, `auth`, `beta`, `contact`, `guide`, legal pages (`privacy`, `terms`, `refunds`, `data-usage`, `delete-account`), plus SEO (`sitemap.ts`, `robots.ts`).
@@ -36,7 +36,7 @@ They are **one product split across two repos** — the extension is a client of
   - `service-worker/index.ts` — MV3 background service worker (context menus, cookie/session checks, tab listeners).
   - `sidepanel/` — main React app (`App.tsx`), report exporter (PDF/text), styles.
   - `popup/` — the toolbar popup.
-- **Backend integration**: talks to `mybillionairebrother.com` (or a local dev server via `bb_api_base` in Chrome storage) through:
+- **Backend integration**: talks to `thebillionairebrother.com` (or a local dev server via `bb_api_base` in Chrome storage) through:
   - `GET /api/extension/session` — auth/tier check (requires `brother` or `team` subscription tier)
   - `POST /api/extension/audit` — submit a page snapshot for auditing
   - `GET /api/extension/runs/[id]` — poll audit job status

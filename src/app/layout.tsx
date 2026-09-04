@@ -5,7 +5,7 @@ import { FloatingDerekChat } from '@/components/FloatingDerekChat';
 import { GoogleAnalytics } from '@next/third-parties/google';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://mybillionairebrother.com'),
+  metadataBase: new URL('https://thebillionairebrother.com'),
   title: 'The Billionaire Brother — Your AI Business Strategist',
   description:
     'Meet Derek — your Billionaire Brother AI strategist. He interviews you, builds your strategy, and gives you weekly Action Steps to execute. No fluff. Just metrics and execution.',
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'The Billionaire Brother — Your AI Business Strategist',
     description: 'Meet Derek — your Billionaire Brother AI strategist. He interviews you, builds your strategy, and gives you weekly Action Steps to execute.',
-    url: 'https://mybillionairebrother.com',
+    url: 'https://thebillionairebrother.com',
     siteName: 'The Billionaire Brother',
     images: [
       {
@@ -57,7 +57,7 @@ export default function RootLayout({
             applicationCategory: 'BusinessApplication',
             operatingSystem: 'Web',
             description: 'AI-powered business strategist that interviews you, builds your strategy, and delivers weekly action steps for execution.',
-            url: 'https://mybillionairebrother.com',
+            url: 'https://thebillionairebrother.com',
             offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Free tier available' },
           }) }}
         />
@@ -67,7 +67,7 @@ export default function RootLayout({
             '@context': 'https://schema.org',
             '@type': 'WebSite',
             name: 'The Billionaire Brother',
-            url: 'https://mybillionairebrother.com',
+            url: 'https://thebillionairebrother.com',
             description: 'AI-powered business strategy and execution platform.',
           }) }}
         />
