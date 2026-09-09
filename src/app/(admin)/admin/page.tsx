@@ -5,6 +5,7 @@ import { AlertTriangle, X } from 'lucide-react';
 import { ExecutiveMetricsGrid } from '@/components/admin/ExecutiveMetricsGrid';
 
 import { EmailCampaignStats } from '@/components/admin/EmailCampaignStats';
+import { ExtensionAnalytics } from '@/components/admin/ExtensionAnalytics';
 import styles from './page.module.css';
 
 interface UserData {
@@ -204,6 +205,9 @@ export default function AdminDashboard() {
 
             {/* Billionaire Brother Email Campaign KPIs */}
             <EmailCampaignStats />
+
+            {/* Billionaire Brother Chrome Extension Analytics */}
+            <ExtensionAnalytics />
 
             {/* Users Table */}
             <div className={`card ${styles.tableCard}`}>

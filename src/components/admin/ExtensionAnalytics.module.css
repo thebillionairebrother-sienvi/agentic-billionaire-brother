@@ -1,0 +1,405 @@
+/* ExtensionAnalytics.module.css */
+
+.section {
+    margin-top: var(--space-8);
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--space-5);
+    flex-wrap: wrap;
+    gap: var(--space-4);
+}
+
+.headerTitleWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.titleRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.liveBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: var(--radius-full, 9999px);
+    font-size: 11px;
+    font-weight: 600;
+    color: #4ade80;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.liveDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 12px #22c55e; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.gaLinkBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: rgba(255, 191, 0, 0.08);
+    border: 1px solid rgba(255, 191, 0, 0.25);
+    border-radius: var(--radius-md);
+    color: var(--gold-400, #fbbf24);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.gaLinkBtn:hover {
+    background: rgba(255, 191, 0, 0.18);
+    border-color: rgba(255, 191, 0, 0.5);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.refreshBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    background: var(--bg-glass);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.refreshBtn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--surface-border-hover);
+}
+
+.refreshBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ─── KPI Grid ─── */
+.kpiGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.kpiCard {
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    transition: all var(--duration-base) var(--ease-out);
+}
+
+.kpiCard:hover {
+    border-color: var(--surface-border-hover);
+    transform: translateY(-1px);
+}
+
+.kpiIcon {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--surface-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.kpiContent {
+    display: flex;
+    flex-direction: column;
+}
+
+.kpiValue {
+    font-size: var(--text-xl);
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.kpiLabel {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+
+.kpiSubtext {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ─── Insights Grid ─── */
+.insightsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+@media (max-width: 1024px) {
+    .insightsGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.insightCard {
+    background: var(--bg-glass);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+}
+
+.insightTitle {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.distList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: auto;
+}
+
+.distItem {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.distLabelRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.distLabel {
+    color: var(--text-secondary);
+}
+
+.distValue {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.distTrack {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.distFill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.6s ease;
+}
+
+/* ─── Domain list ─── */
+.domainList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.domainRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.domainName {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+.domainBadge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    background: rgba(255, 191, 0, 0.12);
+    color: var(--gold-400);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+}
+
+/* ─── Table Card ─── */
+.tableCard {
+    background: var(--bg-glass);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-6);
+}
+
+.tableWrapper {
+    overflow-x: auto;
+    margin-top: var(--space-3);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.table th {
+    text-align: left;
+    padding: var(--space-3);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--surface-border);
+}
+
+.tableRow {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.tableRow:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.table td {
+    padding: var(--space-3);
+    vertical-align: middle;
+}
+
+.userCell {
+    display: flex;
+    flex-direction: column;
+}
+
+.userEmail {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.domainCell {
+    display: flex;
+    flex-direction: column;
+}
+
+.targetUrl {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ─── Expand Drawer ─── */
+.expandDetail {
+    padding: var(--space-4) var(--space-5);
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid var(--surface-border);
+}
+
+.detailGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+.detailBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detailLabel {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--gold-400);
+    letter-spacing: 0.05em;
+}
+
+.detailText {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.leakList {
+    margin: 4px 0 0 16px;
+    padding: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* ─── Empty state ─── */
+.emptyState {
+    text-align: center;
+    padding: var(--space-8);
+    color: var(--text-tertiary);
+}
