@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import {
     Activity, Globe, Users, ShieldAlert, FileText,
-    ExternalLink, RefreshCw, ChevronDown, ChevronUp, Layers, CheckCircle2, AlertTriangle
+    ExternalLink, RefreshCw, ChevronDown, ChevronUp, Layers, CheckCircle2, AlertTriangle,
+    Search, X
 } from 'lucide-react';
 import type { ExtensionStatsData, ExtensionAuditSummary } from '@/app/api/admin/extension-stats/route';
 import styles from './ExtensionAnalytics.module.css';
@@ -14,6 +15,8 @@ export function ExtensionAnalytics() {
     const [error, setError] = useState<string | null>(null);
     const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
     const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+    const [searchQuery, setSearchQuery] = useState('');
+    const [visibleCount, setVisibleCount] = useState(5);
 
     const fetchData = async () => {
         setLoading(true);
@@ -67,6 +70,19 @@ export function ExtensionAnalytics() {
     const totalActions = (data?.telemetryCounts.sidepanelOpens || 0) +
         (data?.telemetryCounts.pdfExports || 0) +
         (data?.telemetryCounts.textCopies || 0);
+
+    const filteredAudits = (data?.recentAudits || []).filter(audit => {
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.toLowerCase().trim();
+        const userMatch = audit.userEmail.toLowerCase().includes(q) || audit.userName.toLowerCase().includes(q);
+        const scopeMatch = audit.scope.toLowerCase().includes(q);
+        const domainMatch = audit.domain.toLowerCase().includes(q) || audit.url.toLowerCase().includes(q);
+        const riskMatch = audit.complianceRisk.toLowerCase().includes(q);
+        return userMatch || scopeMatch || domainMatch || riskMatch;
+    });
+
+    const displayedAudits = filteredAudits.slice(0, visibleCount);
+    const hasMore = visibleCount < filteredAudits.length;
 
     return (
         <section className={styles.section}>
@@ -293,11 +309,40 @@ export function ExtensionAnalytics() {
                 </div>
             </div>
 
-            {/* Recent Audits Table */}
+            {/* Recent Audits Table with Search and Show More */}
             <div className={styles.tableCard}>
-                <div className={styles.insightTitle} style={{ marginBottom: 0 }}>
-                    <Activity size={16} style={{ color: 'var(--gold-400)' }} />
-                    <span>Recent Extension Audits Activity</span>
+                <div className={styles.tableHeaderRow}>
+                    <div className={styles.insightTitle} style={{ marginBottom: 0 }}>
+                        <Activity size={16} style={{ color: 'var(--gold-400)' }} />
+                        <span>Recent Extension Audits Activity</span>
+                    </div>
+
+                    <div className={styles.searchWrap}>
+                        <Search size={14} className={styles.searchIcon} />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={e => {
+                                setSearchQuery(e.target.value);
+                                setVisibleCount(5); // Reset visible count to 5 on filter change
+                            }}
+                            placeholder="Search by user, scope, or domain..."
+                            className={styles.searchInput}
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setVisibleCount(5);
+                                }}
+                                className={styles.clearSearchBtn}
+                                title="Clear search"
+                            >
+                                <X size={13} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className={styles.tableWrapper}>
@@ -314,8 +359,8 @@ export function ExtensionAnalytics() {
                             </tr>
                         </thead>
                         <tbody>
-                            {data?.recentAudits && data.recentAudits.length > 0 ? (
-                                data.recentAudits.map((audit: ExtensionAuditSummary) => {
+                            {displayedAudits.length > 0 ? (
+                                displayedAudits.map((audit: ExtensionAuditSummary) => {
                                     const isExpanded = expandedAuditId === audit.id;
                                     return (
                                         <React.Fragment key={audit.id}>
@@ -410,13 +455,44 @@ export function ExtensionAnalytics() {
                             ) : (
                                 <tr>
                                     <td colSpan={7} className={styles.emptyState}>
-                                        No extension audits recorded yet. Open the extension and run an audit to see live telemetry!
+                                        {searchQuery ? (
+                                            <>No extension audits matching &quot;{searchQuery}&quot; found.</>
+                                        ) : (
+                                            <>No extension audits recorded yet. Open the extension and run an audit to see live telemetry!</>
+                                        )}
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination / Show More */}
+                {filteredAudits.length > 0 && (
+                    <div className={styles.paginationFooter}>
+                        <span className={styles.showingCount}>
+                            Showing {Math.min(visibleCount, filteredAudits.length)} of {filteredAudits.length} audits
+                            {searchQuery && ` (filtered from ${data?.recentAudits.length || 0} total)`}
+                        </span>
+
+                        {hasMore ? (
+                            <button
+                                type="button"
+                                onClick={() => setVisibleCount(prev => prev + 5)}
+                                className={styles.showMoreBtn}
+                            >
+                                <span>Show More (+5)</span>
+                                <ChevronDown size={14} />
+                            </button>
+                        ) : (
+                            filteredAudits.length > 5 && (
+                                <span className={styles.showingCount} style={{ fontStyle: 'italic' }}>
+                                    All {filteredAudits.length} matching audits displayed
+                                </span>
+                            )
+                        )}
+                    </div>
+                )}
             </div>
         </section>
     );
