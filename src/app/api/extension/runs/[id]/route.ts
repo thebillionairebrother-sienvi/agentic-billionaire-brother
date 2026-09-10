@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
+import { getExtensionUser } from '@/lib/extension-auth';
 
 function getCorsHeaders(request: Request) {
     const origin = request.headers.get('origin') || '*';
@@ -19,7 +20,7 @@ export async function GET(
 
     try {
         const { id } = await params;
-        const { supabase, user } = await createMobileAwareClient(request);
+        const user = await getExtensionUser(request);
 
         if (!user) {
             return NextResponse.json(
@@ -47,6 +48,9 @@ export async function GET(
         const status = metadata.status || 'queued';
         const result = metadata.result || null;
         const error_message = metadata.error_message || null;
+        const snapshot = metadata.snapshot || null;
+        const auditScope = metadata.auditScope || 'page';
+        const messages = metadata.messages || [];
 
         return NextResponse.json(
             {
@@ -54,6 +58,10 @@ export async function GET(
                 status,
                 result,
                 error_message,
+                snapshot,
+                auditScope,
+                messages,
+                created_at: auditLog.created_at,
             },
             { status: 200, headers: corsHeaders }
         );

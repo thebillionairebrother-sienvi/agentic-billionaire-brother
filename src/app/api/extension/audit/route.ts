@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
-import ai, { GEMINI_MODEL } from '@/lib/gemini';
+import { getExtensionUser } from '@/lib/extension-auth';
+import ai, { GEMINI_EXTENSION_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { Type } from '@google/genai';
 
@@ -48,6 +49,44 @@ function looksLikeRetail(snapshot: any): boolean {
     return retailKeywords.some(k => haystack.includes(k));
 }
 
+async function generateWithRetry(primaryModel: string, args: any, maxRetries = 2) {
+    const fallbackModel = 'gemini-2.5-flash';
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await ai.models.generateContent({
+                model: primaryModel,
+                ...args,
+            });
+        } catch (err: any) {
+            const isQuotaExceeded = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('RESOURCE_EXHAUSTED') || err?.message?.includes('quota');
+            const is503Unavailable = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('high demand') || err?.message?.includes('UNAVAILABLE');
+
+            // If quota is exhausted or model is unavailable, immediately use fallback model
+            if ((isQuotaExceeded || is503Unavailable) && primaryModel !== fallbackModel) {
+                console.warn(`[extension/audit] Primary model ${primaryModel} ${isQuotaExceeded ? 'quota exceeded' : 'unavailable'}. Falling back to ${fallbackModel}...`);
+                try {
+                    return await ai.models.generateContent({
+                        model: fallbackModel,
+                        ...args,
+                    });
+                } catch (fallbackErr: any) {
+                    console.error(`[extension/audit] Fallback model ${fallbackModel} failed:`, fallbackErr);
+                    throw fallbackErr;
+                }
+            }
+
+            if (is503Unavailable && attempt < maxRetries) {
+                console.warn(`[extension/audit] Model ${primaryModel} busy on attempt ${attempt + 1}, retrying in 1s...`);
+                await new Promise(r => setTimeout(r, 1000));
+                continue;
+            }
+
+            throw err;
+        }
+    }
+    throw new Error(`Failed to generate content from ${primaryModel}`);
+}
+
 export async function runAuditAnalysis(runId: string, snapshot: any, userId: string, auditScope: string = 'page') {
     const serviceClient = await createServiceClient();
 
@@ -78,6 +117,16 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
               `Flag missed seasonal merchandising opportunities and suggest specific, concrete seasonal copy/SEO angles the page could adopt. Set seasonalRelevance.applicable to true and fill in the seasonal fields. ` +
               `If the page is not retail/ecommerce, set seasonalRelevance.applicable to false and leave the other seasonal fields empty.`
             : `\n\nThis page does not appear to be retail/ecommerce. Set seasonalRelevance.applicable to false and leave the other seasonal fields empty.`;
+        const visionInstruction = snapshot.screenshot
+            ? `\n\nVISUAL & MULTIMODAL AUDIT INSTRUCTIONS: ` +
+              `A high-resolution visual screenshot of the webpage is provided with this audit. ` +
+              `You must directly look at the visual imagery, layout, and graphics! Pay special attention to: ` +
+              `1) Promotional banners, seasonal graphics, badges, hero imagery, and text embedded inside images (e.g. Fall / Autumn promotions, Halloween sales, Black Friday teasers, seasonal holiday banners, coupon codes, or discount ribbons). ` +
+              `2) Visual contrast, button prominence, above-the-fold clarity, and whether text-in-images is legible or cluttered. ` +
+              `3) Misalignment between visual banners and on-page text (e.g., banner announces a Fall Sale but copy/pricing is outdated). ` +
+              `You MUST reflect these visual findings in whatThisPageSells, whatIsStrong, whatIsWeak, topConversionLeaks, and especially seasonalRelevance.`
+            : '';
+
         const systemInstruction = DEREK_FULL_PROMPT + `\n\n` +
             `You are performing a ${isMultiPage ? 'complete website and multi-page conversion' : 'webpage quality, conversion,'} and legal technicality audit for a user's page snapshot. ` +
             `Review the HTML/DOM signals extracted from the active page ${isMultiPage ? 'and key sub-pages across the domain.' : '.'} ` +
@@ -85,6 +134,7 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
             `Identify critical conversion leaks, cross-page funnel gaps, what they are doing right, and what they are doing wrong. ` +
             `In addition, perform a thorough LEGAL TECHNICALITIES & COMPLIANCE audit of the webpage/website. Evaluate privacy disclaimers, Terms of Service visibility, earnings disclaimers, FTC compliance, CAN-SPAM rules, cookie/GDPR compliance cues, refund policies, deceptive guarantees, or dark patterns. ` +
             seasonalInstruction +
+            visionInstruction +
             `\n\nYou must return a structured JSON response matching the required schema. Do not include markdown wraps or anything other than the JSON object.`;
 
         let subPagesText = '';
@@ -119,11 +169,61 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
             `User selected text: "${snapshot.selectedText}"\n` +
             `Visible button labels: ${JSON.stringify(snapshot.visibleButtonLabels)}` +
             `${subPagesText}\n\n` +
-            `Analyze this ${scopeTitle} snapshot, evaluate conversion performance, and perform Derek's Legal & Compliance technicality audit.`;
+            `Analyze this ${scopeTitle} snapshot and attached visual screenshot, evaluate conversion performance, visual merchandising, and perform Derek's Legal & Compliance technicality audit.`;
 
-        const response = await ai.models.generateContent({
-            model: GEMINI_MODEL,
-            contents: userPrompt,
+        const parts: any[] = [{ text: userPrompt }];
+
+        // Attach visual screenshot for Gemini 3.8 Flash multimodal inspection
+        if (snapshot.screenshot && typeof snapshot.screenshot === 'string') {
+            const base64Data = snapshot.screenshot.replace(/^data:image\/\w+;base64,/, '');
+            const mimeType = snapshot.screenshot.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/jpeg';
+            parts.push({
+                inlineData: {
+                    mimeType,
+                    data: base64Data,
+                }
+            });
+        }
+
+        // Attach promo banner images if present (either base64 or by fetching URL directly)
+        if (snapshot.promoImages && Array.isArray(snapshot.promoImages)) {
+            for (const img of snapshot.promoImages.slice(0, 3)) {
+                if (img.base64 && typeof img.base64 === 'string') {
+                    const base64Data = img.base64.replace(/^data:image\/\w+;base64,/, '');
+                    const mimeType = img.base64.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/jpeg';
+                    parts.push({
+                        inlineData: {
+                            mimeType,
+                            data: base64Data,
+                        }
+                    });
+                } else if (img.src && typeof img.src === 'string' && (img.src.startsWith('http') || img.src.startsWith('//'))) {
+                    try {
+                        const targetUrl = img.src.startsWith('//') ? `https:${img.src}` : img.src;
+                        const imgRes = await fetch(targetUrl, { signal: AbortSignal.timeout(4000) });
+                        if (imgRes.ok) {
+                            const buffer = await imgRes.arrayBuffer();
+                            if (buffer.byteLength > 500 && buffer.byteLength < 4_000_000) {
+                                const base64Data = Buffer.from(buffer).toString('base64');
+                                const mimeType = (imgRes.headers.get('content-type') || 'image/jpeg').split(';')[0];
+                                parts.push({
+                                    inlineData: {
+                                        mimeType,
+                                        data: base64Data,
+                                    }
+                                });
+                                console.log(`[extension/audit] Attached visual hero/promo banner from ${targetUrl}`);
+                            }
+                        }
+                    } catch (e: any) {
+                        console.warn(`[extension/audit] Could not fetch promo image from ${img.src}:`, e.message);
+                    }
+                }
+            }
+        }
+
+        const response = await generateWithRetry(GEMINI_EXTENSION_MODEL, {
+            contents: [{ role: 'user', parts }],
             config: {
                 systemInstruction,
                 responseMimeType: 'application/json',
@@ -224,7 +324,7 @@ export async function POST(request: Request) {
     const corsHeaders = getCorsHeaders(request);
 
     try {
-        const { supabase, user } = await createMobileAwareClient(request);
+        const user = await getExtensionUser(request);
         if (!user) {
             return NextResponse.json(
                 { error: 'Unauthorized' },

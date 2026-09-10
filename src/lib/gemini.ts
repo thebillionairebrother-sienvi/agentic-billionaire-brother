@@ -14,6 +14,7 @@ ai.models.generateContent = async function (args) {
     return originalGenerateContent(args);
 };
 
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-pro';
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+export const GEMINI_EXTENSION_MODEL = process.env.GEMINI_EXTENSION_MODEL || 'gemini-3.8-flash';
 
 export default ai;

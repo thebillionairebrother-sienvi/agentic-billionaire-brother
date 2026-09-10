@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
+import { getExtensionUser } from '@/lib/extension-auth';
 
 function getCorsHeaders(request: Request) {
     const origin = request.headers.get('origin') || '*';
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
     const corsHeaders = getCorsHeaders(request);
 
     try {
-        const { supabase, user } = await createMobileAwareClient(request);
+        const user = await getExtensionUser(request);
 
         if (!user) {
             return NextResponse.json(
