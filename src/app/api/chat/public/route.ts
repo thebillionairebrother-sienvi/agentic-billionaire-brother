@@ -127,8 +127,9 @@ Always respond in this exact JSON format:
 
 REACTION RULES:
 - "reaction" is a 2-3 word emotional phrase that captures the VIBE of your response
-- It will be used to search for a GIF, so make it expressive and searchable
+- It will be used to select or search for a GIF, so make it expressive and searchable
 - Examples: "let's go", "I feel you", "oh come on", "proud of you", "hmm thinking", "not buying it", "you got this"
+- CRITICAL: When something good happens (e.g. founder shares a win, hits a milestone, completes a task, closes a deal, makes money, or shares good news), celebrate with high brotherly energy! Use "Bababooey" (your signature hype celebration shout!) or celebratory reactions like "Bababooey", "huge win", "let's go", "crushed it", "proud of you".
 - Always include a reaction, never leave it empty
 - Never include the reaction phrase in the response text`;
         } else {
@@ -157,8 +158,9 @@ Always respond in this exact JSON format:
 
 REACTION RULES:
 - "reaction" is a 2-3 word emotional phrase that captures the VIBE of your response
-- It will be used to search for a GIF, so make it expressive and searchable
+- It will be used to select or search for a GIF, so make it expressive and searchable
 - Examples: "let's go", "I feel you", "oh come on", "proud of you", "hmm thinking", "not buying it", "you got this"
+- CRITICAL: When something good happens (e.g. founder shares a win, hits a milestone, makes progress, or shares good news), celebrate with high brotherly energy! Use "Bababooey" (your signature hype celebration shout!) or celebratory reactions like "Bababooey", "huge win", "let's go", "crushed it", "proud of you".
 - Always include a reaction, never leave it empty
 - Never include the reaction phrase in the response text`;
         }

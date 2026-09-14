@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getGifFromPool } from '@/lib/gif-pool';
 import styles from './GifBubble.module.css';
 
 interface GifBubbleProps {
@@ -10,13 +11,15 @@ interface GifBubbleProps {
 }
 
 export function GifBubble({ reaction, gifUrl: preloadedGifUrl }: GifBubbleProps) {
-    const [gifUrl, setGifUrl] = useState<string | null>(preloadedGifUrl || null);
-    const [loading, setLoading] = useState(!preloadedGifUrl);
+    const poolGif = getGifFromPool(reaction);
+    const initialGifUrl = preloadedGifUrl || poolGif || null;
+    const [gifUrl, setGifUrl] = useState<string | null>(initialGifUrl);
+    const [loading, setLoading] = useState(!initialGifUrl && Boolean(reaction));
 
     useEffect(() => {
-        // If we already have a pre-fetched URL, no need to fetch
-        if (preloadedGifUrl) {
-            setGifUrl(preloadedGifUrl);
+        // If we already have a pre-fetched URL or a matching GIF pool entry, no network fetch needed
+        if (preloadedGifUrl || poolGif) {
+            setGifUrl(preloadedGifUrl || poolGif);
             setLoading(false);
             return;
         }

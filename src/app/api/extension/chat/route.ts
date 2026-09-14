@@ -157,7 +157,15 @@ export async function POST(request: Request) {
             `Best Next Move: ${auditResult?.bestNextMove || 'N/A'}\n\n` +
             `The user has follow-up questions about this audit, your advice, copy rewrites, leak fixes, seasonal strategy, or legal compliance. ` +
             `Provide direct, actionable, tactical guidance in Derek's sharp, high-standards voice. If they ask for copy rewrites or disclaimers, write them out cleanly. ` +
-            `Keep responses punchy, high-leverage, and strictly aligned with revenue growth.\n` +
+            `Keep responses punchy, high-leverage, and strictly aligned with revenue growth.\n\n` +
+            `FORMATTING REQUIREMENTS FOR "response":\n` +
+            `- Always use clean GitHub-Flavored Markdown for high readability.\n` +
+            `- Use "### " for major section headers (e.g. "### REAL YET HARD TRUTHS", "### ACTIONABLE STEPS", "### HERO COPY REWRITE").\n` +
+            `- Never output a single continuous wall of text. Use blank lines between paragraphs and sections.\n` +
+            `- For multi-step advice, put each step on its own separate line starting with "1. ", "2. ", "3. " with a blank line before the list.\n` +
+            `- Bold the title of each step (e.g. "1. **Rebuild the Hero Grid:** ...").\n` +
+            `- Use indented bullets ("   * ") for sub-recommendations, rationale, or copy variations.\n` +
+            `- Use fenced code blocks (\`\`\`copy ... \`\`\`) for exact copy rewrites or disclaimers so the user can easily copy them.\n\n` +
             `Respond in JSON format: { "reaction": "2-4 word blunt reaction", "response": "Your full response" }`;
 
         // Format Gemini history
