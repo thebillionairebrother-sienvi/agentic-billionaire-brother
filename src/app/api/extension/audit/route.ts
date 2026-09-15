@@ -4,6 +4,10 @@ import { getExtensionUser } from '@/lib/extension-auth';
 import ai, { GEMINI_EXTENSION_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { Type } from '@google/genai';
+import { logUsageAndCost } from '@/lib/middleware/meter-logger';
+import { checkUsageGuard } from '@/lib/middleware/usage-guard';
+import { GuardError } from '@/lib/middleware/types';
+import type { Tier } from '@/lib/ai-config';
 
 function getCorsHeaders(request: Request) {
     const origin = request.headers.get('origin') || '*';
@@ -87,7 +91,7 @@ async function generateWithRetry(primaryModel: string, args: any, maxRetries = 2
     throw new Error(`Failed to generate content from ${primaryModel}`);
 }
 
-export async function runAuditAnalysis(runId: string, snapshot: any, userId: string, auditScope: string = 'page') {
+export async function runAuditAnalysis(runId: string, snapshot: any, userId: string, auditScope: string = 'page', userTier: string = 'brother') {
     const serviceClient = await createServiceClient();
 
     try {
@@ -222,6 +226,7 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
             }
         }
 
+        const startTime = Date.now();
         const response = await generateWithRetry(GEMINI_EXTENSION_MODEL, {
             contents: [{ role: 'user', parts }],
             config: {
@@ -283,6 +288,7 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
             }
         });
 
+        const latencyMs = Date.now() - startTime;
         const rawText = response.text || '';
         const result = JSON.parse(rawText.trim());
 
@@ -299,6 +305,19 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
                 }
             })
             .eq('id', runId);
+
+        // Meter extension audit usage & cost against user account
+        const effectiveTier: Tier = userTier === 'team' ? 'team' : 'brother';
+        await logUsageAndCost(serviceClient, {
+            userId,
+            tier: effectiveTier,
+            endpoint: '/api/extension/audit',
+            inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            latencyMs,
+            isDegradeMode: false,
+            model: GEMINI_EXTENSION_MODEL,
+        });
 
         console.log(`[extension/audit] Job ${runId} completed successfully.`);
     } catch (err: any) {
@@ -365,6 +384,20 @@ export async function POST(request: Request) {
             );
         }
 
+        // Check usage caps / guardrails
+        const effectiveTier: Tier = tier === 'team' ? 'team' : tier === 'brother' ? 'brother' : 'free';
+        try {
+            await checkUsageGuard(serviceClient, user.id, effectiveTier, { email: user.email });
+        } catch (guardErr: any) {
+            if (guardErr instanceof GuardError) {
+                return NextResponse.json(
+                    { error: guardErr.message },
+                    { status: guardErr.statusCode || 429, headers: corsHeaders }
+                );
+            }
+            throw guardErr;
+        }
+
         const body = await request.json();
         const { snapshot, auditScope = 'page' } = body;
 
@@ -400,7 +433,7 @@ export async function POST(request: Request) {
         const runId = auditLog.id;
 
         // Trigger analysis in background asynchronously (do not await)
-        runAuditAnalysis(runId, snapshot, user.id, auditScope).catch(err => {
+        runAuditAnalysis(runId, snapshot, user.id, auditScope, tier).catch(err => {
             console.error(`[extension/audit] Background process error for job ${runId}:`, err);
         });
 

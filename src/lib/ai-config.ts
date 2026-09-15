@@ -56,17 +56,28 @@ export const TIER_CONFIG: Record<Tier, TierEntitlements> = {
 // ─── Pricing ───
 // Budget pricing (2.5× safety margin) used for cap enforcement
 // Actual pricing used for cost reporting only
-// Model: gemini-2.5-pro
+export const ALL_MODEL_PRICING: Record<string, {
+    actual: { input_per_1m_tokens: number; output_per_1m_tokens: number };
+    budget: { input_per_1m_tokens: number; output_per_1m_tokens: number };
+}> = {
+    'gemini-2.5-pro': {
+        actual: { input_per_1m_tokens: 1.25, output_per_1m_tokens: 10.00 },
+        budget: { input_per_1m_tokens: 3.125, output_per_1m_tokens: 25.00 },
+    },
+    'gemini-3.8-flash': {
+        actual: { input_per_1m_tokens: 0.075, output_per_1m_tokens: 0.30 },
+        budget: { input_per_1m_tokens: 0.1875, output_per_1m_tokens: 0.75 },
+    },
+    'gemini-2.5-flash': {
+        actual: { input_per_1m_tokens: 0.075, output_per_1m_tokens: 0.30 },
+        budget: { input_per_1m_tokens: 0.1875, output_per_1m_tokens: 0.75 },
+    },
+};
+
 export const MODEL_PRICING = {
     model: 'gemini-2.5-pro' as const,
-    actual: {
-        input_per_1m_tokens: 1.25,
-        output_per_1m_tokens: 10.00,
-    },
-    budget: {
-        input_per_1m_tokens: 3.125,
-        output_per_1m_tokens: 25.00,
-    },
+    actual: ALL_MODEL_PRICING['gemini-2.5-pro'].actual,
+    budget: ALL_MODEL_PRICING['gemini-2.5-pro'].budget,
 };
 
 // ─── Degrade / Alert Thresholds ───
@@ -178,16 +189,31 @@ export type ThinkingLevelValue = typeof THINKING_LEVELS[keyof typeof THINKING_LE
 // ─── Cost Helpers ───
 export function calculateEstimatedCost(
     inputTokens: number,
-    outputTokens: number
+    outputTokens: number,
+    model: string = 'gemini-2.5-pro'
 ): { actual: number; budgeted: number } {
+    const pricing = ALL_MODEL_PRICING[model] || (model.includes('flash') ? ALL_MODEL_PRICING['gemini-3.8-flash'] : MODEL_PRICING);
     return {
         actual:
-            (inputTokens / 1_000_000) * MODEL_PRICING.actual.input_per_1m_tokens +
-            (outputTokens / 1_000_000) * MODEL_PRICING.actual.output_per_1m_tokens,
+            (inputTokens / 1_000_000) * pricing.actual.input_per_1m_tokens +
+            (outputTokens / 1_000_000) * pricing.actual.output_per_1m_tokens,
         budgeted:
-            (inputTokens / 1_000_000) * MODEL_PRICING.budget.input_per_1m_tokens +
-            (outputTokens / 1_000_000) * MODEL_PRICING.budget.output_per_1m_tokens,
+            (inputTokens / 1_000_000) * pricing.budget.input_per_1m_tokens +
+            (outputTokens / 1_000_000) * pricing.budget.output_per_1m_tokens,
     };
+}
+
+export const EXTENSION_ENDPOINTS = [
+    '/api/extension/audit',
+    '/api/extension/chat',
+] as const;
+
+export function isExtensionEndpoint(endpoint: string): boolean {
+    return endpoint.startsWith('/api/extension');
+}
+
+export function getEndpointChannel(endpoint: string): 'website' | 'extension' {
+    return isExtensionEndpoint(endpoint) ? 'extension' : 'website';
 }
 
 /**

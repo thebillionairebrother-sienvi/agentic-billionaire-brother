@@ -19,6 +19,7 @@ export interface MeterLogEntry {
     isDegradeMode: boolean;
     isRegen?: boolean;
     isExempt?: boolean;
+    model?: string;
 }
 
 export async function logUsageAndCost(
@@ -26,12 +27,13 @@ export async function logUsageAndCost(
     entry: MeterLogEntry
 ): Promise<void> {
     try {
-        const cost = calculateEstimatedCost(entry.inputTokens, entry.outputTokens);
+        const modelName = entry.model || GEMINI_MODEL;
+        const cost = calculateEstimatedCost(entry.inputTokens, entry.outputTokens, modelName);
 
         // 1. Write request log
         await supabase.from('request_logs').insert({
             user_id: entry.userId,
-            model: GEMINI_MODEL,
+            model: modelName,
             input_tokens: entry.inputTokens,
             output_tokens: entry.outputTokens,
             latency_ms: entry.latencyMs,

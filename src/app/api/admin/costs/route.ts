@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/admin';
-import { getCurrentMonthStart, TIER_CONFIG, THRESHOLDS, MODEL_PRICING } from '@/lib/ai-config';
+import { getCurrentMonthStart, TIER_CONFIG, THRESHOLDS, MODEL_PRICING, isExtensionEndpoint } from '@/lib/ai-config';
 
 export async function GET() {
     try {
@@ -45,6 +45,34 @@ export async function GET() {
                 .select('user_id, tier, status, charter_pricing'),
         ]);
 
+        // ── User channel split from request_logs ──
+        const userChannelMap = new Map<string, {
+            websiteCost: number;
+            extensionCost: number;
+            websiteRequests: number;
+            extensionRequests: number;
+        }>();
+
+        (requestLogs || []).forEach(log => {
+            const uid = log.user_id;
+            const isExt = isExtensionEndpoint(log.endpoint || '');
+            const prev = userChannelMap.get(uid) || {
+                websiteCost: 0,
+                extensionCost: 0,
+                websiteRequests: 0,
+                extensionRequests: 0,
+            };
+            const cost = Number(log.estimated_cost || 0);
+            if (isExt) {
+                prev.extensionCost += cost;
+                prev.extensionRequests += 1;
+            } else {
+                prev.websiteCost += cost;
+                prev.websiteRequests += 1;
+            }
+            userChannelMap.set(uid, prev);
+        });
+
         // ── Per-user costs ──
         const userCostMap = new Map<string, number>();
         (monthlyUsage || []).forEach(row => {
@@ -53,6 +81,12 @@ export async function GET() {
 
         const perUserCosts = (users || []).map(u => {
             const cost = userCostMap.get(u.id) || 0;
+            const channelData = userChannelMap.get(u.id) || {
+                websiteCost: 0,
+                extensionCost: 0,
+                websiteRequests: 0,
+                extensionRequests: 0,
+            };
             const sub = (subscriptions || []).find(s => s.user_id === u.id);
             const tier = sub?.tier || u.tier || 'brother';
             const cap = TIER_CONFIG[tier as keyof typeof TIER_CONFIG]?.monthly_dollar_cap || 50;
@@ -62,26 +96,110 @@ export async function GET() {
                 displayName: u.display_name,
                 tier,
                 monthlyCost: Math.round(cost * 10000) / 10000,
+                websiteCost: Math.round(channelData.websiteCost * 10000) / 10000,
+                extensionCost: Math.round(channelData.extensionCost * 10000) / 10000,
+                websiteRequests: channelData.websiteRequests,
+                extensionRequests: channelData.extensionRequests,
                 capPct: cap > 0 ? Math.round((cost / cap) * 100) : 0,
                 cap,
             };
         }).sort((a, b) => b.monthlyCost - a.monthlyCost);
 
-        // ── Per-endpoint costs ──
+        // ── Channel & Endpoint Breakdowns ──
         const endpointMap = new Map<string, { cost: number; count: number; inputTokens: number; outputTokens: number }>();
+        const websiteEndpointMap = new Map<string, { cost: number; count: number; inputTokens: number; outputTokens: number }>();
+        const extensionEndpointMap = new Map<string, { cost: number; count: number; inputTokens: number; outputTokens: number }>();
+
+        const websiteUsers = new Set<string>();
+        const extensionUsers = new Set<string>();
+
+        let websiteTotalCost = 0;
+        let websiteTotalRequests = 0;
+        let websiteTotalInputTokens = 0;
+        let websiteTotalOutputTokens = 0;
+
+        let extensionTotalCost = 0;
+        let extensionTotalRequests = 0;
+        let extensionTotalInputTokens = 0;
+        let extensionTotalOutputTokens = 0;
+
         (requestLogs || []).forEach(log => {
             const key = log.endpoint || 'unknown';
-            const prev = endpointMap.get(key) || { cost: 0, count: 0, inputTokens: 0, outputTokens: 0 };
+            const cost = Number(log.estimated_cost || 0);
+            const inTokens = log.input_tokens || 0;
+            const outTokens = log.output_tokens || 0;
+            const isExt = isExtensionEndpoint(key);
+
+            // Overall endpoint map
+            const prevAll = endpointMap.get(key) || { cost: 0, count: 0, inputTokens: 0, outputTokens: 0 };
             endpointMap.set(key, {
-                cost: prev.cost + Number(log.estimated_cost),
-                count: prev.count + 1,
-                inputTokens: prev.inputTokens + (log.input_tokens || 0),
-                outputTokens: prev.outputTokens + (log.output_tokens || 0),
+                cost: prevAll.cost + cost,
+                count: prevAll.count + 1,
+                inputTokens: prevAll.inputTokens + inTokens,
+                outputTokens: prevAll.outputTokens + outTokens,
             });
+
+            if (isExt) {
+                extensionTotalCost += cost;
+                extensionTotalRequests += 1;
+                extensionTotalInputTokens += inTokens;
+                extensionTotalOutputTokens += outTokens;
+                if (log.user_id) extensionUsers.add(log.user_id);
+
+                const prev = extensionEndpointMap.get(key) || { cost: 0, count: 0, inputTokens: 0, outputTokens: 0 };
+                extensionEndpointMap.set(key, {
+                    cost: prev.cost + cost,
+                    count: prev.count + 1,
+                    inputTokens: prev.inputTokens + inTokens,
+                    outputTokens: prev.outputTokens + outTokens,
+                });
+            } else {
+                websiteTotalCost += cost;
+                websiteTotalRequests += 1;
+                websiteTotalInputTokens += inTokens;
+                websiteTotalOutputTokens += outTokens;
+                if (log.user_id) websiteUsers.add(log.user_id);
+
+                const prev = websiteEndpointMap.get(key) || { cost: 0, count: 0, inputTokens: 0, outputTokens: 0 };
+                websiteEndpointMap.set(key, {
+                    cost: prev.cost + cost,
+                    count: prev.count + 1,
+                    inputTokens: prev.inputTokens + inTokens,
+                    outputTokens: prev.outputTokens + outTokens,
+                });
+            }
         });
+
         const perEndpoint = Array.from(endpointMap.entries())
             .map(([endpoint, data]) => ({ endpoint, ...data, cost: Math.round(data.cost * 10000) / 10000 }))
             .sort((a, b) => b.cost - a.cost);
+
+        const websiteEndpoints = Array.from(websiteEndpointMap.entries())
+            .map(([endpoint, data]) => ({ endpoint, ...data, cost: Math.round(data.cost * 10000) / 10000 }))
+            .sort((a, b) => b.cost - a.cost);
+
+        const extensionEndpoints = Array.from(extensionEndpointMap.entries())
+            .map(([endpoint, data]) => ({ endpoint, ...data, cost: Math.round(data.cost * 10000) / 10000 }))
+            .sort((a, b) => b.cost - a.cost);
+
+        const channels = {
+            website: {
+                totalCost: Math.round(websiteTotalCost * 10000) / 10000,
+                requestCount: websiteTotalRequests,
+                inputTokens: websiteTotalInputTokens,
+                outputTokens: websiteTotalOutputTokens,
+                activeUsers: websiteUsers.size,
+                endpoints: websiteEndpoints,
+            },
+            extension: {
+                totalCost: Math.round(extensionTotalCost * 10000) / 10000,
+                requestCount: extensionTotalRequests,
+                inputTokens: extensionTotalInputTokens,
+                outputTokens: extensionTotalOutputTokens,
+                activeUsers: extensionUsers.size,
+                endpoints: extensionEndpoints,
+            },
+        };
 
         // ── Per-tier costs ──
         const tierTotals: Record<string, { cost: number; count: number; users: number }> = {};
@@ -139,6 +257,8 @@ export async function GET() {
             month: monthStart,
             summary: {
                 totalAISpend: Math.round(totalAISpend * 10000) / 10000,
+                websiteAISpend: channels.website.totalCost,
+                extensionAISpend: channels.extension.totalCost,
                 avgCostPerUser: Math.round(avgCostPerUser * 10000) / 10000,
                 activeUsers,
                 totalUsers,
@@ -146,6 +266,7 @@ export async function GET() {
                 estimatedMonthlyRevenue,
                 alertCount: activeAlerts.length,
             },
+            channels,
             perUserCosts: perUserCosts.slice(0, 50), // Top 50
             perEndpoint,
             tierTotals,

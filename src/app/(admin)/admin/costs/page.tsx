@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DollarSign, Users, Activity, AlertTriangle, TrendingUp, Zap } from 'lucide-react';
+import { DollarSign, Users, Activity, AlertTriangle, TrendingUp, Zap, Globe, Chrome } from 'lucide-react';
 import styles from './page.module.css';
 
 interface Summary {
     totalAISpend: number;
+    websiteAISpend?: number;
+    extensionAISpend?: number;
     avgCostPerUser: number;
     activeUsers: number;
     totalUsers: number;
@@ -20,6 +22,10 @@ interface UserCost {
     displayName: string | null;
     tier: string;
     monthlyCost: number;
+    websiteCost?: number;
+    extensionCost?: number;
+    websiteRequests?: number;
+    extensionRequests?: number;
     capPct: number;
     cap: number;
 }
@@ -30,6 +36,15 @@ interface EndpointCost {
     count: number;
     inputTokens: number;
     outputTokens: number;
+}
+
+interface ChannelData {
+    totalCost: number;
+    requestCount: number;
+    inputTokens: number;
+    outputTokens: number;
+    activeUsers: number;
+    endpoints: EndpointCost[];
 }
 
 interface Alert {
@@ -46,6 +61,10 @@ interface Alert {
 interface CostData {
     month: string;
     summary: Summary;
+    channels?: {
+        website: ChannelData;
+        extension: ChannelData;
+    };
     perUserCosts: UserCost[];
     perEndpoint: EndpointCost[];
     tierTotals: Record<string, { cost: number; count: number; users: number }>;
@@ -101,7 +120,31 @@ export default function CostDashboard() {
         );
     }
 
-    const { summary, perUserCosts, perEndpoint, tierTotals, alerts, thresholds } = data;
+    const { summary, perUserCosts, perEndpoint, tierTotals, alerts, thresholds, channels } = data;
+
+    const websiteChannel: ChannelData = channels?.website || {
+        totalCost: 0,
+        requestCount: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        activeUsers: 0,
+        endpoints: perEndpoint.filter(ep => !ep.endpoint.startsWith('/api/extension')),
+    };
+
+    const extensionChannel: ChannelData = channels?.extension || {
+        totalCost: 0,
+        requestCount: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        activeUsers: 0,
+        endpoints: perEndpoint.filter(ep => ep.endpoint.startsWith('/api/extension')),
+    };
+
+    const maxWebsiteEndpointCost = websiteChannel.endpoints.length > 0 ? websiteChannel.endpoints[0].cost : 1;
+    const maxExtensionEndpointCost = extensionChannel.endpoints.length > 0 ? extensionChannel.endpoints[0].cost : 1;
+
+    const websiteShare = summary.totalAISpend > 0 ? Math.round((websiteChannel.totalCost / summary.totalAISpend) * 100) : 0;
+    const extensionShare = summary.totalAISpend > 0 ? Math.round((extensionChannel.totalCost / summary.totalAISpend) * 100) : 0;
 
     // Tier donut data
     const tierEntries = Object.entries(tierTotals);
@@ -152,7 +195,9 @@ export default function CostDashboard() {
                     </div>
                     <div>
                         <span className={styles.statValue}>${summary.totalAISpend.toFixed(4)}</span>
-                        <span className={styles.statLabel}>Total AI Spend</span>
+                        <span className={styles.statLabel}>
+                            Total Spend (Web: ${websiteChannel.totalCost.toFixed(2)} • Ext: ${extensionChannel.totalCost.toFixed(2)})
+                        </span>
                     </div>
                 </div>
 
@@ -210,6 +255,148 @@ export default function CostDashboard() {
                         <span className={`${styles.marginValue} ${marginClass}`}>
                             {summary.projectedMargin.toFixed(1)}%
                         </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* API Cost by Channel: Website vs Chrome Extension */}
+            <div className={styles.channelsSection}>
+                <div className={styles.sectionHeader}>
+                    <div>
+                        <h3 className="heading-sm">API Cost by Channel</h3>
+                        <span className="text-secondary" style={{ fontSize: 'var(--text-xs)' }}>
+                            Segregated AI compute spend: Billionaire Brother Website vs Chrome Extension Engine
+                        </span>
+                    </div>
+                </div>
+
+                <div className={styles.channelsGrid}>
+                    {/* Website API Costs Card */}
+                    <div className={styles.channelCard}>
+                        <div className={styles.channelHeader}>
+                            <div className={styles.channelTitle}>
+                                <div className={styles.statIcon} style={{ background: 'rgba(59, 130, 246, 0.12)', width: 32, height: 32 }}>
+                                    <Globe size={18} style={{ color: 'var(--accent-blue)' }} />
+                                </div>
+                                <span>Website API Cost</span>
+                            </div>
+                            <span className="badge badge-blue">
+                                {websiteShare}% of Total AI Spend
+                            </span>
+                        </div>
+
+                        <div className={styles.channelCostHero}>
+                            <span className={styles.channelCostValue}>${websiteChannel.totalCost.toFixed(4)}</span>
+                            <span className={styles.channelCostShare}>
+                                {websiteChannel.requestCount} requests • {websiteChannel.activeUsers} active users
+                            </span>
+                        </div>
+
+                        <div className={styles.channelMetaPills}>
+                            <span className={styles.metaPill}>
+                                In: {(websiteChannel.inputTokens / 1000).toFixed(1)}k tokens
+                            </span>
+                            <span className={styles.metaPill}>
+                                Out: {(websiteChannel.outputTokens / 1000).toFixed(1)}k tokens
+                            </span>
+                            <span className={styles.metaPill}>
+                                Total: {((websiteChannel.inputTokens + websiteChannel.outputTokens) / 1000).toFixed(1)}k tokens
+                            </span>
+                        </div>
+
+                        <div style={{ marginTop: 'var(--space-2)' }}>
+                            <span className="text-secondary" style={{ fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Website Endpoints
+                            </span>
+                            <div className={styles.barList} style={{ marginTop: 'var(--space-2)' }}>
+                                {websiteChannel.endpoints.slice(0, 5).map(ep => (
+                                    <div key={ep.endpoint} className={styles.barItem}>
+                                        <div className={styles.barLabel}>
+                                            <span className={styles.barLabelName}>{ep.endpoint}</span>
+                                            <span className={styles.barLabelValue}>${ep.cost.toFixed(4)} ({ep.count})</span>
+                                        </div>
+                                        <div className={styles.barTrack}>
+                                            <div
+                                                className={styles.barFill}
+                                                style={{
+                                                    width: `${maxWebsiteEndpointCost > 0 ? (ep.cost / maxWebsiteEndpointCost) * 100 : 0}%`,
+                                                    background: 'var(--accent-blue)',
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                                {websiteChannel.endpoints.length === 0 && (
+                                    <div className={styles.emptyAlerts} style={{ padding: 'var(--space-3)' }}>
+                                        No website requests logged this month
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Chrome Extension API Costs Card */}
+                    <div className={styles.channelCard}>
+                        <div className={styles.channelHeader}>
+                            <div className={styles.channelTitle}>
+                                <div className={styles.statIcon} style={{ background: 'rgba(234, 179, 8, 0.12)', width: 32, height: 32 }}>
+                                    <Chrome size={18} style={{ color: 'var(--gold-400)' }} />
+                                </div>
+                                <span>Chrome Extension API Cost</span>
+                            </div>
+                            <span className="badge badge-gold">
+                                {extensionShare}% of Total AI Spend
+                            </span>
+                        </div>
+
+                        <div className={styles.channelCostHero}>
+                            <span className={styles.channelCostValue}>${extensionChannel.totalCost.toFixed(4)}</span>
+                            <span className={styles.channelCostShare}>
+                                {extensionChannel.requestCount} requests • {extensionChannel.activeUsers} active users
+                            </span>
+                        </div>
+
+                        <div className={styles.channelMetaPills}>
+                            <span className={styles.metaPill}>
+                                In: {(extensionChannel.inputTokens / 1000).toFixed(1)}k tokens
+                            </span>
+                            <span className={styles.metaPill}>
+                                Out: {(extensionChannel.outputTokens / 1000).toFixed(1)}k tokens
+                            </span>
+                            <span className={styles.metaPill}>
+                                Total: {((extensionChannel.inputTokens + extensionChannel.outputTokens) / 1000).toFixed(1)}k tokens
+                            </span>
+                        </div>
+
+                        <div style={{ marginTop: 'var(--space-2)' }}>
+                            <span className="text-secondary" style={{ fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Extension Endpoints
+                            </span>
+                            <div className={styles.barList} style={{ marginTop: 'var(--space-2)' }}>
+                                {extensionChannel.endpoints.slice(0, 5).map(ep => (
+                                    <div key={ep.endpoint} className={styles.barItem}>
+                                        <div className={styles.barLabel}>
+                                            <span className={styles.barLabelName}>{ep.endpoint}</span>
+                                            <span className={styles.barLabelValue}>${ep.cost.toFixed(4)} ({ep.count})</span>
+                                        </div>
+                                        <div className={styles.barTrack}>
+                                            <div
+                                                className={styles.barFill}
+                                                style={{
+                                                    width: `${maxExtensionEndpointCost > 0 ? (ep.cost / maxExtensionEndpointCost) * 100 : 0}%`,
+                                                    background: 'var(--gold-400)',
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                                {extensionChannel.endpoints.length === 0 && (
+                                    <div className={styles.emptyAlerts} style={{ padding: 'var(--space-3)' }}>
+                                        No extension requests logged this month
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -367,6 +554,16 @@ export default function CostDashboard() {
                                         </td>
                                         <td>
                                             <span className="font-mono">${u.monthlyCost.toFixed(4)}</span>
+                                            {(u.websiteCost !== undefined || u.extensionCost !== undefined) && (
+                                                <div className={styles.userChannelSplit}>
+                                                    <span className={styles.channelTagWeb} title="Website AI compute spend">
+                                                        <Globe size={11} /> ${(u.websiteCost || 0).toFixed(2)}
+                                                    </span>
+                                                    <span className={styles.channelTagExt} title="Chrome Extension AI compute spend">
+                                                        <Chrome size={11} /> ${(u.extensionCost || 0).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </td>
                                         <td>
                                             <div className={styles.usageBar}>

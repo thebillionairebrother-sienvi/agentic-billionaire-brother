@@ -5,6 +5,10 @@ import ai, { GEMINI_EXTENSION_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { Type } from '@google/genai';
 import { fetchGifUrl } from '@/app/api/giphy-search/route';
+import { logUsageAndCost } from '@/lib/middleware/meter-logger';
+import { checkUsageGuard } from '@/lib/middleware/usage-guard';
+import { GuardError } from '@/lib/middleware/types';
+import type { Tier } from '@/lib/ai-config';
 
 function getCorsHeaders(request: Request) {
     const origin = request.headers.get('origin') || '*';
@@ -113,6 +117,20 @@ export async function POST(request: Request) {
                 { error: 'An active Brother or Team plan subscription is required to chat with Derek.' },
                 { status: 403, headers: corsHeaders }
             );
+        }
+
+        // Check usage caps / guardrails
+        const effectiveTier: Tier = tier === 'team' ? 'team' : tier === 'brother' ? 'brother' : 'free';
+        try {
+            await checkUsageGuard(serviceClient, user.id, effectiveTier, { email: user.email });
+        } catch (guardErr: any) {
+            if (guardErr instanceof GuardError) {
+                return NextResponse.json(
+                    { error: guardErr.message },
+                    { status: guardErr.statusCode || 429, headers: corsHeaders }
+                );
+            }
+            throw guardErr;
         }
 
         const body = await request.json();
@@ -228,6 +246,7 @@ export async function POST(request: Request) {
             parts: userParts,
         });
 
+        const startTime = Date.now();
         const response = await generateWithRetry(GEMINI_EXTENSION_MODEL, {
             contents,
             config: {
@@ -244,6 +263,7 @@ export async function POST(request: Request) {
             },
         });
 
+        const latencyMs = Date.now() - startTime;
         const rawText = response.text || '';
         const parsed = parseDerekResponse(rawText);
 
@@ -268,6 +288,18 @@ export async function POST(request: Request) {
                 })
                 .eq('id', runId);
         }
+
+        // Meter extension chat usage & cost against user account
+        await logUsageAndCost(serviceClient, {
+            userId: user.id,
+            tier: effectiveTier,
+            endpoint: '/api/extension/chat',
+            inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            latencyMs,
+            isDegradeMode: false,
+            model: GEMINI_EXTENSION_MODEL,
+        });
 
         return NextResponse.json(
             {
