@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import './tailwind.css';
 import { FloatingDerekChat } from '@/components/FloatingDerekChat';
+import { DerekLeadCapturePopup } from '@/components/DerekLeadCapturePopup';
 import { GoogleAnalytics } from '@next/third-parties/google';
 
 export const metadata: Metadata = {
@@ -77,6 +78,7 @@ export default function RootLayout({
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID as string} />
         {children}
         <FloatingDerekChat />
+        <DerekLeadCapturePopup />
       </body>
     </html>
   );

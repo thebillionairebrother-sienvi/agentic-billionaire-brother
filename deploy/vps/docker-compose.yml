@@ -1,0 +1,95 @@
+# ==============================================================================
+# Sienvi Edge VPS — Billionaire Brother Swarm Worker Stack
+# Host: sienvi-edge-vps-01 (Hetzner Cloud cx23: 2 vCPU, 4GB RAM)
+# Path: /opt/sebastian/app/docker-compose.yml
+# Standards: governance/VPS_DOCKER_CONTAINER_STANDARD.md
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Internal Queue Broker (Redis Alpine)
+  # Capped strictly at 384MB RAM to preserve memory on the 4GB cx23 node.
+  # Not exposed to public internet (UFW firewall blocks inbound).
+  # ----------------------------------------------------------------------------
+  bb-redis:
+    image: redis:7-alpine
+    container_name: bb-edge-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 384mb --maxmemory-policy allkeys-lru --save "" --appendonly no
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.75'
+    networks:
+      - bb-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # ----------------------------------------------------------------------------
+  # 2. Billionaire Brother Swarm Worker
+  # Orchestrates Department Heads: Naomi -> Rhea -> Milo -> Jax -> Sloane (QA)
+  # - Non-root execution: appuser (UID 1000:1002)
+  # - Read-only code mount: ./code:/app/code:ro (prevents prompt injection mutation)
+  # - Memory-only secrets injected via runtime environment variables
+  # ----------------------------------------------------------------------------
+  bb-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bb-edge-worker
+    restart: unless-stopped
+    user: "1000:1002"
+    working_dir: /app
+    volumes:
+      # Read-only application code (Standard 4.A)
+      - ./code:/app/code:ro
+      # Sandboxed writable staging for generated briefs & artifacts
+      - /opt/sebastian/drafts:/app/drafts:rw
+      # Structured JSON log sink
+      - /opt/sebastian/logs:/app/logs:rw
+      # Temp filesystem
+      - /tmp:/tmp:rw
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://bb-redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.8-flash}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - WORKER_AUTH_TOKEN=${WORKER_AUTH_TOKEN}
+      - MAX_BATCH_ITEMS=10
+      - CONCURRENCY_LIMIT=3
+    ports:
+      # Bound to loopback only on host; reverse-proxied or hit via internal bridge
+      - "127.0.0.1:8088:8088"
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+          cpus: '1.25'
+    depends_on:
+      bb-redis:
+        condition: service_healthy
+    networks:
+      - bb-internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+networks:
+  bb-internal:
+    driver: bridge
