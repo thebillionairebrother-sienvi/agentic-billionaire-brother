@@ -40,12 +40,25 @@ function getRetailSeasonHint(date: Date): string {
 
 function looksLikeRetail(snapshot: any): boolean {
     const haystack = [
+        snapshot?.url,
         snapshot?.title,
         snapshot?.metaDescription,
         ...(snapshot?.h1 || []),
         ...(snapshot?.h2 || []),
         ...(snapshot?.ctaText || []),
     ].filter(Boolean).join(' ').toLowerCase();
+
+    // Explicitly exclude medical devices, clinical equipment, pharmaceuticals, and B2B industrial sites
+    // where consumer seasonal merchandising is inappropriate
+    const nonRetailKeywords = [
+        'medical', 'clinical', 'hospital', 'patient', 'respiratory', 'oxygen',
+        'tubing', 'therapy', 'pharmaceutical', 'surgical', 'diagnostic', 'healthcare',
+        'doctor', 'physician', 'prescription', 'cannula', 'cpap', 'b2b industrial',
+        'machinery', 'emergency care'
+    ];
+    if (nonRetailKeywords.some(k => haystack.includes(k))) {
+        return false;
+    }
 
     // Pricing blocks alone are not distinctive (SaaS plan pages have them too) —
     // require at least one product/ecommerce-specific keyword as well.
@@ -116,19 +129,25 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
         const isRetail = looksLikeRetail(snapshot);
         const today = new Date();
         const seasonalInstruction = isRetail
-            ? `\n\nSEASONAL CONTEXT: Today's date is ${today.toDateString()} (${getRetailSeasonHint(today)}). ` +
-              `This page appears to sell physical/retail products. ALSO evaluate whether its copy, imagery cues, offers, and on-page SEO signals (headings, meta description, product/category naming) are aligned with the current retail season. ` +
-              `Flag missed seasonal merchandising opportunities and suggest specific, concrete seasonal copy/SEO angles the page could adopt. Set seasonalRelevance.applicable to true and fill in the seasonal fields. ` +
-              `If the page is not retail/ecommerce, set seasonalRelevance.applicable to false and leave the other seasonal fields empty.`
-            : `\n\nThis page does not appear to be retail/ecommerce. Set seasonalRelevance.applicable to false and leave the other seasonal fields empty.`;
+            ? `\n\nSEASONAL CONTEXT & MERCHANDISING APPLICABILITY:
+Today's date is ${today.toDateString()} (${getRetailSeasonHint(today)}).
+First, evaluate whether seasonal merchandising legitimately applies to the products or services offered on this site:
+- APPLICABLE (Consumer Retail / Lifestyle): Consumer goods whose purchase behavior naturally hinges on seasons, holidays, weather transitions, or consumer promotional calendars (e.g. fashion/apparel, gifts, seasonal decor, holiday merchandise, seasonal sports/outdoor gear, back-to-school, Q4 gifting/Black Friday, seasonal fitness).
+- NOT APPLICABLE (Medical / Clinical / Healthcare / B2B): Medical devices, healthcare equipment, respiratory therapy & supplies (such as oxygen tubing or clinical solutions like OxiSure Tech Solutions), pharmaceuticals, clinical lab equipment, emergency medical supplies, B2B industrial hardware, legal/accounting services, or evergreen software. For these categories, seasonal promotions, holiday sales ribbons, or festive merchandising gimmicks are completely inappropriate, irrelevant, and actively undermine clinical authority and professional credibility.
+
+STRICT RULES FOR seasonalRelevance:
+- If the offerings are medical devices, clinical supplies, healthcare equipment, emergency products, B2B industrial goods, or evergreen necessities where seasonal promotions are inappropriate: YOU MUST set seasonalRelevance.applicable to false, and leave currentSeason, misalignment, and suggestedSeasonalMoves as empty arrays or null. Do NOT fabricate seasonal advice or friction for medical/clinical sites.
+- ONLY set seasonalRelevance.applicable to true if the business legitimately sells consumer retail goods where seasonal promotions and retail calendar merchandising are standard and effective. If true, evaluate whether copy, promotional visual banners, and offers match the current retail season (${getRetailSeasonHint(today)}), identify any outdated seasonal assets, and suggest concrete high-ROI seasonal angles.`
+            : `\n\nSEASONAL CONTEXT: This page is not consumer retail/ecommerce (it may be SaaS, medical/clinical, B2B, evergreen content, or specialized services). Set seasonalRelevance.applicable to false and leave other seasonal fields empty.`;
+
         const visionInstruction = snapshot.screenshot
             ? `\n\nVISUAL & MULTIMODAL AUDIT INSTRUCTIONS: ` +
               `A high-resolution visual screenshot of the webpage is provided with this audit. ` +
-              `You must directly look at the visual imagery, layout, and graphics! Pay special attention to: ` +
-              `1) Promotional banners, seasonal graphics, badges, hero imagery, and text embedded inside images (e.g. Fall / Autumn promotions, Halloween sales, Black Friday teasers, seasonal holiday banners, coupon codes, or discount ribbons). ` +
+              `You must directly look at the visual imagery, layout, typography, and graphics! Pay special attention to: ` +
+              `1) Promotional banners, badges, hero imagery, and text embedded inside images. For consumer retail, check if seasonal banners and promotions are fresh or outdated. For medical/clinical or B2B sites, check whether visual banners maintain appropriate professional credibility and clarity without inappropriate retail gimmicks. ` +
               `2) Visual contrast, button prominence, above-the-fold clarity, and whether text-in-images is legible or cluttered. ` +
-              `3) Misalignment between visual banners and on-page text (e.g., banner announces a Fall Sale but copy/pricing is outdated). ` +
-              `You MUST reflect these visual findings in whatThisPageSells, whatIsStrong, whatIsWeak, topConversionLeaks, and especially seasonalRelevance.`
+              `3) Misalignment between visual banners and on-page text (e.g., banner announces an expired sale or conflicting pricing). ` +
+              `You MUST reflect these visual findings in whatThisPageSells, whatIsStrong, whatIsWeak, topConversionLeaks, and seasonalRelevance (only if applicable).`
             : '';
 
         const systemInstruction = DEREK_FULL_PROMPT + `\n\n` +

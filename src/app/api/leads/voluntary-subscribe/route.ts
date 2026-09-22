@@ -5,7 +5,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const CHROME_STORE_URL = process.env.NEXT_PUBLIC_CHROME_STORE_URL || 'https://chromewebstore.google.com/detail/billionaire-brother-execu/ofaehbeohogfjnfbfjpnceihhnegamnh';
 const SENDER_CLIENT_ID = '3100c308-48f2-4727-b136-0f4d0f09c94e'; // Billionaire Brother client in Sienvi Sender
-const WARM_SEGMENT_NAME = 'Warm Voluntary Leads - Derek for Chrome';
+const WARM_SEGMENT_NAME = 'Billionaire Brother Subscribers';
 
 export async function POST(request: Request) {
     try {
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
         // 2. Direct Sync into Sienvi Sender (MailPilot) recipients table
         const emailerUrl = process.env.EMAILER_SUPABASE_URL;
-        const emailerKey = process.env.EMAILER_SUPABASE_ANON_KEY;
+        const emailerKey = process.env.EMAILER_SUPABASE_SERVICE_ROLE_KEY || process.env.EMAILER_SUPABASE_ANON_KEY;
 
         if (emailerUrl && emailerKey) {
             try {
@@ -110,8 +110,10 @@ export async function POST(request: Request) {
                     await senderSupabase
                         .from('recipients')
                         .update({
+                            client_id: SENDER_CLIENT_ID,
                             status: 'Active',
                             segment: updatedSegment,
+                            channel_eligibility: 'Inbound_Warm',
                             lead_metadata: metadata,
                         })
                         .eq('id', existing.id);
