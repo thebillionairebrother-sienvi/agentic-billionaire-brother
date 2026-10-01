@@ -8,6 +8,66 @@ import { type NextRequest } from 'next/server';
  */
 export const ALLOWED_COUNTRIES = new Set(['US', 'CA', 'GB', 'UK']);
 
+/**
+ * Secret testing key allowing developers, team members, and testers
+ * to bypass geo-restrictions from anywhere (e.g. Philippines) on any browser.
+ */
+export const DEFAULT_BYPASS_KEY = 'bb_secret_team_2026';
+
+export function getBypassSecret(): string {
+    return (
+        process.env.GEO_BYPASS_KEY ||
+        process.env.NEXT_PUBLIC_GEO_BYPASS_KEY ||
+        DEFAULT_BYPASS_KEY
+    ).trim();
+}
+
+/**
+ * Verify whether a provided key matches the bypass secret.
+ */
+export function isValidBypassKey(key: string | null | undefined): boolean {
+    if (!key) return false;
+    const cleanKey = key.trim();
+    const secret = getBypassSecret();
+    return cleanKey === secret || cleanKey === DEFAULT_BYPASS_KEY;
+}
+
+/**
+ * Check if the incoming request carries a valid bypass signal:
+ * 1. URL search param (?key=..., ?bypass=..., ?secret=..., ?bb_bypass=...)
+ * 2. Persistent cookie (bb_geo_bypass)
+ * 3. Header (x-bypass-key)
+ */
+export function hasBypassAccess(request: NextRequest): boolean {
+    // 1. Check persistent bypass cookie
+    const bypassCookie = request.cookies.get('bb_geo_bypass')?.value;
+    if (bypassCookie) {
+        if (bypassCookie === 'valid' || isValidBypassKey(bypassCookie)) {
+            return true;
+        }
+    }
+
+    // 2. Check URL query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const queryKey =
+        searchParams.get('key') ||
+        searchParams.get('bypass') ||
+        searchParams.get('secret') ||
+        searchParams.get('bb_bypass');
+
+    if (isValidBypassKey(queryKey)) {
+        return true;
+    }
+
+    // 3. Check custom header
+    const headerKey = request.headers.get('x-bypass-key');
+    if (isValidBypassKey(headerKey)) {
+        return true;
+    }
+
+    return false;
+}
+
 export type UserAgentClassification = 'good_bot' | 'bad_bot' | 'human';
 
 /**
@@ -76,7 +136,7 @@ const BAD_BOT_PATTERNS = [
 ];
 
 /**
- * Extract country code from request headers / edge geo object.
+ * Extract country code from request headers / cookies / edge geo object.
  */
 export function extractCountry(request: NextRequest): string | null {
     // 1. Manual dev/test overrides (header or cookie)
@@ -90,52 +150,46 @@ export function extractCountry(request: NextRequest): string | null {
         return cookieOverride.trim().toUpperCase();
     }
 
-    // 2. Vercel Edge Geolocation Header
+    // 2. Previously cached detected country cookie (from IP lookup API)
+    const detectedCookie = request.cookies.get('bb_detected_country')?.value;
+    if (detectedCookie && detectedCookie.length === 2) {
+        return detectedCookie.trim().toUpperCase();
+    }
+
+    // 3. Vercel Edge Geolocation Header
     const vercelCountry = request.headers.get('x-vercel-ip-country');
     if (vercelCountry) {
         return vercelCountry.trim().toUpperCase();
     }
 
-    // 3. NextRequest Geo Object (if available in edge runtime)
+    // 4. Google Cloud / App Engine / Firebase Header
+    const gcpCountry = request.headers.get('x-appengine-country');
+    if (gcpCountry) {
+        return gcpCountry.trim().toUpperCase();
+    }
+
+    // 5. NextRequest Geo Object (if available in edge runtime)
     const geoCountry = (request as any).geo?.country;
     if (geoCountry && typeof geoCountry === 'string') {
         return geoCountry.trim().toUpperCase();
     }
 
-    // 4. Cloudflare Header
+    // 6. Cloudflare Header
     const cfCountry = request.headers.get('cf-ipcountry');
     if (cfCountry) {
         return cfCountry.trim().toUpperCase();
     }
 
-    // 5. Standard CDN / Reverse Proxy Headers
-    const genericCountry = request.headers.get('x-country-code') || request.headers.get('x-geo-country');
+    // 7. Standard CDN / Reverse Proxy Headers
+    const genericCountry =
+        request.headers.get('x-country-code') ||
+        request.headers.get('x-geo-country') ||
+        request.headers.get('geoip-country-code');
     if (genericCountry) {
         return genericCountry.trim().toUpperCase();
     }
 
     return null;
-}
-
-/**
- * Determine if request is running locally or in development environment.
- */
-export function isLocalOrDevelopment(request: NextRequest): boolean {
-    if (process.env.NODE_ENV === 'development') {
-        return true;
-    }
-
-    const host = request.headers.get('host') || request.nextUrl.host || '';
-    if (
-        host.includes('localhost') ||
-        host.startsWith('127.0.0.1') ||
-        host.startsWith('[::1]') ||
-        host.endsWith('.local')
-    ) {
-        return true;
-    }
-
-    return false;
 }
 
 /**
@@ -202,12 +256,17 @@ export function isExemptRoute(pathname: string): boolean {
         return true;
     }
 
-    // 4. Region restriction page itself and its waitlist API
+    // 4. Geo check & bypass API endpoints
+    if (pathname.startsWith('/api/geo')) {
+        return true;
+    }
+
+    // 5. Region restriction page itself and its waitlist API
     if (pathname === '/region-restricted' || pathname.startsWith('/api/leads/waitlist')) {
         return true;
     }
 
-    // 5. Cron maintenance routes
+    // 6. Cron maintenance routes
     if (pathname.startsWith('/api/cron')) {
         return true;
     }

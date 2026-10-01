@@ -154,10 +154,11 @@ async function runTests() {
         (process.env as any).NODE_ENV = originalEnv;
     }
 
-    // Test 5: Traveling customer with Supabase auth cookie allowed despite non-target country
+    // Test 5: Out-of-region user is blocked even with auth cookie UNLESS they have bypass key
     (process.env as any).NODE_ENV = 'production';
     try {
-        const authReq = new NextRequest('https://thebillionairebrother.com/dashboard', {
+        // Without bypass key -> blocked
+        const authReqNoKey = new NextRequest('https://thebillionairebrother.com/dashboard', {
             headers: {
                 'host': 'thebillionairebrother.com',
                 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
@@ -165,10 +166,22 @@ async function runTests() {
                 'cookie': 'sb-test-auth-token=valid-session-jwt',
             },
         });
-        const authRes = await proxy(authReq);
-        // Should not redirect to /region-restricted
-        const loc = authRes.headers.get('location') || '';
-        assert(!loc.includes('/region-restricted'), 'Authenticated traveling user is NOT redirected to /region-restricted');
+        const authResNoKey = await proxy(authReqNoKey);
+        assert(authResNoKey.status === 307, 'Out-of-region auth user without key is redirected');
+        assert(Boolean(authResNoKey.headers.get('location')?.includes('/region-restricted')), 'Auth user is redirected to /region-restricted');
+
+        // With bypass key -> allowed
+        const authReqWithKey = new NextRequest('https://thebillionairebrother.com/dashboard', {
+            headers: {
+                'host': 'thebillionairebrother.com',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+                'x-vercel-ip-country': 'SG',
+                'cookie': 'sb-test-auth-token=valid-session-jwt; bb_geo_bypass=valid',
+            },
+        });
+        const authResWithKey = await proxy(authReqWithKey);
+        const locWithKey = authResWithKey.headers.get('location') || '';
+        assert(!locWithKey.includes('/region-restricted'), 'Out-of-region auth user WITH bypass key is NOT blocked by geo-fence');
     } finally {
         (process.env as any).NODE_ENV = originalEnv;
     }
@@ -197,7 +210,66 @@ async function runTests() {
     const validJson = await validEmailRes.json();
     assert(validJson.success === true, 'Response body has success: true');
 
-    console.log('\n🎉 ALL SECURITY, GEO-FENCING & WAITLIST TESTS PASSED PERFECTLY!\n');
+    // Test 7: Philippines Geofencing & Secret Key Bypass
+    console.log('\n--- Testing Philippines & Secret Key Bypass ---');
+    assert(isAllowedCountry('PH') === false, 'PH is rejected by default');
+
+    // 7a. Philippines user without key -> REDIRECTED to /region-restricted
+    const phReqNoKey = new NextRequest('https://thebillionairebrother.com/', {
+        headers: {
+            'host': 'thebillionairebrother.com',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0 Safari/537.36',
+            'x-vercel-ip-country': 'PH',
+        },
+    });
+    const phResNoKey = await proxy(phReqNoKey);
+    assert(phResNoKey.status === 307, 'PH visitor without key is blocked (307 redirect)');
+    assert(Boolean(phResNoKey.headers.get('location')?.includes('/region-restricted')), 'Redirected to /region-restricted');
+    assert(Boolean(phResNoKey.headers.get('location')?.includes('country=PH')), 'Country param is PH');
+
+    // 7b. Philippines user with Secret Key in URL (?key=bb_secret_team_2026) -> ALLOWED (200)
+    const phReqWithKey = new NextRequest('https://thebillionairebrother.com/?key=bb_secret_team_2026', {
+        headers: {
+            'host': 'thebillionairebrother.com',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0 Safari/537.36',
+            'x-vercel-ip-country': 'PH',
+        },
+    });
+    const phResWithKey = await proxy(phReqWithKey);
+    assert(phResWithKey.status === 200, 'PH visitor with Secret Key URL param is ALLOWED (200)');
+    assert(Boolean(phResWithKey.cookies.get('bb_geo_bypass')?.value === 'valid'), 'Sets 30-day bypass cookie on response');
+
+    // 7c. Philippines user with cookie bb_geo_bypass=valid -> ALLOWED (200)
+    const phReqWithCookie = new NextRequest('https://thebillionairebrother.com/', {
+        headers: {
+            'host': 'thebillionairebrother.com',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0 Safari/537.36',
+            'x-vercel-ip-country': 'PH',
+            'cookie': 'bb_geo_bypass=valid',
+        },
+    });
+    const phResWithCookie = await proxy(phReqWithCookie);
+    assert(phResWithCookie.status === 200, 'PH visitor with bypass cookie is ALLOWED (200)');
+
+    // 7d. Bypass API verification
+    const { POST: bypassHandler } = await import('../src/app/api/geo/bypass/route');
+    const wrongKeyReq = new Request('http://localhost:3000/api/geo/bypass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'wrong_password' }),
+    });
+    const wrongKeyRes = await bypassHandler(wrongKeyReq);
+    assert(wrongKeyRes.status === 401, 'Wrong bypass key returns 401 Unauthorized');
+
+    const rightKeyReq = new Request('http://localhost:3000/api/geo/bypass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'bb_secret_team_2026' }),
+    });
+    const rightKeyRes = await bypassHandler(rightKeyReq);
+    assert(rightKeyRes.status === 200, 'Correct bypass key returns 200 OK');
+
+    console.log('\n🎉 ALL SECURITY, PHILIPPINES GEO-FENCING & SECRET BYPASS TESTS PASSED PERFECTLY!\n');
 }
 
 runTests().catch((err) => {

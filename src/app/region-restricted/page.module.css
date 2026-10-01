@@ -245,3 +245,96 @@
   max-width: 440px;
   margin: 0;
 }
+
+.bypassSection {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.bypassToggleBtn {
+  background: transparent;
+  border: none;
+  color: #737373;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s;
+  padding: 6px 12px;
+  font-family: var(--font-mono, monospace);
+}
+
+.bypassToggleBtn:hover {
+  color: #d4af37;
+}
+
+.bypassCard {
+  width: 100%;
+  background: rgba(10, 10, 14, 0.95);
+  border: 1px dashed rgba(212, 175, 55, 0.35);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bypassTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e5e5e5;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bypassDesc {
+  font-size: 12px;
+  color: #888888;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.bypassRow {
+  display: flex;
+  gap: 10px;
+}
+
+.bypassInput {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+  font-family: var(--font-mono, monospace);
+}
+
+.bypassInput:focus {
+  border-color: #d4af37;
+}
+
+.bypassSubmitBtn {
+  background: #d4af37;
+  color: #000;
+  font-weight: 600;
+  font-size: 13px;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.bypassSubmitBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
