@@ -20,7 +20,30 @@ export interface EdgeJobResponse {
 }
 
 const EDGE_WORKER_URL = process.env.EDGE_WORKER_URL || 'http://2.28.32.45:8088';
-const WORKER_AUTH_TOKEN = process.env.WORKER_AUTH_TOKEN || '';
+const WORKER_AUTH_TOKEN = process.env.WORKER_AUTH_TOKEN || 'bb-sienvi-edge-token-2026';
+
+/**
+ * Checks the health status of the Hetzner Edge Worker.
+ */
+export async function checkEdgeWorkerHealth(): Promise<{ healthy: boolean; details?: Record<string, unknown>; error?: string }> {
+    try {
+        const response = await fetch(`${EDGE_WORKER_URL}/health`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(5000)
+        });
+
+        if (!response.ok) {
+            return { healthy: false, error: `HTTP ${response.status}` };
+        }
+
+        const data = await response.json();
+        return { healthy: data.status === 'healthy', details: data };
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { healthy: false, error: message };
+    }
+}
 
 /**
  * Dispatches a multi-agent sprint generation job to the Hetzner Edge Worker.
@@ -42,7 +65,8 @@ export async function dispatchEdgeSprintJob(payload: EdgeJobPayload): Promise<Ed
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${WORKER_AUTH_TOKEN}`
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(10000)
         });
 
         if (!response.ok) {

@@ -3,7 +3,7 @@ import './globals.css';
 import './tailwind.css';
 import { FloatingDerekChat } from '@/components/FloatingDerekChat';
 import { DerekLeadCapturePopup } from '@/components/DerekLeadCapturePopup';
-import { GoogleAnalytics } from '@next/third-parties/google';
+import { AnalyticsGate } from '@/components/analytics/AnalyticsGate';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://thebillionairebrother.com'),
@@ -75,7 +75,7 @@ export default function RootLayout({
       </head>
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID as string} />
+        <AnalyticsGate gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
         {children}
         <FloatingDerekChat />
         <DerekLeadCapturePopup />

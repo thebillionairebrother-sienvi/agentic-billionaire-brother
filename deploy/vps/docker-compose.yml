@@ -17,7 +17,7 @@ services:
     image: redis:7-alpine
     container_name: bb-edge-redis
     restart: unless-stopped
-    command: redis-server --maxmemory 384mb --maxmemory-policy allkeys-lru --save "" --appendonly no
+    command: redis-server --maxmemory 384mb --maxmemory-policy noeviction --save "" --appendonly no
     deploy:
       resources:
         limits:
@@ -72,8 +72,8 @@ services:
       - MAX_BATCH_ITEMS=10
       - CONCURRENCY_LIMIT=3
     ports:
-      # Bound to loopback only on host; reverse-proxied or hit via internal bridge
-      - "127.0.0.1:8088:8088"
+      # Webhook ingestion & health endpoint
+      - "8088:8088"
     deploy:
       resources:
         limits:

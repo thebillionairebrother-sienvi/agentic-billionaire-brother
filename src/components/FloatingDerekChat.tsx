@@ -244,7 +244,7 @@ export function FloatingDerekChat() {
         }
     };
 
-    if (pathname === '/chat') {
+    if (pathname === '/chat' || pathname === '/region-restricted' || pathname?.startsWith('/region-restricted/')) {
         return null;
     }
 
