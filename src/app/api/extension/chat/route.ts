@@ -183,7 +183,7 @@ export async function POST(request: Request) {
             `- For multi-step advice, put each step on its own separate line starting with "1. ", "2. ", "3. " with a blank line before the list.\n` +
             `- Bold the title of each step (e.g. "1. **Rebuild the Hero Grid:** ...").\n` +
             `- Use indented bullets ("   * ") for sub-recommendations, rationale, or copy variations.\n` +
-            `- Use fenced code blocks (\`\`\`copy ... \`\`\`) for exact copy rewrites or disclaimers so the user can easily copy them.\n\n` +
+            `- For copy rewrites, always put each exact headline, subheadline, or CTA in its own tagged fenced code block (e.g. \`\`\`headline Stop Leaking 40% of Your Revenue\`\`\` or \`\`\`cta Claim Your Free Growth Sprint\`\`\` or \`\`\`copy ... \`\`\`). The Chrome Extension provides a live "Test on Page" button on these blocks so the user can immediately test and screenshot the rewrite on their live webpage.\n\n` +
             `Respond in JSON format: { "reaction": "2-4 word blunt reaction", "response": "Your full response" }`;
 
         // Format Gemini history
