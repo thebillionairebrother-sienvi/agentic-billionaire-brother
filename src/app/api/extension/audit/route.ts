@@ -77,10 +77,11 @@ async function generateWithRetry(primaryModel: string, args: any, maxRetries = 2
         } catch (err: any) {
             const isQuotaExceeded = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('RESOURCE_EXHAUSTED') || err?.message?.includes('quota');
             const is503Unavailable = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('high demand') || err?.message?.includes('UNAVAILABLE');
+            const isAccessOrModelIssue = err?.status === 403 || err?.status === 404 || err?.message?.includes('403') || err?.message?.includes('PERMISSION_DENIED') || err?.message?.includes('NOT_FOUND') || err?.message?.includes('denied access');
 
-            // If quota is exhausted or model is unavailable, immediately use fallback model
-            if ((isQuotaExceeded || is503Unavailable) && primaryModel !== fallbackModel) {
-                console.warn(`[extension/audit] Primary model ${primaryModel} ${isQuotaExceeded ? 'quota exceeded' : 'unavailable'}. Falling back to ${fallbackModel}...`);
+            // If primary model has permission/access issues, quota limits, or is unavailable, immediately fall back
+            if ((isQuotaExceeded || is503Unavailable || isAccessOrModelIssue) && primaryModel !== fallbackModel) {
+                console.warn(`[extension/audit] Primary model ${primaryModel} failed (${err?.message || 'error'}). Falling back immediately to ${fallbackModel}...`);
                 try {
                     return await ai.models.generateContent({
                         model: fallbackModel,
@@ -96,6 +97,19 @@ async function generateWithRetry(primaryModel: string, args: any, maxRetries = 2
                 console.warn(`[extension/audit] Model ${primaryModel} busy on attempt ${attempt + 1}, retrying in 1s...`);
                 await new Promise(r => setTimeout(r, 1000));
                 continue;
+            }
+
+            // On final attempt, try fallbackModel before giving up
+            if (primaryModel !== fallbackModel) {
+                console.warn(`[extension/audit] Retrying with fallback model ${fallbackModel}...`);
+                try {
+                    return await ai.models.generateContent({
+                        model: fallbackModel,
+                        ...args,
+                    });
+                } catch (fallbackErr: any) {
+                    console.error(`[extension/audit] Fallback model ${fallbackModel} failed:`, fallbackErr);
+                }
             }
 
             throw err;
