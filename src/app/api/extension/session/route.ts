@@ -1,19 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
-import { getExtensionUser } from '@/lib/extension-auth';
-
-function getCorsHeaders(request: Request) {
-    const origin = request.headers.get('origin') || '*';
-    return {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    };
-}
+import { createServiceClient } from '@/lib/supabase/server';
+import { getExtensionCorsHeaders, getExtensionUser, resolveExtensionUserPlan } from '@/lib/extension-auth';
 
 export async function GET(request: Request) {
-    const corsHeaders = getCorsHeaders(request);
+    const corsHeaders = getExtensionCorsHeaders(request);
 
     try {
         const user = await getExtensionUser(request);
@@ -25,32 +15,8 @@ export async function GET(request: Request) {
             );
         }
 
-        // Use service client to bypass RLS restrictions on system tables
         const serviceClient = await createServiceClient();
-        const [{ data: userProfile }, { data: subRecord }, { data: profile }] = await Promise.all([
-            serviceClient
-                .from('users')
-                .select('tier, email')
-                .eq('id', user.id)
-                .maybeSingle(),
-            serviceClient
-                .from('subscriptions')
-                .select('tier, status')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle(),
-            serviceClient
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .maybeSingle(),
-        ]);
-
-        const email = userProfile?.email || user.email || '';
-        const tier = (subRecord?.tier || userProfile?.tier || 'free').toLowerCase();
-        const isAdmin = profile?.role === 'admin';
-        const hasRequiredPlan = tier === 'brother' || tier === 'team' || isAdmin;
+        const { email, tier, isAdmin, hasRequiredPlan } = await resolveExtensionUserPlan(serviceClient, user);
 
         return NextResponse.json(
             {
@@ -65,16 +31,17 @@ export async function GET(request: Request) {
     } catch (error) {
         console.error('[extension/session] Error:', error);
         return NextResponse.json(
-            { error: 'Internal Server Error' },
-            { status: 500, headers: corsHeaders }
+            { error: 'Internal Server Error', retryable: true },
+            { status: 503, headers: corsHeaders }
         );
     }
 }
 
 export async function OPTIONS(request: Request) {
-    const corsHeaders = getCorsHeaders(request);
+    const corsHeaders = getExtensionCorsHeaders(request);
     return new NextResponse(null, {
         status: 204,
         headers: corsHeaders,
     });
 }
+

@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
-import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
-import { getExtensionUser } from '@/lib/extension-auth';
+import { createServiceClient } from '@/lib/supabase/server';
+import {
+    getExtensionCorsHeaders,
+    getExtensionRunMemoryStore,
+    getExtensionUser,
+    resolveExtensionUserPlan,
+    sanitizeSnapshotForDb,
+} from '@/lib/extension-auth';
 import ai, { GEMINI_EXTENSION_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { Type } from '@google/genai';
@@ -9,16 +15,6 @@ import { logUsageAndCost } from '@/lib/middleware/meter-logger';
 import { checkUsageGuard } from '@/lib/middleware/usage-guard';
 import { GuardError } from '@/lib/middleware/types';
 import type { Tier } from '@/lib/ai-config';
-
-function getCorsHeaders(request: Request) {
-    const origin = request.headers.get('origin') || '*';
-    return {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    };
-}
 
 function parseDerekResponse(raw: string): { reaction: string; response: string } {
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -36,60 +32,41 @@ function parseDerekResponse(raw: string): { reaction: string; response: string }
     };
 }
 
-async function generateWithRetry(primaryModel: string, args: any, maxRetries = 2) {
-    const fallbackModel = 'gemini-2.5-flash';
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            return await ai.models.generateContent({
-                model: primaryModel,
-                ...args,
-            });
-        } catch (err: any) {
-            const isQuotaExceeded = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('RESOURCE_EXHAUSTED') || err?.message?.includes('quota');
-            const is503Unavailable = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('high demand') || err?.message?.includes('UNAVAILABLE');
-            const isAccessOrModelIssue = err?.status === 403 || err?.status === 404 || err?.message?.includes('403') || err?.message?.includes('PERMISSION_DENIED') || err?.message?.includes('NOT_FOUND') || err?.message?.includes('denied access');
+async function generateWithRetry(primaryModel: string, args: any) {
+    const candidateModels = Array.from(
+        new Set([
+            primaryModel,
+            'gemini-2.5-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-flash-latest',
+        ])
+    );
 
-            // If primary model has permission/access issues, quota limits, or is unavailable, immediately fall back
-            if ((isQuotaExceeded || is503Unavailable || isAccessOrModelIssue) && primaryModel !== fallbackModel) {
-                console.warn(`[extension/chat] Primary model ${primaryModel} failed (${err?.message || 'error'}). Falling back immediately to ${fallbackModel}...`);
-                try {
-                    return await ai.models.generateContent({
-                        model: fallbackModel,
-                        ...args,
-                    });
-                } catch (fallbackErr: any) {
-                    console.error(`[extension/chat] Fallback model ${fallbackModel} failed:`, fallbackErr);
-                    throw fallbackErr;
+    let lastErr: any = null;
+    for (const model of candidateModels) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                return await ai.models.generateContent({
+                    model,
+                    ...args,
+                });
+            } catch (err: any) {
+                lastErr = err;
+                const is503Unavailable = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('high demand') || err?.message?.includes('UNAVAILABLE');
+                if (is503Unavailable && attempt === 0) {
+                    console.warn(`[extension/chat] Model ${model} busy (503), trying next fallback model...`);
+                    break;
                 }
+                console.warn(`[extension/chat] Model ${model} failed (${err?.message || 'error'}), trying fallback...`);
+                break;
             }
-
-            if (is503Unavailable && attempt < maxRetries) {
-                console.warn(`[extension/chat] Model ${primaryModel} busy on attempt ${attempt + 1}, retrying in 1s...`);
-                await new Promise(r => setTimeout(r, 1000));
-                continue;
-            }
-
-            // On final attempt, try fallbackModel before giving up
-            if (primaryModel !== fallbackModel) {
-                console.warn(`[extension/chat] Retrying with fallback model ${fallbackModel}...`);
-                try {
-                    return await ai.models.generateContent({
-                        model: fallbackModel,
-                        ...args,
-                    });
-                } catch (fallbackErr: any) {
-                    console.error(`[extension/chat] Fallback model ${fallbackModel} failed:`, fallbackErr);
-                }
-            }
-
-            throw err;
         }
     }
-    throw new Error(`Failed to generate content from ${primaryModel}`);
+    throw lastErr || new Error(`Failed to generate content from ${primaryModel}`);
 }
 
 export async function POST(request: Request) {
-    const corsHeaders = getCorsHeaders(request);
+    const corsHeaders = getExtensionCorsHeaders(request);
 
     try {
         const user = await getExtensionUser(request);
@@ -100,31 +77,9 @@ export async function POST(request: Request) {
             );
         }
 
-        // Verify Brother or Team Plan subscription
+        // Verify Brother or Team Plan subscription (with timeout resilience)
         const serviceClient = await createServiceClient();
-        const [{ data: userProfile }, { data: subRecord }, { data: profile }] = await Promise.all([
-            serviceClient
-                .from('users')
-                .select('tier, email')
-                .eq('id', user.id)
-                .maybeSingle(),
-            serviceClient
-                .from('subscriptions')
-                .select('tier, status')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle(),
-            serviceClient
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .maybeSingle(),
-        ]);
-
-        const tier = (subRecord?.tier || userProfile?.tier || 'free').toLowerCase();
-        const isAdmin = profile?.role === 'admin';
-        const hasRequiredPlan = tier === 'brother' || tier === 'team' || isAdmin;
+        const { tier, hasRequiredPlan } = await resolveExtensionUserPlan(serviceClient, user);
 
         if (!hasRequiredPlan) {
             return NextResponse.json(
@@ -133,7 +88,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check usage caps / guardrails
+        // Check usage caps / guardrails (non-blocking on transient DB timeout)
         const effectiveTier: Tier = tier === 'team' ? 'team' : tier === 'brother' ? 'brother' : 'free';
         try {
             await checkUsageGuard(serviceClient, user.id, effectiveTier, { email: user.email });
@@ -144,7 +99,7 @@ export async function POST(request: Request) {
                     { status: guardErr.statusCode || 429, headers: corsHeaders }
                 );
             }
-            throw guardErr;
+            console.warn('[extension/chat] Usage guard check skipped due to transient DB issue:', guardErr?.message);
         }
 
         const body = await request.json();
@@ -157,21 +112,34 @@ export async function POST(request: Request) {
             );
         }
 
-        // Fetch audit run from database if runId provided
-        let auditLog: any = null;
-        if (runId) {
+        const memStore = getExtensionRunMemoryStore();
+        const cachedRun = runId ? memStore.get(runId) : undefined;
+
+        // Fetch lightweight fields from audit_logs if runId provided and not already in memory
+        let dbRow: Record<string, any> | null = null;
+        if (runId && !cachedRun) {
             const { data } = await serviceClient
                 .from('audit_logs')
-                .select('*')
+                .select(
+                    'id, status:metadata->>status, auditScope:metadata->>auditScope, result:metadata->result, messages:metadata->messages, url:metadata->snapshot->>url, title:metadata->snapshot->>title, metaDescription:metadata->snapshot->>metaDescription, h1:metadata->snapshot->h1, h2:metadata->snapshot->h2, heroCopy:metadata->snapshot->>heroCopy, ctaText:metadata->snapshot->ctaText'
+                )
                 .eq('id', runId)
                 .eq('user_id', user.id)
                 .maybeSingle();
-            auditLog = data;
+            dbRow = data as Record<string, any> | null;
         }
 
-        const snapshot = auditLog?.metadata?.snapshot || clientSnapshot || {};
-        const auditResult = auditLog?.metadata?.result || clientResult || {};
-        const priorMessages: any[] = auditLog?.metadata?.messages || [];
+        const snapshot = clientSnapshot || cachedRun?.snapshot || (dbRow ? {
+            url: dbRow.url,
+            title: dbRow.title,
+            metaDescription: dbRow.metaDescription,
+            h1: dbRow.h1,
+            h2: dbRow.h2,
+            heroCopy: dbRow.heroCopy,
+            ctaText: dbRow.ctaText,
+        } : {});
+        const auditResult = clientResult || cachedRun?.result || dbRow?.result || {};
+        const priorMessages: any[] = cachedRun?.messages || dbRow?.messages || [];
 
         const systemInstruction = DEREK_FULL_PROMPT + `\n\n` +
             `You are talking to the user via the Billionaire Brother Chrome Extension. ` +
@@ -179,6 +147,10 @@ export async function POST(request: Request) {
             `PAGE AUDIT CONTEXT:\n` +
             `URL: ${snapshot?.url || 'N/A'}\n` +
             `Title: ${snapshot?.title || 'N/A'}\n` +
+            `Current H1 Headings on Page: ${JSON.stringify(snapshot?.h1 || [])}\n` +
+            `Current H2 Headings on Page: ${JSON.stringify((snapshot?.h2 || []).slice(0, 8))}\n` +
+            `Current Hero Copy / Value Proposition on Page: ${snapshot?.heroCopy || snapshot?.metaDescription || 'N/A'}\n` +
+            `Current CTA Buttons on Page: ${JSON.stringify((snapshot?.ctaText || []).slice(0, 8))}\n` +
             `What it sells: ${auditResult?.whatThisPageSells || 'N/A'}\n` +
             `Target audience: ${auditResult?.whoItIsFor || 'N/A'}\n` +
             `Key strengths: ${JSON.stringify(auditResult?.whatIsStrong || [])}\n` +
@@ -192,12 +164,15 @@ export async function POST(request: Request) {
             `Keep responses punchy, high-leverage, and strictly aligned with revenue growth.\n\n` +
             `FORMATTING REQUIREMENTS FOR "response":\n` +
             `- Always use clean GitHub-Flavored Markdown for high readability.\n` +
-            `- Use "### " for major section headers (e.g. "### REAL YET HARD TRUTHS", "### ACTIONABLE STEPS", "### HERO COPY REWRITE").\n` +
+            `- Use "### " for major section headers (e.g. "### REAL YET HARD TRUTHS", "### HERO COPY REWRITE", "### ACTIONABLE STEPS").\n` +
             `- Never output a single continuous wall of text. Use blank lines between paragraphs and sections.\n` +
             `- For multi-step advice, put each step on its own separate line starting with "1. ", "2. ", "3. " with a blank line before the list.\n` +
             `- Bold the title of each step (e.g. "1. **Rebuild the Hero Grid:** ...").\n` +
-            `- Use indented bullets ("   * ") for sub-recommendations, rationale, or copy variations.\n` +
-            `- For copy rewrites, always put each exact headline, subheadline, or CTA in its own tagged fenced code block (e.g. \`\`\`headline Stop Leaking 40% of Your Revenue\`\`\` or \`\`\`cta Claim Your Free Growth Sprint\`\`\` or \`\`\`copy ... \`\`\`). The Chrome Extension provides a live "Test on Page" button on these blocks so the user can immediately test and screenshot the rewrite on their live webpage.\n\n` +
+            `- CRITICAL FOR LIVE IN-PLACE COPY SWAPPER ("⚡ Test on Page"): Whenever you suggest or rewrite a headline (H1), subheadline / value proposition, or CTA button text, you MUST place EACH copy option inside its own UNINDENTED multi-line fenced code block with the language tag \`headline\`, \`subhead\`, or \`cta\` on its own line:\n` +
+            `\`\`\`headline\nStop Guessing Which Routine Works. See Your Exact Next Correction in 60 Seconds.\n\`\`\`\n` +
+            `\`\`\`subhead\nTrack your daily routine, pinpoint the exact bottleneck holding back your progress, and get one clear corrective action every morning.\n\`\`\`\n` +
+            `\`\`\`cta\nStart My Free Routine Review\n\`\`\`\n` +
+            `- Never indent \`\`\` code fences inside bullet points, and never wrap copy rewrites in single backticks — always use standalone \`\`\`headline, \`\`\`subhead, or \`\`\`cta fenced blocks so the Chrome Extension's live DOM swapper renders the "⚡ Test on Page" button.\n\n` +
             `Respond in JSON format: { "reaction": "2-4 word blunt reaction", "response": "Your full response" }`;
 
         // Format Gemini history
@@ -210,49 +185,16 @@ export async function POST(request: Request) {
 
         const userParts: any[] = [{ text: message }];
 
-        // Multimodal support: attach visual screenshot or promo banner images
-        if (snapshot?.screenshot && typeof snapshot.screenshot === 'string') {
-            const base64Data = snapshot.screenshot.replace(/^data:image\/\w+;base64,/, '');
-            const mimeType = snapshot.screenshot.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/jpeg';
+        // Multimodal support if client explicitly included a screenshot
+        if (clientSnapshot?.screenshot && typeof clientSnapshot.screenshot === 'string') {
+            const base64Data = clientSnapshot.screenshot.replace(/^data:image\/\w+;base64,/, '');
+            const mimeType = clientSnapshot.screenshot.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/jpeg';
             userParts.push({
                 inlineData: {
                     mimeType,
                     data: base64Data,
                 }
             });
-        }
-
-        if (snapshot?.promoImages && Array.isArray(snapshot.promoImages)) {
-            for (const img of snapshot.promoImages.slice(0, 2)) {
-                if (img.base64 && typeof img.base64 === 'string') {
-                    const base64Data = img.base64.replace(/^data:image\/\w+;base64,/, '');
-                    const mimeType = img.base64.match(/^data:(image\/\w+);base64,/)?.[1] || 'image/jpeg';
-                    userParts.push({
-                        inlineData: {
-                            mimeType,
-                            data: base64Data,
-                        }
-                    });
-                } else if (img.src && typeof img.src === 'string' && (img.src.startsWith('http') || img.src.startsWith('//'))) {
-                    try {
-                        const targetUrl = img.src.startsWith('//') ? `https:${img.src}` : img.src;
-                        const imgRes = await fetch(targetUrl, { signal: AbortSignal.timeout(3000) });
-                        if (imgRes.ok) {
-                            const buffer = await imgRes.arrayBuffer();
-                            if (buffer.byteLength > 500 && buffer.byteLength < 4_000_000) {
-                                const base64Data = Buffer.from(buffer).toString('base64');
-                                const mimeType = (imgRes.headers.get('content-type') || 'image/jpeg').split(';')[0];
-                                userParts.push({
-                                    inlineData: {
-                                        mimeType,
-                                        data: base64Data,
-                                    }
-                                });
-                            }
-                        }
-                    } catch {}
-                }
-            }
         }
 
         contents.push({
@@ -281,30 +223,52 @@ export async function POST(request: Request) {
         const rawText = response.text || '';
         const parsed = parseDerekResponse(rawText);
 
-        // Fetch optional GIF for Derek's reaction
-        const gifUrl = parsed.reaction ? await fetchGifUrl(parsed.reaction) : null;
+        // Fetch optional GIF for Derek's reaction (non-blocking timeout)
+        const gifUrl = parsed.reaction ? await fetchGifUrl(parsed.reaction).catch(() => null) : null;
 
-        // Persist message history in audit_logs if run exists
-        if (runId && auditLog) {
+        // Persist message history in memory and audit_logs (without base64 screenshot bloat)
+        if (runId) {
             const updatedMessages = [
                 ...priorMessages,
                 { role: 'user', content: message, createdAt: new Date().toISOString() },
                 { role: 'derek', content: parsed.response, reaction: parsed.reaction, gifUrl, createdAt: new Date().toISOString() },
             ];
 
-            await serviceClient
+            const cleanSnapshot = sanitizeSnapshotForDb(snapshot);
+            if (cachedRun) {
+                cachedRun.messages = updatedMessages;
+            } else {
+                memStore.set(runId, {
+                    id: runId,
+                    userId: user.id,
+                    created_at: new Date().toISOString(),
+                    status: 'completed',
+                    snapshot: cleanSnapshot,
+                    auditScope: dbRow?.auditScope || 'page',
+                    result: auditResult,
+                    error_message: null,
+                    messages: updatedMessages,
+                });
+            }
+
+            serviceClient
                 .from('audit_logs')
                 .update({
                     metadata: {
-                        ...auditLog.metadata,
+                        status: 'completed',
+                        snapshot: cleanSnapshot,
+                        auditScope: cachedRun?.auditScope || dbRow?.auditScope || 'page',
+                        result: auditResult,
+                        error_message: null,
                         messages: updatedMessages,
                     },
                 })
-                .eq('id', runId);
+                .eq('id', runId)
+                .then(() => {}, () => {});
         }
 
-        // Meter extension chat usage & cost against user account
-        await logUsageAndCost(serviceClient, {
+        // Meter extension chat usage & cost against user account (non-blocking)
+        logUsageAndCost(serviceClient, {
             userId: user.id,
             tier: effectiveTier,
             endpoint: '/api/extension/chat',
@@ -313,7 +277,7 @@ export async function POST(request: Request) {
             latencyMs,
             isDegradeMode: false,
             model: GEMINI_EXTENSION_MODEL,
-        });
+        }).catch(() => {});
 
         return NextResponse.json(
             {
@@ -333,9 +297,10 @@ export async function POST(request: Request) {
 }
 
 export async function OPTIONS(request: Request) {
-    const corsHeaders = getCorsHeaders(request);
+    const corsHeaders = getExtensionCorsHeaders(request);
     return new NextResponse(null, {
         status: 204,
         headers: corsHeaders,
     });
 }
+

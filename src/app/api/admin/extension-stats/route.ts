@@ -74,10 +74,12 @@ export async function GET(request: Request) {
 
         const serviceClient = await createServiceClient();
 
-        // 1. Fetch audit logs related to the Chrome Extension
+        // 1. Fetch audit logs related to the Chrome Extension (projecting only lightweight JSON paths)
         const { data: logs, error: logsError } = await serviceClient
             .from('audit_logs')
-            .select('id, user_id, action, entity_type, metadata, created_at')
+            .select(
+                'id, user_id, action, entity_type, created_at, eventName:metadata->>eventName, status:metadata->>status, auditScope:metadata->>auditScope, errorMessage:metadata->>error_message, url:metadata->snapshot->>url, title:metadata->snapshot->>title, complianceRisk:metadata->result->legalTechnicalities->>complianceRisk, bestNextMove:metadata->result->>bestNextMove, whatThisPageSells:metadata->result->>whatThisPageSells, topConversionLeaks:metadata->result->topConversionLeaks'
+            )
             .in('action', ['extension_audit', 'extension_telemetry'])
             .order('created_at', { ascending: false })
             .limit(500);
@@ -121,8 +123,7 @@ export async function GET(request: Request) {
 
         const recentAudits: ExtensionAuditSummary[] = [];
 
-        for (const entry of logs || []) {
-            const metadata = (entry.metadata as Record<string, any>) || {};
+        for (const entry of (logs || []) as Array<Record<string, any>>) {
             const createdAtTime = new Date(entry.created_at).getTime();
             const ageMs = now - createdAtTime;
 
@@ -131,7 +132,7 @@ export async function GET(request: Request) {
             }
 
             if (entry.action === 'extension_telemetry') {
-                const eventName = metadata.eventName;
+                const eventName = entry.eventName;
                 if (eventName === 'sidepanel_open') telemetryCounts.sidepanelOpens++;
                 else if (eventName === 'report_export_pdf') telemetryCounts.pdfExports++;
                 else if (eventName === 'report_copy') telemetryCounts.textCopies++;
@@ -145,27 +146,25 @@ export async function GET(request: Request) {
                 if (ageMs <= sevenDaysMs) audits7d++;
                 if (ageMs <= thirtyDaysMs) audits30d++;
 
-                const status = metadata.status || 'queued';
+                const status = entry.status || 'queued';
                 if (status === 'completed') completedAudits++;
                 else if (status === 'failed') failedAudits++;
 
                 // Scopes
-                const scope = (metadata.auditScope || 'page') as 'page' | 'domain' | 'subpath';
+                const scope = (entry.auditScope || 'page') as 'page' | 'domain' | 'subpath';
                 if (scope === 'domain') scopeCounts.domain++;
                 else if (scope === 'subpath') scopeCounts.subpath++;
                 else scopeCounts.page++;
 
                 // Target domain
-                const snapshot = metadata.snapshot || {};
-                const url = snapshot.url || '';
+                const url = entry.url || '';
                 const domain = extractHostname(url);
                 if (domain && domain !== 'Unknown') {
                     domainCounts.set(domain, (domainCounts.get(domain) || 0) + 1);
                 }
 
                 // Legal / Compliance risk
-                const result = metadata.result || {};
-                const rawRisk = (result.legalTechnicalities?.complianceRisk || '').toLowerCase();
+                const rawRisk = (entry.complianceRisk || '').toLowerCase();
                 if (rawRisk.includes('high')) riskCounts.high++;
                 else if (rawRisk.includes('med')) riskCounts.medium++;
                 else if (rawRisk.includes('low') || rawRisk.includes('none')) riskCounts.low++;
@@ -181,14 +180,14 @@ export async function GET(request: Request) {
                         userName: userInfo?.name || 'Member',
                         url: url || '—',
                         domain: domain || '—',
-                        title: snapshot.title || 'Untitled Page',
+                        title: entry.title || 'Untitled Page',
                         scope,
                         status,
-                        complianceRisk: result.legalTechnicalities?.complianceRisk || 'Unknown',
-                        bestNextMove: result.bestNextMove || null,
-                        whatThisPageSells: result.whatThisPageSells || null,
-                        topConversionLeaks: Array.isArray(result.topConversionLeaks) ? result.topConversionLeaks.slice(0, 3) : [],
-                        errorMessage: metadata.error_message || null,
+                        complianceRisk: entry.complianceRisk || 'Unknown',
+                        bestNextMove: entry.bestNextMove || null,
+                        whatThisPageSells: entry.whatThisPageSells || null,
+                        topConversionLeaks: Array.isArray(entry.topConversionLeaks) ? entry.topConversionLeaks.slice(0, 3) : [],
+                        errorMessage: entry.errorMessage || null,
                     });
                 }
             }

@@ -18,6 +18,11 @@ export async function proxy(request: NextRequest) {
             response.headers.set('x-bb-restricted', '1');
             return response;
         }
+        // API routes handle their own authentication; running updateSession here
+        // causes duplicate /auth/v1/user calls and refresh-token race conditions.
+        if (pathname.startsWith('/api/')) {
+            return NextResponse.next();
+        }
         return await updateSession(request);
     }
 

@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
-import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
-import { getExtensionUser } from '@/lib/extension-auth';
+import { createServiceClient, isTransientSupabaseError } from '@/lib/supabase/server';
+import {
+    getExtensionCorsHeaders,
+    getExtensionRunMemoryStore,
+    getExtensionUser,
+    resolveExtensionUserPlan,
+    sanitizeSnapshotForDb,
+} from '@/lib/extension-auth';
 import ai, { GEMINI_EXTENSION_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { Type } from '@google/genai';
@@ -8,16 +14,6 @@ import { logUsageAndCost } from '@/lib/middleware/meter-logger';
 import { checkUsageGuard } from '@/lib/middleware/usage-guard';
 import { GuardError } from '@/lib/middleware/types';
 import type { Tier } from '@/lib/ai-config';
-
-function getCorsHeaders(request: Request) {
-    const origin = request.headers.get('origin') || '*';
-    return {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    };
-}
 
 const RETAIL_SEASON_HINTS: Record<number, string> = {
     0: 'Winter clearance / New Year, New You',
@@ -66,69 +62,56 @@ function looksLikeRetail(snapshot: any): boolean {
     return retailKeywords.some(k => haystack.includes(k));
 }
 
-async function generateWithRetry(primaryModel: string, args: any, maxRetries = 2) {
-    const fallbackModel = 'gemini-2.5-flash';
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            return await ai.models.generateContent({
-                model: primaryModel,
-                ...args,
-            });
-        } catch (err: any) {
-            const isQuotaExceeded = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('RESOURCE_EXHAUSTED') || err?.message?.includes('quota');
-            const is503Unavailable = err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('high demand') || err?.message?.includes('UNAVAILABLE');
-            const isAccessOrModelIssue = err?.status === 403 || err?.status === 404 || err?.message?.includes('403') || err?.message?.includes('PERMISSION_DENIED') || err?.message?.includes('NOT_FOUND') || err?.message?.includes('denied access');
+async function generateWithRetry(primaryModel: string, args: any) {
+    const candidateModels = Array.from(
+        new Set([primaryModel, 'gemini-2.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'])
+    );
+    let lastError: any = null;
 
-            // If primary model has permission/access issues, quota limits, or is unavailable, immediately fall back
-            if ((isQuotaExceeded || is503Unavailable || isAccessOrModelIssue) && primaryModel !== fallbackModel) {
-                console.warn(`[extension/audit] Primary model ${primaryModel} failed (${err?.message || 'error'}). Falling back immediately to ${fallbackModel}...`);
-                try {
-                    return await ai.models.generateContent({
-                        model: fallbackModel,
-                        ...args,
-                    });
-                } catch (fallbackErr: any) {
-                    console.error(`[extension/audit] Fallback model ${fallbackModel} failed:`, fallbackErr);
-                    throw fallbackErr;
+    for (const model of candidateModels) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                return await ai.models.generateContent({
+                    model,
+                    ...args,
+                });
+            } catch (err: any) {
+                lastError = err;
+                const is503Unavailable =
+                    err?.status === 503 ||
+                    err?.message?.includes('503') ||
+                    err?.message?.includes('high demand') ||
+                    err?.message?.includes('UNAVAILABLE');
+                if (is503Unavailable && attempt === 0) {
+                    console.warn(`[extension/audit] Model ${model} busy (503), retrying in 600ms...`);
+                    await new Promise(r => setTimeout(r, 600));
+                    continue;
                 }
+                console.warn(`[extension/audit] Model ${model} failed (${err?.status || err?.message}). Trying next fallback...`);
+                break;
             }
-
-            if (is503Unavailable && attempt < maxRetries) {
-                console.warn(`[extension/audit] Model ${primaryModel} busy on attempt ${attempt + 1}, retrying in 1s...`);
-                await new Promise(r => setTimeout(r, 1000));
-                continue;
-            }
-
-            // On final attempt, try fallbackModel before giving up
-            if (primaryModel !== fallbackModel) {
-                console.warn(`[extension/audit] Retrying with fallback model ${fallbackModel}...`);
-                try {
-                    return await ai.models.generateContent({
-                        model: fallbackModel,
-                        ...args,
-                    });
-                } catch (fallbackErr: any) {
-                    console.error(`[extension/audit] Fallback model ${fallbackModel} failed:`, fallbackErr);
-                }
-            }
-
-            throw err;
         }
     }
-    throw new Error(`Failed to generate content from ${primaryModel}`);
+    throw lastError || new Error(`Failed to generate content from ${primaryModel}`);
 }
 
 export async function runAuditAnalysis(runId: string, snapshot: any, userId: string, auditScope: string = 'page', userTier: string = 'brother') {
     const serviceClient = await createServiceClient();
+    const dbSnapshot = sanitizeSnapshotForDb(snapshot);
+    const memStore = getExtensionRunMemoryStore();
+    const existingMem = memStore.get(runId);
+    if (existingMem) {
+        existingMem.status = 'processing';
+    }
 
     try {
-        // Update status to 'processing'
+        // Update status to 'processing' (using lightweight dbSnapshot without base64 blobs)
         await serviceClient
             .from('audit_logs')
             .update({
                 metadata: {
                     status: 'processing',
-                    snapshot,
+                    snapshot: dbSnapshot,
                     auditScope,
                     result: null,
                     error_message: null
@@ -325,23 +308,38 @@ STRICT RULES FOR seasonalRelevance:
         const rawText = response.text || '';
         const result = JSON.parse(rawText.trim());
 
-        // Update status to 'completed' with the result
+        const memStore = getExtensionRunMemoryStore();
+        const existingRun = memStore.get(runId);
+        memStore.set(runId, {
+            id: runId,
+            userId,
+            created_at: existingRun?.created_at || new Date().toISOString(),
+            status: 'completed',
+            snapshot: dbSnapshot,
+            auditScope,
+            result,
+            error_message: null,
+            messages: existingRun?.messages || [],
+        });
+
+        // Update status to 'completed' with the result (never persist raw base64 screenshots)
         await serviceClient
             .from('audit_logs')
             .update({
                 metadata: {
                     status: 'completed',
-                    snapshot,
+                    snapshot: dbSnapshot,
                     auditScope,
                     result,
                     error_message: null
                 }
             })
-            .eq('id', runId);
+            .eq('id', runId)
+            .then(() => {}, (dbErr: any) => console.warn('[extension/audit] Non-fatal DB update warning:', dbErr?.message));
 
         // Meter extension audit usage & cost against user account
         const effectiveTier: Tier = userTier === 'team' ? 'team' : 'brother';
-        await logUsageAndCost(serviceClient, {
+        logUsageAndCost(serviceClient, {
             userId,
             tier: effectiveTier,
             endpoint: '/api/extension/audit',
@@ -350,11 +348,25 @@ STRICT RULES FOR seasonalRelevance:
             latencyMs,
             isDegradeMode: false,
             model: GEMINI_EXTENSION_MODEL,
-        });
+        }).catch(() => {});
 
         console.log(`[extension/audit] Job ${runId} completed successfully.`);
     } catch (err: any) {
         console.error(`[extension/audit] Job ${runId} failed:`, err);
+
+        const memStore = getExtensionRunMemoryStore();
+        const existingRun = memStore.get(runId);
+        memStore.set(runId, {
+            id: runId,
+            userId,
+            created_at: existingRun?.created_at || new Date().toISOString(),
+            status: 'failed',
+            snapshot: dbSnapshot,
+            auditScope,
+            result: null,
+            error_message: err.message || 'Unknown audit error',
+            messages: existingRun?.messages || [],
+        });
         
         // Update status to 'failed' with error message
         await serviceClient
@@ -362,18 +374,19 @@ STRICT RULES FOR seasonalRelevance:
             .update({
                 metadata: {
                     status: 'failed',
-                    snapshot,
+                    snapshot: dbSnapshot,
                     auditScope,
                     result: null,
                     error_message: err.message || 'Unknown audit error'
                 }
             })
-            .eq('id', runId);
+            .eq('id', runId)
+            .then(() => {}, () => {});
     }
 }
 
 export async function POST(request: Request) {
-    const corsHeaders = getCorsHeaders(request);
+    const corsHeaders = getExtensionCorsHeaders(request);
 
     try {
         const user = await getExtensionUser(request);
@@ -384,31 +397,9 @@ export async function POST(request: Request) {
             );
         }
 
-        // Verify Brother or Team Plan subscription using service client
+        // Verify Brother or Team Plan subscription using service client (with timeout resilience)
         const serviceClient = await createServiceClient();
-        const [{ data: userProfile }, { data: subRecord }, { data: profile }] = await Promise.all([
-            serviceClient
-                .from('users')
-                .select('tier, email')
-                .eq('id', user.id)
-                .maybeSingle(),
-            serviceClient
-                .from('subscriptions')
-                .select('tier, status')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle(),
-            serviceClient
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .maybeSingle(),
-        ]);
-
-        const tier = (subRecord?.tier || userProfile?.tier || 'free').toLowerCase();
-        const isAdmin = profile?.role === 'admin';
-        const hasRequiredPlan = tier === 'brother' || tier === 'team' || isAdmin;
+        const { tier, hasRequiredPlan } = await resolveExtensionUserPlan(serviceClient, user);
 
         if (!hasRequiredPlan) {
             return NextResponse.json(
@@ -417,7 +408,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check usage caps / guardrails
+        // Check usage caps / guardrails (non-blocking on transient DB timeout)
         const effectiveTier: Tier = tier === 'team' ? 'team' : tier === 'brother' ? 'brother' : 'free';
         try {
             await checkUsageGuard(serviceClient, user.id, effectiveTier, { email: user.email });
@@ -428,7 +419,7 @@ export async function POST(request: Request) {
                     { status: guardErr.statusCode || 429, headers: corsHeaders }
                 );
             }
-            throw guardErr;
+            console.warn('[extension/audit] Usage guard check skipped due to transient DB issue:', guardErr?.message);
         }
 
         const body = await request.json();
@@ -441,29 +432,49 @@ export async function POST(request: Request) {
             );
         }
 
-        // Insert new audit log record
-        const { data: auditLog, error: dbError } = await serviceClient
-            .from('audit_logs')
-            .insert({
-                user_id: user.id,
-                action: 'extension_audit',
-                entity_type: 'run',
-                metadata: {
-                    status: 'queued',
-                    snapshot,
-                    auditScope,
-                    result: null,
-                    error_message: null
-                }
-            })
-            .select('id')
-            .single();
+        const dbSnapshot = sanitizeSnapshotForDb(snapshot);
+        const createdAt = new Date().toISOString();
 
-        if (dbError || !auditLog) {
-            throw dbError || new Error('Failed to create audit log entry');
+        // Insert new audit log record (with stripped screenshot so JSONB stays tiny)
+        let runId: string = crypto.randomUUID();
+        try {
+            const { data: auditLog, error: dbError } = await serviceClient
+                .from('audit_logs')
+                .insert({
+                    user_id: user.id,
+                    action: 'extension_audit',
+                    entity_type: 'run',
+                    metadata: {
+                        status: 'queued',
+                        snapshot: dbSnapshot,
+                        auditScope,
+                        result: null,
+                        error_message: null
+                    }
+                })
+                .select('id')
+                .single();
+
+            if (!dbError && auditLog?.id) {
+                runId = auditLog.id;
+            } else if (dbError) {
+                console.warn('[extension/audit] DB insert warning, falling back to in-memory runId:', dbError.message);
+            }
+        } catch (insertErr: any) {
+            console.warn('[extension/audit] DB insert timeout, falling back to in-memory runId:', insertErr?.message);
         }
 
-        const runId = auditLog.id;
+        getExtensionRunMemoryStore().set(runId, {
+            id: runId,
+            userId: user.id,
+            created_at: createdAt,
+            status: 'queued',
+            snapshot: dbSnapshot,
+            auditScope,
+            result: null,
+            error_message: null,
+            messages: [],
+        });
 
         // Trigger analysis in background asynchronously (do not await)
         runAuditAnalysis(runId, snapshot, user.id, auditScope, tier).catch(err => {
@@ -484,9 +495,10 @@ export async function POST(request: Request) {
 }
 
 export async function OPTIONS(request: Request) {
-    const corsHeaders = getCorsHeaders(request);
+    const corsHeaders = getExtensionCorsHeaders(request);
     return new NextResponse(null, {
         status: 204,
         headers: corsHeaders,
     });
 }
+

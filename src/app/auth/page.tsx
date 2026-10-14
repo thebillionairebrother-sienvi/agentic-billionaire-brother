@@ -115,25 +115,32 @@ function AuthPageInner() {
                 }
             } catch (err) {
                 const errMsg = err instanceof Error ? err.message : 'An error occurred';
-                const isNetworkError = errMsg.toLowerCase().includes('failed to fetch')
-                    || errMsg.toLowerCase().includes('load failed')
-                    || errMsg.toLowerCase().includes('networkerror');
+                const lower = errMsg.toLowerCase();
+                const isTransientError = lower.includes('failed to fetch')
+                    || lower.includes('load failed')
+                    || lower.includes('networkerror')
+                    || lower.includes('504')
+                    || lower.includes('522')
+                    || lower.includes('502')
+                    || lower.includes('gateway time')
+                    || lower.includes('timed out')
+                    || lower.includes('<!doctype');
 
-                // Auto-retry once for transient network errors (common on mobile/Safari)
-                if (isNetworkError && retriesLeft > 0) {
+                // Auto-retry for transient network/gateway errors
+                if (isTransientError && retriesLeft > 0) {
                     await new Promise(resolve => setTimeout(resolve, 1500));
                     return attemptAuth(retriesLeft - 1);
                 }
 
-                if (isNetworkError) {
-                    setError('Connection issue — please check your internet connection and try again.');
+                if (isTransientError) {
+                    setError('Authentication server is temporarily busy (Gateway Timeout). Please wait a few seconds and click Sign In again.');
                 } else {
                     setError(errMsg);
                 }
             }
         };
 
-        await attemptAuth(1);
+        await attemptAuth(2);
         setLoading(false);
     };
 
