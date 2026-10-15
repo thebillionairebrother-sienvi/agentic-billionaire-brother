@@ -64,35 +64,55 @@ function looksLikeRetail(snapshot: any): boolean {
 
 async function generateWithRetry(primaryModel: string, args: any) {
     const candidateModels = Array.from(
-        new Set([primaryModel, 'gemini-2.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'])
+        new Set([
+            primaryModel,
+            'gemini-3-flash-preview',
+            'gemini-2.5-flash',
+            'gemini-3.1-flash-lite-preview',
+            'gemini-flash-latest',
+        ])
     );
     let lastError: any = null;
+    let firstDemandError: any = null;
+    const PER_ATTEMPT_TIMEOUT_MS = 28000;
 
     for (const model of candidateModels) {
         for (let attempt = 0; attempt < 2; attempt++) {
             try {
-                return await ai.models.generateContent({
+                const callPromise = ai.models.generateContent({
                     model,
                     ...args,
                 });
+                const timeoutPromise = new Promise<never>((_, reject) =>
+                    setTimeout(
+                        () => reject(new Error(`503 UNAVAILABLE: Model ${model} is experiencing high demand and timed out after ${PER_ATTEMPT_TIMEOUT_MS / 1000}s.`)),
+                        PER_ATTEMPT_TIMEOUT_MS
+                    )
+                );
+                return await Promise.race([callPromise, timeoutPromise]);
             } catch (err: any) {
                 lastError = err;
+                const msg = (err?.message || '').toString();
                 const is503Unavailable =
                     err?.status === 503 ||
-                    err?.message?.includes('503') ||
-                    err?.message?.includes('high demand') ||
-                    err?.message?.includes('UNAVAILABLE');
-                if (is503Unavailable && attempt === 0) {
+                    msg.includes('503') ||
+                    msg.toLowerCase().includes('high demand') ||
+                    msg.includes('UNAVAILABLE') ||
+                    msg.toLowerCase().includes('overloaded');
+                if (is503Unavailable && !firstDemandError) {
+                    firstDemandError = err;
+                }
+                if (is503Unavailable && attempt === 0 && model === primaryModel) {
                     console.warn(`[extension/audit] Model ${model} busy (503), retrying in 600ms...`);
                     await new Promise(r => setTimeout(r, 600));
                     continue;
                 }
-                console.warn(`[extension/audit] Model ${model} failed (${err?.status || err?.message}). Trying next fallback...`);
+                console.warn(`[extension/audit] Model ${model} failed (${err?.status || msg}). Trying next fallback...`);
                 break;
             }
         }
     }
-    throw lastError || new Error(`Failed to generate content from ${primaryModel}`);
+    throw firstDemandError || lastError || new Error(`503 UNAVAILABLE: Model ${primaryModel} is currently experiencing high demand.`);
 }
 
 export async function runAuditAnalysis(runId: string, snapshot: any, userId: string, auditScope: string = 'page', userTier: string = 'brother') {
