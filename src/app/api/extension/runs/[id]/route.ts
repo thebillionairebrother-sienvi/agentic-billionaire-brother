@@ -42,7 +42,7 @@ export async function GET(
         const { data: auditLog, error } = await serviceClient
             .from('audit_logs')
             .select(
-                'id, created_at, status:metadata->>status, error_message:metadata->>error_message, auditScope:metadata->>auditScope, result:metadata->result, messages:metadata->messages, url:metadata->snapshot->>url, title:metadata->snapshot->>title, metaDescription:metadata->snapshot->>metaDescription, h1:metadata->snapshot->h1, h2:metadata->snapshot->h2, heroCopy:metadata->snapshot->>heroCopy, ctaText:metadata->snapshot->ctaText, navLinks:metadata->snapshot->navLinks'
+                'id, created_at, status:metadata->>status, error_message:metadata->>error_message, auditScope:metadata->>auditScope, result:metadata->result, messages:metadata->messages, url:metadata->snapshot->>url, title:metadata->snapshot->>title, metaDescription:metadata->snapshot->>metaDescription, h1:metadata->snapshot->h1, h2:metadata->snapshot->h2, heroCopy:metadata->snapshot->>heroCopy, ctaText:metadata->snapshot->ctaText, navLinks:metadata->snapshot->navLinks, elements:metadata->snapshot->elements'
             )
             .eq('id', id)
             .eq('user_id', user.id)
@@ -86,6 +86,8 @@ export async function GET(
             heroCopy: row.heroCopy || '',
             ctaText: Array.isArray(row.ctaText) ? row.ctaText : [],
             navLinks: Array.isArray(row.navLinks) ? row.navLinks : [],
+            // data-bb-id element refs so history re-opens can still highlight exact elements
+            elements: Array.isArray(row.elements) ? row.elements : [],
         };
 
         return NextResponse.json(
