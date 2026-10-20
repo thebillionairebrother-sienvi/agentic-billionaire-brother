@@ -14,6 +14,7 @@ import { logUsageAndCost } from '@/lib/middleware/meter-logger';
 import { checkUsageGuard } from '@/lib/middleware/usage-guard';
 import { GuardError } from '@/lib/middleware/types';
 import type { Tier } from '@/lib/ai-config';
+import { formatElementsForPrompt, sanitizeElements, sanitizeElementTargets } from '@/lib/extension-element-targets';
 
 const RETAIL_SEASON_HINTS: Record<number, string> = {
     0: 'Winter clearance / New Year, New You',
@@ -189,6 +190,8 @@ STRICT RULES FOR seasonalRelevance:
                 ).join('\n---\n');
         }
 
+        const pageElements = sanitizeElements(snapshot.elements);
+
         const scopeTitle = auditScope === 'domain' ? 'ENTIRE WEBSITE / DOMAIN' : auditScope === 'subpath' ? 'SUB-PAGES PATH' : 'SINGLE ACTIVE PAGE';
 
         const userPrompt = `Audit Target Scope: ${scopeTitle}\n` +
@@ -208,6 +211,7 @@ STRICT RULES FOR seasonalRelevance:
             `Repeated phrases: ${JSON.stringify(snapshot.repeatedPhrases)}\n` +
             `User selected text: "${snapshot.selectedText}"\n` +
             `Visible button labels: ${JSON.stringify(snapshot.visibleButtonLabels)}` +
+            formatElementsForPrompt(pageElements) +
             `${subPagesText}\n\n` +
             `Analyze this ${scopeTitle} snapshot and attached visual screenshot, evaluate conversion performance, visual merchandising, and perform Derek's Legal & Compliance technicality audit.`;
 
@@ -317,6 +321,17 @@ STRICT RULES FOR seasonalRelevance:
                                 }
                             },
                             required: ['applicable']
+                        },
+                        elementTargets: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    finding: { type: Type.STRING },
+                                    elementId: { type: Type.STRING }
+                                },
+                                required: ['finding', 'elementId']
+                            }
                         }
                     },
                     required: ['whatThisPageSells', 'whoItIsFor', 'whatIsStrong', 'whatIsWeak', 'topConversionLeaks', 'bestNextMove', 'legalTechnicalities']
@@ -327,6 +342,11 @@ STRICT RULES FOR seasonalRelevance:
         const latencyMs = Date.now() - startTime;
         const rawText = response.text || '';
         const result = JSON.parse(rawText.trim());
+
+        // Only keep element targets the extension can trust (exact finding, known id)
+        const elementTargets = sanitizeElementTargets(result.elementTargets, result, pageElements);
+        if (elementTargets.length > 0) result.elementTargets = elementTargets;
+        else delete result.elementTargets;
 
         const memStore = getExtensionRunMemoryStore();
         const existingRun = memStore.get(runId);
