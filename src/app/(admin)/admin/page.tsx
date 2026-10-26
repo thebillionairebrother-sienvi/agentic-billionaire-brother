@@ -6,6 +6,7 @@ import { ExecutiveMetricsGrid } from '@/components/admin/ExecutiveMetricsGrid';
 
 import { EmailCampaignStats } from '@/components/admin/EmailCampaignStats';
 import { ExtensionAnalytics } from '@/components/admin/ExtensionAnalytics';
+import { ExtensionGrowthCard } from '@/components/admin/ExtensionGrowthCard';
 import styles from './page.module.css';
 
 interface UserData {
@@ -205,6 +206,9 @@ export default function AdminDashboard() {
 
             {/* Billionaire Brother Email Campaign KPIs */}
             <EmailCampaignStats />
+
+            {/* Chrome Web Store growth: live version, active users, installs */}
+            <ExtensionGrowthCard />
 
             {/* Billionaire Brother Chrome Extension Analytics */}
             <ExtensionAnalytics />
