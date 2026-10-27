@@ -21,11 +21,21 @@ const VALID_BETA_CODES: Record<string, string> = {
 };
 
 function BetaAuthPageInner() {
-    const [mode, setMode] = useState<'login' | 'signup'>('login');
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirect = searchParams.get('redirect') || '/dashboard';
+    const confirmedParam = searchParams.get('confirmed');
+    const errorParam = searchParams.get('error');
+    const modeParam = searchParams.get('mode');
+    const promoParam = searchParams.get('promo') || searchParams.get('beta_code');
+
+    const [mode, setMode] = useState<'login' | 'signup'>(() =>
+        modeParam === 'signup' || modeParam === 'register' ? 'signup' : 'login'
+    );
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
-    const [betaCode, setBetaCode] = useState('');
+    const [betaCode, setBetaCode] = useState(() => (promoParam ? promoParam.toUpperCase().trim() : ''));
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
     const [resettingPassword, setResettingPassword] = useState(false);
@@ -35,13 +45,18 @@ function BetaAuthPageInner() {
     const [confirmedTypoEmail, setConfirmedTypoEmail] = useState<string | null>(null);
     const [pendingConfirmEmail, setPendingConfirmEmail] = useState<string | null>(null);
     const [resendCooldown, setResendCooldown] = useState(0);
+    const [offerSignupSwitch, setOfferSignupSwitch] = useState(false);
 
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const redirect = searchParams.get('redirect') || '/dashboard';
-    const confirmedParam = searchParams.get('confirmed');
-    const errorParam = searchParams.get('error');
     const supabase = createClient();
+
+    // Sync mode if URL query param changes
+    useEffect(() => {
+        if (modeParam === 'signup' || modeParam === 'register') {
+            setMode('signup');
+        } else if (modeParam === 'login' || modeParam === 'signin') {
+            setMode('login');
+        }
+    }, [modeParam]);
 
     // Surface confirmation or callback status from URL query params
     useEffect(() => {
@@ -128,6 +143,7 @@ function BetaAuthPageInner() {
         setError(null);
         setMessage(null);
         setSuggestedEmail(null);
+        setOfferSignupSwitch(false);
 
         const cleanEmail = email.trim().toLowerCase();
 
@@ -223,8 +239,18 @@ function BetaAuthPageInner() {
                         password,
                     });
                     if (signInError) {
-                        if (signInError.message.toLowerCase().includes('email not confirmed')) {
+                        const lowerSignInErr = signInError.message.toLowerCase();
+                        if (lowerSignInErr.includes('email not confirmed')) {
                             setPendingConfirmEmail(cleanEmail);
+                        } else if (lowerSignInErr.includes('invalid login credentials')) {
+                            const typoCheck = checkEmailDomainTypo(cleanEmail);
+                            if (typoCheck.hasTypo && typoCheck.suggestedEmail) {
+                                setSuggestedEmail(typoCheck.suggestedEmail);
+                            }
+                            setOfferSignupSwitch(true);
+                            throw new Error(
+                                'Wrong email or password — or if you are setting up your Beta account for the first time, click "Register Beta Account with This Email" below.'
+                            );
                         }
                         throw signInError;
                     }
@@ -326,6 +352,39 @@ function BetaAuthPageInner() {
             {/* ── Right — Form panel ── */}
             <div className={styles.rightPanel}>
                 <div className={styles.formWrapper}>
+                    <div className={styles.modeTabs} role="tablist" aria-label="Beta authentication mode">
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={mode === 'login'}
+                            className={`${styles.modeTab} ${mode === 'login' ? styles.modeTabActive : ''}`}
+                            onClick={() => {
+                                setMode('login');
+                                setError(null);
+                                setMessage(null);
+                                setSuggestedEmail(null);
+                                setOfferSignupSwitch(false);
+                            }}
+                        >
+                            Sign In
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={mode === 'signup'}
+                            className={`${styles.modeTab} ${mode === 'signup' ? styles.modeTabActive : ''}`}
+                            onClick={() => {
+                                setMode('signup');
+                                setError(null);
+                                setMessage(null);
+                                setSuggestedEmail(null);
+                                setOfferSignupSwitch(false);
+                            }}
+                        >
+                            Register Beta
+                        </button>
+                    </div>
+
                     <div className={styles.formHeader}>
                         <h2 className={styles.formTitle}>
                             {mode === 'login' ? 'Beta Access' : 'Create Beta Account'}
@@ -448,6 +507,20 @@ function BetaAuthPageInner() {
                                         USE {suggestedEmail.toUpperCase()} →
                                     </button>
                                 )}
+                                {offerSignupSwitch && mode === 'login' && (
+                                    <button
+                                        type="button"
+                                        className={styles.actionAuxBtn}
+                                        onClick={() => {
+                                            setMode('signup');
+                                            setOfferSignupSwitch(false);
+                                            setError(null);
+                                            setMessage('Enter your Beta Access Code and Display Name below, then click Initialize Beta Port to create your account.');
+                                        }}
+                                    >
+                                        REGISTER BETA ACCOUNT WITH THIS EMAIL →
+                                    </button>
+                                )}
                             </div>
                         )}
 
@@ -502,6 +575,7 @@ function BetaAuthPageInner() {
                                 setError(null);
                                 setMessage(null);
                                 setSuggestedEmail(null);
+                                setOfferSignupSwitch(false);
                             }}
                         >
                             {mode === 'login' ? 'INITIALIZE CREDENTIALS →' : 'SECURE SIGN IN →'}

@@ -362,7 +362,7 @@ export default function LandingPage() {
             </p>
 
             <div className={styles.heroCTA}>
-              <Link href="/auth" className={styles.ctaPrimary} id="hero-cta">
+              <Link href="/auth?mode=signup" className={styles.ctaPrimary} id="hero-cta">
                 START FREE QUESTIONNAIRE →
               </Link>
             </div>
@@ -696,7 +696,7 @@ export default function LandingPage() {
                     <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Have Derek Do It</li>
                     <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Team Seats</li>
                   </ul>
-                  <Link href="/auth" className={styles.btnSecondary} id="pricing-free-cta">
+                  <Link href="/auth?mode=signup" className={styles.btnSecondary} id="pricing-free-cta">
                     BEGIN BASIC
                   </Link>
                 </div>
@@ -732,7 +732,7 @@ export default function LandingPage() {
                     <li><Check size={13} className={styles.checkIconGold} /> AI deliverable downloads</li>
                     <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Team Seats</li>
                   </ul>
-                  <Link href="/auth" className={styles.btnPrimary} id="pricing-brother-cta">
+                  <Link href="/auth?mode=signup" className={styles.btnPrimary} id="pricing-brother-cta">
                     DEPLOY BROTHER
                   </Link>
                 </div>
@@ -767,7 +767,7 @@ export default function LandingPage() {
                     <li><Check size={13} className={styles.checkIcon} /> AI deliverable downloads</li>
                     <li><Check size={13} className={styles.checkIcon} /> Team Seats</li>
                   </ul>
-                  <Link href="/auth" className={styles.btnSecondary} id="pricing-team-cta">
+                  <Link href="/auth?mode=signup" className={styles.btnSecondary} id="pricing-team-cta">
                     UPGRADE TEAM
                   </Link>
                 </div>

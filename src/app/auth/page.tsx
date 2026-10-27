@@ -21,11 +21,21 @@ const VALID_PROMO_CODES: Record<string, string> = {
 };
 
 function AuthPageInner() {
-    const [mode, setMode] = useState<'login' | 'signup'>('login');
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirect = searchParams.get('redirect') || '/dashboard';
+    const confirmedParam = searchParams.get('confirmed');
+    const errorParam = searchParams.get('error');
+    const modeParam = searchParams.get('mode');
+    const promoParam = searchParams.get('promo');
+
+    const [mode, setMode] = useState<'login' | 'signup'>(() =>
+        modeParam === 'signup' || modeParam === 'register' ? 'signup' : 'login'
+    );
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
-    const [promoCode, setPromoCode] = useState('');
+    const [promoCode, setPromoCode] = useState(() => (promoParam ? promoParam.toUpperCase().trim() : ''));
     const [loading, setLoading] = useState(false);
     const [resending, setResending] = useState(false);
     const [resettingPassword, setResettingPassword] = useState(false);
@@ -35,14 +45,19 @@ function AuthPageInner() {
     const [confirmedTypoEmail, setConfirmedTypoEmail] = useState<string | null>(null);
     const [pendingConfirmEmail, setPendingConfirmEmail] = useState<string | null>(null);
     const [resendCooldown, setResendCooldown] = useState(0);
+    const [offerSignupSwitch, setOfferSignupSwitch] = useState(false);
 
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const redirect = searchParams.get('redirect') || '/dashboard';
-    const confirmedParam = searchParams.get('confirmed');
-    const errorParam = searchParams.get('error');
     // NOTE: createBrowserClient is designed to be called once per component mount
     const supabase = createClient();
+
+    // Sync mode if URL query param changes
+    useEffect(() => {
+        if (modeParam === 'signup' || modeParam === 'register') {
+            setMode('signup');
+        } else if (modeParam === 'login' || modeParam === 'signin') {
+            setMode('login');
+        }
+    }, [modeParam]);
 
     // Surface confirmation or callback status from URL query params
     useEffect(() => {
@@ -129,6 +144,7 @@ function AuthPageInner() {
         setError(null);
         setMessage(null);
         setSuggestedEmail(null);
+        setOfferSignupSwitch(false);
 
         const cleanEmail = email.trim().toLowerCase();
 
@@ -228,8 +244,18 @@ function AuthPageInner() {
                         password,
                     });
                     if (signInError) {
-                        if (signInError.message.toLowerCase().includes('email not confirmed')) {
+                        const lowerSignInErr = signInError.message.toLowerCase();
+                        if (lowerSignInErr.includes('email not confirmed')) {
                             setPendingConfirmEmail(cleanEmail);
+                        } else if (lowerSignInErr.includes('invalid login credentials')) {
+                            const typoCheck = checkEmailDomainTypo(cleanEmail);
+                            if (typoCheck.hasTypo && typoCheck.suggestedEmail) {
+                                setSuggestedEmail(typoCheck.suggestedEmail);
+                            }
+                            setOfferSignupSwitch(true);
+                            throw new Error(
+                                'Wrong email or password — or if you are setting up a new account, click "Create Account with This Email" below to register first.'
+                            );
                         }
                         throw signInError;
                     }
@@ -337,6 +363,39 @@ function AuthPageInner() {
             {/* ── Right — Form panel ── */}
             <div className={styles.rightPanel}>
                 <div className={styles.formWrapper}>
+                    <div className={styles.modeTabs} role="tablist" aria-label="Authentication mode">
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={mode === 'login'}
+                            className={`${styles.modeTab} ${mode === 'login' ? styles.modeTabActive : ''}`}
+                            onClick={() => {
+                                setMode('login');
+                                setError(null);
+                                setMessage(null);
+                                setSuggestedEmail(null);
+                                setOfferSignupSwitch(false);
+                            }}
+                        >
+                            Sign In
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={mode === 'signup'}
+                            className={`${styles.modeTab} ${mode === 'signup' ? styles.modeTabActive : ''}`}
+                            onClick={() => {
+                                setMode('signup');
+                                setError(null);
+                                setMessage(null);
+                                setSuggestedEmail(null);
+                                setOfferSignupSwitch(false);
+                            }}
+                        >
+                            Create Account
+                        </button>
+                    </div>
+
                     <div className={styles.formHeader}>
                         <h2 className={styles.formTitle}>
                             {mode === 'login' ? 'Access Terminal' : 'Initialize Account'}
@@ -460,6 +519,20 @@ function AuthPageInner() {
                                         USE {suggestedEmail.toUpperCase()} →
                                     </button>
                                 )}
+                                {offerSignupSwitch && mode === 'login' && (
+                                    <button
+                                        type="button"
+                                        className={styles.actionAuxBtn}
+                                        onClick={() => {
+                                            setMode('signup');
+                                            setOfferSignupSwitch(false);
+                                            setError(null);
+                                            setMessage('Enter your Display Name below and click Initialize Account to create your account.');
+                                        }}
+                                    >
+                                        CREATE ACCOUNT WITH THIS EMAIL →
+                                    </button>
+                                )}
                             </div>
                         )}
 
@@ -514,6 +587,7 @@ function AuthPageInner() {
                                 setError(null);
                                 setMessage(null);
                                 setSuggestedEmail(null);
+                                setOfferSignupSwitch(false);
                             }}
                         >
                             {mode === 'login' ? 'CREATE ACCOUNT →' : 'SIGN IN →'}

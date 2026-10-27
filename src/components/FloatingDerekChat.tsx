@@ -357,7 +357,7 @@ export function FloatingDerekChat() {
                             <p className={styles.limitText}>
                                 🔥 Want more from Derek? Sign up to unlock unlimited conversations, custom strategies, and weekly action steps.
                             </p>
-                            <Link href="/auth" className={styles.limitBtn}>
+                            <Link href="/auth?mode=signup" className={styles.limitBtn}>
                                 Sign Up Free <ArrowRight size={16} />
                             </Link>
                         </div>

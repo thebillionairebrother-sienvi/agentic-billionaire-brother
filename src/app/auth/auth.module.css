@@ -183,9 +183,45 @@
   max-width: 380px;
 }
 
+/* ── Mode tabs (top of form) ── */
+.modeTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--surface-low);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  padding: 3px;
+  margin-bottom: 28px;
+}
+
+.modeTab {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: color 150ms linear, background 150ms linear;
+}
+
+.modeTab:hover {
+  color: var(--text-primary);
+}
+
+.modeTabActive {
+  background: rgba(255, 191, 0, 0.14);
+  color: var(--primary-container);
+  box-shadow: inset 0 0 0 1px rgba(255, 191, 0, 0.35);
+}
+
 /* ── Form header ── */
 .formHeader {
-  margin-bottom: 36px;
+  margin-bottom: 28px;
 }
 
 .formTitle {

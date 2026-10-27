@@ -191,7 +191,7 @@ export default function PlaybookPage() {
             Derek is standing by. Start with the questionnaire and receive your first
             brutal, honest strategy within minutes.
           </p>
-          <Link href="/auth" className={styles.ctaBtn} id="playbook-cta">
+          <Link href="/auth?mode=signup" className={styles.ctaBtn} id="playbook-cta">
             START FREE QUESTIONNAIRE →
           </Link>
         </div>

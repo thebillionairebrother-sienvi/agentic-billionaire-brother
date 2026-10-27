@@ -84,7 +84,7 @@ export default function TestimonialsPage() {
                     <Link href="/auth" className="btn btn-ghost">
                         Sign In
                     </Link>
-                    <Link href="/auth" className="btn btn-primary">
+                    <Link href="/auth?mode=signup" className="btn btn-primary">
                         Get Started
                     </Link>
                 </div>
@@ -158,7 +158,7 @@ export default function TestimonialsPage() {
                         Join founders who are shipping with clarity instead of chaos.
                         10 minutes. One strategy. Real execution.
                     </p>
-                    <Link href="/auth" className="btn btn-primary btn-lg" style={{ marginTop: 'var(--space-6)' }}>
+                    <Link href="/auth?mode=signup" className="btn btn-primary btn-lg" style={{ marginTop: 'var(--space-6)' }}>
                         Start Free Questionnaire <ArrowRight size={18} />
                     </Link>
                 </div>
