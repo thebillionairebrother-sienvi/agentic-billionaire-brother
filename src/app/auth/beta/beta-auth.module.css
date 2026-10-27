@@ -401,3 +401,84 @@
     padding: 40px 28px;
   }
 }
+
+
+.fieldLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.inlineLinkBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  color: var(--beta-primary);
+  transition: color 150ms linear;
+}
+
+.inlineLinkBtn:hover:not(:disabled) {
+  color: #c084fc;
+  text-decoration: underline;
+}
+
+.inlineLinkBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionAuxBtn {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(168, 85, 247, 0.14);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 150ms linear;
+}
+
+.actionAuxBtn:hover {
+  background: rgba(168, 85, 247, 0.24);
+}
+
+.resendBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--beta-surface-low);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: var(--beta-primary);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 10px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 150ms linear, border-color 150ms linear;
+}
+
+.resendBtn:hover:not(:disabled) {
+  background: var(--beta-surface-high);
+  border-color: var(--beta-primary);
+}
+
+.resendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

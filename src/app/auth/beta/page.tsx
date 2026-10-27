@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, User, ArrowRight, ShieldCheck, Tag, Terminal } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, ShieldCheck, Tag, RefreshCw } from 'lucide-react';
+import { checkEmailDomainTypo } from '@/lib/auth/email-validation';
 import styles from './beta-auth.module.css';
 
 export default function BetaAuthPage() {
@@ -14,6 +15,11 @@ export default function BetaAuthPage() {
     );
 }
 
+const VALID_BETA_CODES: Record<string, string> = {
+    'BILLIONAIREBROTHER2026': 'brother',
+    'BILLIONAIRETEAM2026': 'team',
+};
+
 function BetaAuthPageInner() {
     const [mode, setMode] = useState<'login' | 'signup'>('login');
     const [email, setEmail] = useState('');
@@ -21,13 +27,40 @@ function BetaAuthPageInner() {
     const [displayName, setDisplayName] = useState('');
     const [betaCode, setBetaCode] = useState('');
     const [loading, setLoading] = useState(false);
+    const [resending, setResending] = useState(false);
+    const [resettingPassword, setResettingPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
+    const [suggestedEmail, setSuggestedEmail] = useState<string | null>(null);
+    const [confirmedTypoEmail, setConfirmedTypoEmail] = useState<string | null>(null);
+    const [pendingConfirmEmail, setPendingConfirmEmail] = useState<string | null>(null);
+    const [resendCooldown, setResendCooldown] = useState(0);
 
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirect = searchParams.get('redirect') || '/dashboard';
+    const confirmedParam = searchParams.get('confirmed');
+    const errorParam = searchParams.get('error');
     const supabase = createClient();
+
+    // Surface confirmation or callback status from URL query params
+    useEffect(() => {
+        if (confirmedParam === '1' || confirmedParam === 'true') {
+            setMode('login');
+            setMessage('Your beta email has been confirmed! Please sign in below to access the Beta Portal.');
+        } else if (errorParam === 'callback_failed') {
+            setError('Confirmation link expired or was already used. Please sign in below, or request a new confirmation link.');
+        }
+    }, [confirmedParam, errorParam]);
+
+    // Countdown timer for Resend Confirmation Email button
+    useEffect(() => {
+        if (resendCooldown <= 0) return;
+        const timer = setInterval(() => {
+            setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [resendCooldown]);
 
     // Automatically redirect authenticated users to the dashboard
     useEffect(() => {
@@ -40,18 +73,80 @@ function BetaAuthPageInner() {
         checkSession();
     }, [supabase, router]);
 
+    const handleResendConfirmation = async () => {
+        const targetEmail = (pendingConfirmEmail || email).trim().toLowerCase();
+        if (!targetEmail || resendCooldown > 0 || resending) return;
+
+        setResending(true);
+        setError(null);
+        try {
+            const redirectToUrl = `${window.location.origin}/auth/callback?next=/auth/beta`;
+            const { error: resendErr } = await supabase.auth.resend({
+                type: 'signup',
+                email: targetEmail,
+                options: { emailRedirectTo: redirectToUrl },
+            });
+            if (resendErr) throw resendErr;
+
+            setResendCooldown(60);
+            setMessage(`A fresh confirmation link has been sent to ${targetEmail}. Please check your inbox and Spam/Junk folder.`);
+        } catch (err) {
+            const errMsg = err instanceof Error ? err.message : 'Failed to resend confirmation email.';
+            setError(errMsg);
+        } finally {
+            setResending(false);
+        }
+    };
+
+    const handleForgotPassword = async () => {
+        const cleanEmail = email.trim().toLowerCase();
+        if (!cleanEmail) {
+            setError('Please enter your email address first, then click Forgot Password.');
+            return;
+        }
+        setResettingPassword(true);
+        setError(null);
+        setMessage(null);
+        try {
+            const redirectToUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent('/settings')}`;
+            const { error: resetErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+                redirectTo: redirectToUrl,
+            });
+            if (resetErr) throw resetErr;
+            setMessage(`Password reset instructions have been sent to ${cleanEmail}. Check your inbox and Spam/Junk folder.`);
+        } catch (err) {
+            const errMsg = err instanceof Error ? err.message : 'Failed to send password reset email.';
+            setError(errMsg);
+        } finally {
+            setResettingPassword(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
         setMessage(null);
+        setSuggestedEmail(null);
+
+        const cleanEmail = email.trim().toLowerCase();
+
+        // Check for common domain typos on signup (e.g. hotmali.com, gmial.com, gamil.com)
+        if (mode === 'signup' && confirmedTypoEmail !== cleanEmail) {
+            const typoCheck = checkEmailDomainTypo(cleanEmail);
+            if (typoCheck.hasTypo && typoCheck.suggestedEmail) {
+                setSuggestedEmail(typoCheck.suggestedEmail);
+                setConfirmedTypoEmail(cleanEmail);
+                setError(
+                    `Possible email typo detected ("@${typoCheck.originalDomain}"). Did you mean ${typoCheck.suggestedEmail}? Click the button below to fix it, or click Initialize Beta Port again to proceed anyway.`
+                );
+                setLoading(false);
+                return;
+            }
+        }
 
         const attemptAuth = async (retriesLeft: number): Promise<void> => {
             try {
-                const validCodes: Record<string, string> = {
-                    'BILLIONAIREBROTHER2026': 'brother',
-                    'BILLIONAIRETEAM2026': 'team',
-                };
                 const trimmedCode = betaCode.toUpperCase().trim();
 
                 // Beta portal ALWAYS requires a valid beta code for sign up
@@ -61,7 +156,7 @@ function BetaAuthPageInner() {
                         setLoading(false);
                         return;
                     }
-                    const tier = validCodes[trimmedCode];
+                    const tier = VALID_BETA_CODES[trimmedCode];
                     if (!tier) {
                         setError('Invalid beta access code. Please check and try again.');
                         setLoading(false);
@@ -69,26 +164,52 @@ function BetaAuthPageInner() {
                     }
 
                     const redirectToUrl = `${window.location.origin}/auth/callback?next=/auth/beta`;
-                    const { error } = await supabase.auth.signUp({
-                        email,
+                    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                        email: cleanEmail,
                         password,
                         options: {
                             emailRedirectTo: redirectToUrl,
                             data: { display_name: displayName, tier, promo_code: trimmedCode },
                         },
                     });
-                    if (error) throw error;
+                    if (signUpError) throw signUpError;
 
                     // Store tier info so we can set it on first login
                     sessionStorage.setItem('pending_promo_code', trimmedCode);
                     sessionStorage.setItem('pending_tier', tier);
 
-                    setMessage('Beta registration successful! Check your email for a confirmation link.');
+                    // Detect silent duplicate signup: when an email is already confirmed in Supabase,
+                    // GoTrue returns HTTP 200 with `user.identities = []` and sends NO confirmation email.
+                    const isExistingAccount = Boolean(
+                        signUpData?.user &&
+                        Array.isArray(signUpData.user.identities) &&
+                        signUpData.user.identities.length === 0
+                    );
+
+                    if (isExistingAccount) {
+                        setMode('login');
+                        setPendingConfirmEmail(null);
+                        setMessage(
+                            `An account for ${cleanEmail} already exists! Switched to Beta Access Sign In — enter your password below and your ${trimmedCode} beta code will be applied automatically.`
+                        );
+                        return;
+                    }
+
+                    if (signUpData?.session) {
+                        sessionStorage.setItem('beta-tester-mode', 'true');
+                        router.push(redirect);
+                        router.refresh();
+                        return;
+                    }
+
+                    setPendingConfirmEmail(cleanEmail);
+                    setResendCooldown(60);
+                    setMessage(`Beta registration successful! Check your email (${cleanEmail}) for a confirmation link (including your Spam/Junk folder).`);
                 } else {
                     // For Login, check if they entered a code
                     let tier = '';
                     if (trimmedCode) {
-                        const matched = validCodes[trimmedCode];
+                        const matched = VALID_BETA_CODES[trimmedCode];
                         if (!matched) {
                             setError('Invalid beta access code. Enter a valid code or leave blank if already registered.');
                             setLoading(false);
@@ -97,11 +218,16 @@ function BetaAuthPageInner() {
                         tier = matched;
                     }
 
-                    const { error } = await supabase.auth.signInWithPassword({
-                        email,
+                    const { error: signInError } = await supabase.auth.signInWithPassword({
+                        email: cleanEmail,
                         password,
                     });
-                    if (error) throw error;
+                    if (signInError) {
+                        if (signInError.message.toLowerCase().includes('email not confirmed')) {
+                            setPendingConfirmEmail(cleanEmail);
+                        }
+                        throw signInError;
+                    }
 
                     // If a valid code was supplied during login, or if we have pending signup info
                     const activePromo = trimmedCode || sessionStorage.getItem('pending_promo_code');
@@ -265,16 +391,31 @@ function BetaAuthPageInner() {
                                     className="input"
                                     placeholder="beta@company.com"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        setSuggestedEmail(null);
+                                    }}
                                     required
                                 />
                             </div>
                         </div>
 
                         <div className={styles.field}>
-                            <label className={styles.fieldLabel} htmlFor="password">
-                                Password
-                            </label>
+                            <div className={styles.fieldLabelRow}>
+                                <label className={styles.fieldLabel} htmlFor="password" style={{ marginBottom: 0 }}>
+                                    Password
+                                </label>
+                                {mode === 'login' && (
+                                    <button
+                                        type="button"
+                                        className={styles.inlineLinkBtn}
+                                        onClick={handleForgotPassword}
+                                        disabled={resettingPassword}
+                                    >
+                                        {resettingPassword ? 'SENDING...' : 'FORGOT PASSWORD?'}
+                                    </button>
+                                )}
+                            </div>
                             <div className={styles.inputWrapper}>
                                 <Lock size={16} className={styles.inputIcon} />
                                 <input
@@ -290,8 +431,47 @@ function BetaAuthPageInner() {
                             </div>
                         </div>
 
-                        {error && <div className={styles.error}>{error}</div>}
-                        {message && <div className={styles.success}>{message}</div>}
+                        {error && (
+                            <div className={styles.error}>
+                                <div>{error}</div>
+                                {suggestedEmail && (
+                                    <button
+                                        type="button"
+                                        className={styles.actionAuxBtn}
+                                        onClick={() => {
+                                            setEmail(suggestedEmail);
+                                            setSuggestedEmail(null);
+                                            setConfirmedTypoEmail(null);
+                                            setError(null);
+                                        }}
+                                    >
+                                        USE {suggestedEmail.toUpperCase()} →
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {message && (
+                            <div className={styles.success}>
+                                <div>{message}</div>
+                            </div>
+                        )}
+
+                        {pendingConfirmEmail && (
+                            <button
+                                type="button"
+                                className={styles.resendBtn}
+                                onClick={handleResendConfirmation}
+                                disabled={resending || resendCooldown > 0}
+                            >
+                                <RefreshCw size={13} />
+                                {resending
+                                    ? 'SENDING CONFIRMATION...'
+                                    : resendCooldown > 0
+                                        ? `RESEND CONFIRMATION EMAIL (${resendCooldown}S)`
+                                        : 'RESEND CONFIRMATION EMAIL'}
+                            </button>
+                        )}
 
                         <button
                             id="beta-auth-submit-btn"
@@ -321,6 +501,7 @@ function BetaAuthPageInner() {
                                 setMode(mode === 'login' ? 'signup' : 'login');
                                 setError(null);
                                 setMessage(null);
+                                setSuggestedEmail(null);
                             }}
                         >
                             {mode === 'login' ? 'INITIALIZE CREDENTIALS →' : 'SECURE SIGN IN →'}
