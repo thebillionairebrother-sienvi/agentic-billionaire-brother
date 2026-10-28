@@ -5,8 +5,9 @@ import { type NextRequest } from 'next/server';
  * US = United States
  * CA = Canada
  * GB = United Kingdom (ISO 3166-1 alpha-2 is GB, though UK is often used synonymously)
+ * IN = India
  */
-export const ALLOWED_COUNTRIES = new Set(['US', 'CA', 'GB', 'UK']);
+export const ALLOWED_COUNTRIES = new Set(['US', 'CA', 'GB', 'UK', 'IN']);
 
 /**
  * Secret testing key allowing developers, team members, and testers

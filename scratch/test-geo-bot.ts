@@ -35,7 +35,7 @@ async function runTests() {
     assert(isAllowedCountry('FR') === false, 'FR is rejected');
     assert(isAllowedCountry('DE') === false, 'DE is rejected');
     assert(isAllowedCountry('AU') === false, 'AU is rejected');
-    assert(isAllowedCountry('IN') === false, 'IN is rejected');
+    assert(isAllowedCountry('IN') === true, 'IN is allowed');
     assert(isAllowedCountry('SG') === false, 'SG is rejected');
     assert(isAllowedCountry(null) === false, 'null is rejected');
     assert(isAllowedCountry(undefined) === false, 'undefined is rejected');
