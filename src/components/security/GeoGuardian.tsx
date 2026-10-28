@@ -31,7 +31,7 @@ export function GeoGuardian() {
         const match = document.cookie.match(/bb_detected_country=([A-Z]{2})/);
         if (match && match[1]) {
             const country = match[1];
-            if (!['US', 'CA', 'GB', 'UK'].includes(country)) {
+            if (!['US', 'CA', 'GB', 'UK', 'IN'].includes(country)) {
                 window.location.replace(`/region-restricted?country=${country}`);
                 return;
             }
