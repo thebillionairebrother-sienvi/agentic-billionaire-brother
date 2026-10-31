@@ -15,6 +15,7 @@ import { checkUsageGuard } from '@/lib/middleware/usage-guard';
 import { GuardError } from '@/lib/middleware/types';
 import type { Tier } from '@/lib/ai-config';
 import { formatElementsForPrompt, sanitizeElements, sanitizeElementTargets } from '@/lib/extension-element-targets';
+import { DEFAULT_DEREK_MODE, formatDerekModeForPrompt, sanitizeDerekMode, type DerekMode } from '@/lib/extension-derek-mode';
 
 const RETAIL_SEASON_HINTS: Record<number, string> = {
     0: 'Winter clearance / New Year, New You',
@@ -116,7 +117,7 @@ async function generateWithRetry(primaryModel: string, args: any) {
     throw firstDemandError || lastError || new Error(`503 UNAVAILABLE: Model ${primaryModel} is currently experiencing high demand.`);
 }
 
-export async function runAuditAnalysis(runId: string, snapshot: any, userId: string, auditScope: string = 'page', userTier: string = 'brother') {
+export async function runAuditAnalysis(runId: string, snapshot: any, userId: string, auditScope: string = 'page', userTier: string = 'brother', derekMode: DerekMode = DEFAULT_DEREK_MODE) {
     const serviceClient = await createServiceClient();
     const dbSnapshot = sanitizeSnapshotForDb(snapshot);
     const memStore = getExtensionRunMemoryStore();
@@ -134,13 +135,14 @@ export async function runAuditAnalysis(runId: string, snapshot: any, userId: str
                     status: 'processing',
                     snapshot: dbSnapshot,
                     auditScope,
+                    derekMode,
                     result: null,
                     error_message: null
                 }
             })
             .eq('id', runId);
 
-        console.log(`[extension/audit] Job ${runId} (Scope: ${auditScope}) started processing...`);
+        console.log(`[extension/audit] Job ${runId} (Scope: ${auditScope}, Mode: ${derekMode}) started processing...`);
 
         // Prepare the prompt for Gemini
         const isMultiPage = auditScope === 'domain' || auditScope === 'subpath';
@@ -176,6 +178,7 @@ STRICT RULES FOR seasonalRelevance:
             `In addition, perform a thorough LEGAL TECHNICALITIES & COMPLIANCE audit of the webpage/website. Evaluate privacy disclaimers, Terms of Service visibility, earnings disclaimers, FTC compliance, CAN-SPAM rules, cookie/GDPR compliance cues, refund policies, deceptive guarantees, or dark patterns. ` +
             seasonalInstruction +
             visionInstruction +
+            formatDerekModeForPrompt(derekMode) +
             `\n\nYou must return a structured JSON response matching the required schema. Do not include markdown wraps or anything other than the JSON object.`;
 
         let subPagesText = '';
@@ -357,6 +360,7 @@ STRICT RULES FOR seasonalRelevance:
             status: 'completed',
             snapshot: dbSnapshot,
             auditScope,
+            derekMode,
             result,
             error_message: null,
             messages: existingRun?.messages || [],
@@ -370,6 +374,7 @@ STRICT RULES FOR seasonalRelevance:
                     status: 'completed',
                     snapshot: dbSnapshot,
                     auditScope,
+                    derekMode,
                     result,
                     error_message: null
                 }
@@ -403,6 +408,7 @@ STRICT RULES FOR seasonalRelevance:
             status: 'failed',
             snapshot: dbSnapshot,
             auditScope,
+            derekMode,
             result: null,
             error_message: err.message || 'Unknown audit error',
             messages: existingRun?.messages || [],
@@ -416,6 +422,7 @@ STRICT RULES FOR seasonalRelevance:
                     status: 'failed',
                     snapshot: dbSnapshot,
                     auditScope,
+                    derekMode,
                     result: null,
                     error_message: err.message || 'Unknown audit error'
                 }
@@ -464,6 +471,7 @@ export async function POST(request: Request) {
 
         const body = await request.json();
         const { snapshot, auditScope = 'page' } = body;
+        const derekMode = sanitizeDerekMode(body.derekMode);
 
         if (!snapshot) {
             return NextResponse.json(
@@ -488,6 +496,7 @@ export async function POST(request: Request) {
                         status: 'queued',
                         snapshot: dbSnapshot,
                         auditScope,
+                        derekMode,
                         result: null,
                         error_message: null
                     }
@@ -511,13 +520,14 @@ export async function POST(request: Request) {
             status: 'queued',
             snapshot: dbSnapshot,
             auditScope,
+            derekMode,
             result: null,
             error_message: null,
             messages: [],
         });
 
         // Trigger analysis in background asynchronously (do not await)
-        runAuditAnalysis(runId, snapshot, user.id, auditScope, tier).catch(err => {
+        runAuditAnalysis(runId, snapshot, user.id, auditScope, tier, derekMode).catch(err => {
             console.error(`[extension/audit] Background process error for job ${runId}:`, err);
         });
 

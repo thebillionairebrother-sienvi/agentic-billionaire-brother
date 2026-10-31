@@ -9,6 +9,7 @@ import {
 } from '@/lib/extension-auth';
 import ai, { GEMINI_EXTENSION_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
+import { formatDerekModeForPrompt, sanitizeDerekMode } from '@/lib/extension-derek-mode';
 import { Type } from '@google/genai';
 import { fetchGifUrl } from '@/app/api/giphy-search/route';
 import { logUsageAndCost } from '@/lib/middleware/meter-logger';
@@ -141,7 +142,7 @@ export async function POST(request: Request) {
             const { data } = await serviceClient
                 .from('audit_logs')
                 .select(
-                    'id, status:metadata->>status, auditScope:metadata->>auditScope, result:metadata->result, messages:metadata->messages, url:metadata->snapshot->>url, title:metadata->snapshot->>title, metaDescription:metadata->snapshot->>metaDescription, h1:metadata->snapshot->h1, h2:metadata->snapshot->h2, heroCopy:metadata->snapshot->>heroCopy, ctaText:metadata->snapshot->ctaText'
+                    'id, status:metadata->>status, auditScope:metadata->>auditScope, derekMode:metadata->>derekMode, result:metadata->result, messages:metadata->messages, url:metadata->snapshot->>url, title:metadata->snapshot->>title, metaDescription:metadata->snapshot->>metaDescription, h1:metadata->snapshot->h1, h2:metadata->snapshot->h2, heroCopy:metadata->snapshot->>heroCopy, ctaText:metadata->snapshot->ctaText'
                 )
                 .eq('id', runId)
                 .eq('user_id', user.id)
@@ -160,6 +161,9 @@ export async function POST(request: Request) {
         } : {});
         const auditResult = clientResult || cachedRun?.result || dbRow?.result || {};
         const priorMessages: any[] = cachedRun?.messages || dbRow?.messages || [];
+        // The audit's own mode stays on the run; the chat uses the panel's current mode, else the run's.
+        const runDerekMode = cachedRun?.derekMode ?? (dbRow?.derekMode ? sanitizeDerekMode(dbRow.derekMode) : undefined);
+        const derekMode = sanitizeDerekMode(body.derekMode ?? runDerekMode);
 
         const systemInstruction = DEREK_FULL_PROMPT + `\n\n` +
             `You are talking to the user via the Billionaire Brother Chrome Extension. ` +
@@ -193,7 +197,8 @@ export async function POST(request: Request) {
             `\`\`\`subhead\nTrack your daily routine, pinpoint the exact bottleneck holding back your progress, and get one clear corrective action every morning.\n\`\`\`\n` +
             `\`\`\`cta\nStart My Free Routine Review\n\`\`\`\n` +
             `- Never indent \`\`\` code fences inside bullet points, and never wrap copy rewrites in single backticks — always use standalone \`\`\`headline, \`\`\`subhead, or \`\`\`cta fenced blocks so the Chrome Extension's live DOM swapper renders the "⚡ Test on Page" button.\n\n` +
-            `Respond in JSON format: { "reaction": "2-4 word blunt reaction", "response": "Your full response" }`;
+            `Respond in JSON format: { "reaction": "2-4 word blunt reaction", "response": "Your full response" }` +
+            formatDerekModeForPrompt(derekMode);
 
         // Format Gemini history
         const contents: any[] = (chatHistory || [])
@@ -243,8 +248,8 @@ export async function POST(request: Request) {
         const rawText = response.text || '';
         const parsed = parseDerekResponse(rawText);
 
-        // Fetch optional GIF for Derek's reaction (non-blocking timeout)
-        const gifUrl = parsed.reaction ? await fetchGifUrl(parsed.reaction).catch(() => null) : null;
+        // Fetch optional GIF for Derek's reaction (non-blocking timeout); Boardroom mode stays GIF-free
+        const gifUrl = parsed.reaction && derekMode !== 'boardroom' ? await fetchGifUrl(parsed.reaction).catch(() => null) : null;
 
         // Persist message history in memory and audit_logs (without base64 screenshot bloat)
         if (runId) {
@@ -265,6 +270,7 @@ export async function POST(request: Request) {
                     status: 'completed',
                     snapshot: cleanSnapshot,
                     auditScope: dbRow?.auditScope || 'page',
+                    derekMode: runDerekMode,
                     result: auditResult,
                     error_message: null,
                     messages: updatedMessages,
@@ -278,6 +284,7 @@ export async function POST(request: Request) {
                         status: 'completed',
                         snapshot: cleanSnapshot,
                         auditScope: cachedRun?.auditScope || dbRow?.auditScope || 'page',
+                        derekMode: runDerekMode,
                         result: auditResult,
                         error_message: null,
                         messages: updatedMessages,
