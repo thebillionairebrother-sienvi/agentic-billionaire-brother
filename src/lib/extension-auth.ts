@@ -1,5 +1,6 @@
 import { createMobileAwareClient, isTransientSupabaseError } from '@/lib/supabase/server';
 import type { User } from '@supabase/supabase-js';
+import type { DerekMode } from '@/lib/extension-derek-mode';
 
 const KNOWN_PRIVILEGED_USERS: Record<string, { id: string; tier: 'brother' | 'team'; isAdmin: boolean }> = {
     'spenceralmodiel@gmail.com': {
@@ -25,6 +26,7 @@ export interface ExtensionRunMemoryRecord {
     status: 'queued' | 'processing' | 'completed' | 'failed';
     snapshot: any;
     auditScope: string;
+    derekMode?: DerekMode;
     result: any | null;
     error_message: string | null;
     messages: any[];
