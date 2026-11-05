@@ -30,6 +30,7 @@ export async function GET(
                     error_message: cachedRun.error_message,
                     snapshot: cachedRun.snapshot,
                     auditScope: cachedRun.auditScope,
+                    competitorSnapshot: cachedRun.competitorSnapshot || null,
                     messages: cachedRun.messages,
                     created_at: cachedRun.created_at,
                 },
@@ -42,7 +43,7 @@ export async function GET(
         const { data: auditLog, error } = await serviceClient
             .from('audit_logs')
             .select(
-                'id, created_at, status:metadata->>status, error_message:metadata->>error_message, auditScope:metadata->>auditScope, result:metadata->result, messages:metadata->messages, url:metadata->snapshot->>url, title:metadata->snapshot->>title, metaDescription:metadata->snapshot->>metaDescription, h1:metadata->snapshot->h1, h2:metadata->snapshot->h2, heroCopy:metadata->snapshot->>heroCopy, ctaText:metadata->snapshot->ctaText, navLinks:metadata->snapshot->navLinks, elements:metadata->snapshot->elements'
+                'id, created_at, status:metadata->>status, error_message:metadata->>error_message, auditScope:metadata->>auditScope, result:metadata->result, messages:metadata->messages, url:metadata->snapshot->>url, title:metadata->snapshot->>title, metaDescription:metadata->snapshot->>metaDescription, h1:metadata->snapshot->h1, h2:metadata->snapshot->h2, heroCopy:metadata->snapshot->>heroCopy, ctaText:metadata->snapshot->ctaText, navLinks:metadata->snapshot->navLinks, elements:metadata->snapshot->elements, competitorUrl:metadata->competitorSnapshot->>url, competitorTitle:metadata->competitorSnapshot->>title'
             )
             .eq('id', id)
             .eq('user_id', user.id)
@@ -59,6 +60,7 @@ export async function GET(
                         error_message: cachedRun.error_message,
                         snapshot: cachedRun.snapshot,
                         auditScope: cachedRun.auditScope,
+                        competitorSnapshot: cachedRun.competitorSnapshot || null,
                         messages: cachedRun.messages,
                         created_at: cachedRun.created_at,
                     },
@@ -90,6 +92,10 @@ export async function GET(
             elements: Array.isArray(row.elements) ? row.elements : [],
         };
 
+        // Battle runs: the panel only needs the competitor's url/title to label the result
+        const competitorSnapshot = cachedRun?.competitorSnapshot
+            || (row.competitorUrl ? { url: row.competitorUrl, title: row.competitorTitle || '' } : null);
+
         return NextResponse.json(
             {
                 id: row.id,
@@ -98,6 +104,7 @@ export async function GET(
                 error_message,
                 snapshot,
                 auditScope,
+                competitorSnapshot,
                 messages,
                 created_at: row.created_at,
             },

@@ -7,7 +7,8 @@ import {
     resolveExtensionUserPlan,
     sanitizeSnapshotForDb,
 } from '@/lib/extension-auth';
-import ai, { GEMINI_EXTENSION_MODEL } from '@/lib/gemini';
+import { GEMINI_EXTENSION_MODEL } from '@/lib/gemini';
+import { generateExtensionContentWithRetry } from '@/lib/extension-gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { Type } from '@google/genai';
 import { logUsageAndCost } from '@/lib/middleware/meter-logger';
@@ -62,59 +63,6 @@ function looksLikeRetail(snapshot: any): boolean {
     // require at least one product/ecommerce-specific keyword as well.
     const retailKeywords = ['shop', 'cart', 'checkout', 'shipping', 'add to cart', 'product', 'collection', 'sale', 'store'];
     return retailKeywords.some(k => haystack.includes(k));
-}
-
-async function generateWithRetry(primaryModel: string, args: any) {
-    const candidateModels = Array.from(
-        new Set([
-            primaryModel,
-            'gemini-3-flash-preview',
-            'gemini-2.5-flash',
-            'gemini-3.1-flash-lite-preview',
-            'gemini-flash-latest',
-        ])
-    );
-    let lastError: any = null;
-    let firstDemandError: any = null;
-    const PER_ATTEMPT_TIMEOUT_MS = 28000;
-
-    for (const model of candidateModels) {
-        for (let attempt = 0; attempt < 2; attempt++) {
-            try {
-                const callPromise = ai.models.generateContent({
-                    model,
-                    ...args,
-                });
-                const timeoutPromise = new Promise<never>((_, reject) =>
-                    setTimeout(
-                        () => reject(new Error(`503 UNAVAILABLE: Model ${model} is experiencing high demand and timed out after ${PER_ATTEMPT_TIMEOUT_MS / 1000}s.`)),
-                        PER_ATTEMPT_TIMEOUT_MS
-                    )
-                );
-                return await Promise.race([callPromise, timeoutPromise]);
-            } catch (err: any) {
-                lastError = err;
-                const msg = (err?.message || '').toString();
-                const is503Unavailable =
-                    err?.status === 503 ||
-                    msg.includes('503') ||
-                    msg.toLowerCase().includes('high demand') ||
-                    msg.includes('UNAVAILABLE') ||
-                    msg.toLowerCase().includes('overloaded');
-                if (is503Unavailable && !firstDemandError) {
-                    firstDemandError = err;
-                }
-                if (is503Unavailable && attempt === 0 && model === primaryModel) {
-                    console.warn(`[extension/audit] Model ${model} busy (503), retrying in 600ms...`);
-                    await new Promise(r => setTimeout(r, 600));
-                    continue;
-                }
-                console.warn(`[extension/audit] Model ${model} failed (${err?.status || msg}). Trying next fallback...`);
-                break;
-            }
-        }
-    }
-    throw firstDemandError || lastError || new Error(`503 UNAVAILABLE: Model ${primaryModel} is currently experiencing high demand.`);
 }
 
 export async function runAuditAnalysis(runId: string, snapshot: any, userId: string, auditScope: string = 'page', userTier: string = 'brother', derekMode: DerekMode = DEFAULT_DEREK_MODE) {
@@ -270,7 +218,7 @@ STRICT RULES FOR seasonalRelevance:
         }
 
         const startTime = Date.now();
-        const response = await generateWithRetry(GEMINI_EXTENSION_MODEL, {
+        const response = await generateExtensionContentWithRetry(GEMINI_EXTENSION_MODEL, {
             contents: [{ role: 'user', parts }],
             config: {
                 systemInstruction,
