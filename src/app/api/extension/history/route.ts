@@ -28,7 +28,8 @@ export async function GET(request: Request) {
         if (error) {
             console.warn('[extension/history] Query error, falling back to in-memory runs:', error.message);
             const memHistory = Array.from(getExtensionRunMemoryStore().values())
-                .filter((r) => r.userId === user.id)
+                // Battles (auditScope 'battle') are not in the DB history list either (action filter), so keep them out here too
+                .filter((r) => r.userId === user.id && r.auditScope !== 'battle')
                 .sort((a, b) => b.created_at.localeCompare(a.created_at))
                 .map((r) => ({
                     id: r.id,

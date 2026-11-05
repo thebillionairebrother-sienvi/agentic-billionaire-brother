@@ -25,6 +25,8 @@ export interface ExtensionRunMemoryRecord {
     userId: string;
     status: 'queued' | 'processing' | 'completed' | 'failed';
     snapshot: any;
+    // Competitor Battle Mode runs (auditScope 'battle') only
+    competitorSnapshot?: any;
     auditScope: string;
     derekMode?: DerekMode;
     result: any | null;
