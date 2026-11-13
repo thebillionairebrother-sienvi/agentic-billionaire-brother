@@ -27,7 +27,8 @@ import styles from './DashboardSidebar.module.css';
 interface DashboardSidebarProps {
     user: User | null;
     isAdmin?: boolean;
-    isBeta?: boolean;
+    /** Short plan label shown under the user's email, e.g. "Brother Plan" or "Free trial". */
+    planLabel?: string;
 }
 
 const navItems = [
@@ -42,7 +43,7 @@ const navItems = [
     { href: '/help', icon: HelpCircle, label: 'Help' },
 ];
 
-export function DashboardSidebar({ user, isAdmin, isBeta }: DashboardSidebarProps) {
+export function DashboardSidebar({ user, isAdmin, planLabel }: DashboardSidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const [collapsed, setCollapsed] = useState(false);
@@ -83,19 +84,19 @@ export function DashboardSidebar({ user, isAdmin, isBeta }: DashboardSidebarProp
             )}
 
             <aside
-                className={`${styles.sidebar} ${isBeta ? styles.betaSidebar : ''} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''
+                className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''
                     }`}
             >
                 {/* Brand */}
-                <div className={`${styles.brand} ${isBeta ? styles.betaBrand : ''}`}>
+                <div className={styles.brand}>
                     <Link href="/dashboard" className={styles.brandLink}>
-                        <div className={`${styles.logoMark} ${isBeta ? styles.betaLogoMark : ''}`}>
+                        <div className={styles.logoMark}>
                             <Crown size={20} />
                         </div>
                         {!collapsed && (
                             <div className={styles.brandTextWrapper}>
                                 <span className={styles.brandText}>Billionaire Brother</span>
-                                {isBeta && <span className={styles.betaBadge}>BETA TESTER</span>}
+                                {isAdmin && <span className={styles.adminBadge}>Admin mode</span>}
                             </div>
                         )}
                     </Link>
@@ -122,7 +123,7 @@ export function DashboardSidebar({ user, isAdmin, isBeta }: DashboardSidebarProp
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`${styles.navItem} ${isBeta && isActive ? styles.betaActive : isActive ? styles.active : ''}`}
+                                className={`${styles.navItem} ${isActive ? styles.active : ''}`}
                                 onClick={() => {
                                     setMobileOpen(false);
                                     if (item.href === '/chat' && pathname && pathname !== '/chat' && pathname !== '/') {
@@ -140,9 +141,9 @@ export function DashboardSidebar({ user, isAdmin, isBeta }: DashboardSidebarProp
                 </nav>
 
                 {/* User */}
-                <div className={`${styles.userSection} ${isBeta ? styles.betaUserSection : ''}`}>
+                <div className={styles.userSection}>
                     <div className={styles.userInfo}>
-                        <div className={`${styles.avatar} ${isBeta ? styles.betaAvatar : ''}`}>
+                        <div className={styles.avatar}>
                             {user?.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
                         </div>
                         {!collapsed && (
@@ -152,10 +153,8 @@ export function DashboardSidebar({ user, isAdmin, isBeta }: DashboardSidebarProp
                                 </span>
                                 <span className={styles.userEmail}>
                                     {user?.email}
-                                    {isBeta && (
-                                        <span className={styles.userPlanBadge}>
-                                            {user?.tier === 'brother' ? 'Brother Tier' : 'Team Tier'}
-                                        </span>
+                                    {planLabel && (
+                                        <span className={styles.userPlanBadge}>{planLabel}</span>
                                     )}
                                 </span>
                             </div>

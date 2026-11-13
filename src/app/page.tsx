@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Crown, ArrowRight, Target, TrendingUp, Shield, Check, Users, Terminal, ChevronRight, X, Star, Quote } from 'lucide-react';
 import styles from './page.module.css';
 import { useEffect, useState, useRef } from 'react';
+import { offerWindowState } from '@/lib/billing/config';
 import { motion, useScroll, useTransform, useMotionValue, useSpring, Variants } from 'framer-motion';
 import SocialProofNotification from '@/components/SocialProofNotification';
 import DecisionSimulator from '@/components/DecisionSimulator';
@@ -300,6 +301,9 @@ function MemeCarousel() {
 }
 
 export default function LandingPage() {
+  // BFCM offer window (client clock, display only — the server enforces the real cutoff).
+  const [bfcmOpen, setBfcmOpen] = useState(false);
+  useEffect(() => { setBfcmOpen(offerWindowState(new Date()) === 'open'); }, []);
   const heroRef = useRef(null);
   const { scrollYProgress: heroScroll } = useScroll({
     target: heroRef,
@@ -713,13 +717,15 @@ export default function LandingPage() {
                   <div className={styles.pricingPrice}>
                     <div className={styles.priceStack}>
                       <div className={styles.priceOriginalRow}>
-                        <span className={styles.priceOriginal}>$49</span>
-                        <span className={styles.discountBadge}>20% OFF</span>
+                        <span className={styles.discountBadge}>{bfcmOpen ? '1 MONTH FREE' : 'FIRST MONTH'}</span>
                       </div>
                       <div className={styles.priceCurrentRow}>
                         <span className={styles.priceCurrency}>$</span>
-                        <span className={styles.priceAmount}>39</span>
-                        <span className={styles.pricePeriod}>/mo</span>
+                        <span className={styles.priceAmount}>{bfcmOpen ? '0' : '39'}</span>
+                        <span className={styles.pricePeriod}>{bfcmOpen ? ' first month' : '/mo'}</span>
+                      </div>
+                      <div className={styles.pricingTierPurpose}>
+                        {bfcmOpen ? 'Card required · then $49/mo · offer ends Nov 30' : 'First month, then $49/mo'}
                       </div>
                     </div>
                   </div>
@@ -732,8 +738,8 @@ export default function LandingPage() {
                     <li><Check size={13} className={styles.checkIconGold} /> AI deliverable downloads</li>
                     <li className={styles.mutedFeature}><X size={13} className={styles.xIcon} /> Team Seats</li>
                   </ul>
-                  <Link href="/auth?mode=signup" className={styles.btnPrimary} id="pricing-brother-cta">
-                    DEPLOY BROTHER
+                  <Link href={bfcmOpen ? '/offer' : '/auth?mode=signup'} className={styles.btnPrimary} id="pricing-brother-cta">
+                    {bfcmOpen ? 'TRY 1 MONTH FREE' : 'DEPLOY BROTHER'}
                   </Link>
                 </div>
               </TiltWrapper>
@@ -748,14 +754,9 @@ export default function LandingPage() {
                   <div className={styles.pricingPrice}>
                     <div className={styles.priceStack}>
                       <div className={styles.priceOriginalRow}>
-                        <span className={styles.priceOriginal}>$199</span>
-                        <span className={styles.discountBadgeBlue}>35% OFF</span>
+                        <span className={styles.discountBadgeBlue}>COMING SOON</span>
                       </div>
-                      <div className={styles.priceCurrentRow}>
-                        <span className={styles.priceCurrency}>$</span>
-                        <span className={styles.priceAmount}>129</span>
-                        <span className={styles.pricePeriod}>/mo</span>
-                      </div>
+                      <div className={styles.pricingTierPurpose}>Pricing announced soon</div>
                     </div>
                   </div>
                   <ul className={styles.pricingFeatures}>
@@ -768,7 +769,7 @@ export default function LandingPage() {
                     <li><Check size={13} className={styles.checkIcon} /> Team Seats</li>
                   </ul>
                   <Link href="/auth?mode=signup" className={styles.btnSecondary} id="pricing-team-cta">
-                    UPGRADE TEAM
+                    START FREE FOR NOW
                   </Link>
                 </div>
               </TiltWrapper>

@@ -1,0 +1,37 @@
+name: Trial reminders (hourly)
+
+# Calls the trial-reminder cron route every hour. It sends the 7-day
+# pre-charge reminder emails and ends subscriptions whose payment stayed failed
+# past the grace period. Replaces Cloud Scheduler (vercel.json crons don't run
+# on Firebase App Hosting).
+#
+# Required repository settings (Settings → Secrets and variables → Actions):
+#   secret   CRON_SECRET  – same value as the app's CRON_SECRET env var
+#   variable APP_URL      – e.g. https://thebillionairebrother.com
+
+on:
+  schedule:
+    - cron: '7 * * * *' # every hour at :07 UTC
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Call /api/cron/trial-reminders
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$APP_URL" ]; then
+            echo "CRON_SECRET secret or APP_URL variable is not set; skipping."
+            exit 0
+          fi
+          status=$(curl -sS -o response.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/trial-reminders")
+          cat response.json; echo
+          test "$status" = "200"

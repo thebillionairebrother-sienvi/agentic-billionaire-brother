@@ -5,15 +5,18 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Crown, Check, ArrowLeft, Zap, Users, Shield, Loader2, AlertCircle, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { isTeamCheckoutEnabled, offerWindowState } from '@/lib/billing/config';
 import styles from './upgrade.module.css';
+
+const TEAM_AVAILABLE = isTeamCheckoutEnabled();
 
 
 const PLANS = [
     {
         tier: 'brother' as const,
         name: 'Brother Plan',
-        price: 39,
-        originalPrice: 49,
+        price: 39 as number | null,
+        priceNote: 'first month, then $49/mo',
         badge: 'Most Popular',
         badgeStyle: 'gold',
         features: [
@@ -29,13 +32,14 @@ const PLANS = [
         cta: 'Upgrade to Brother',
         icon: Crown,
         color: 'gold',
-        discountLabel: '20% OFF',
+        discountLabel: 'Intro offer',
+        available: true,
     },
     {
         tier: 'team' as const,
         name: 'Team Plan',
-        price: 129,
-        originalPrice: 199,
+        price: null as number | null,
+        priceNote: 'Pricing coming soon',
         badge: 'Team',
         badgeStyle: 'blue',
         features: [
@@ -52,7 +56,8 @@ const PLANS = [
         cta: 'Upgrade to Team',
         icon: Users,
         color: 'blue',
-        discountLabel: '35% OFF',
+        discountLabel: 'Coming soon',
+        available: TEAM_AVAILABLE,
     },
 ];
 
@@ -67,6 +72,7 @@ function UpgradePageInner() {
     const [currentTier, setCurrentTier] = useState<string | null>(null);
 
     const wasCanceled = searchParams.get('canceled') === 'true';
+    const bfcmOpen = offerWindowState(new Date()) === 'open';
     const preselectedPlan = searchParams.get('plan');
 
     useEffect(() => {
@@ -149,7 +155,18 @@ function UpgradePageInner() {
             {wasCanceled && (
                 <div className={styles.cancelBanner}>
                     <AlertCircle size={16} />
-                    <span>No worries — you weren't charged. Ready when you are.</span>
+                    <span>No worries — you weren&apos;t charged. Ready when you are.</span>
+                </div>
+            )}
+
+            {/* BFCM offer */}
+            {bfcmOpen && currentTier === 'free' && (
+                <div className={styles.cancelBanner}>
+                    <Zap size={16} />
+                    <span>
+                        Black Friday: try the Brother Plan free for one month.{' '}
+                        <Link href="/offer" className={styles.freeNoteLink}>See the offer</Link>
+                    </span>
                 </div>
             )}
 
@@ -194,14 +211,20 @@ function UpgradePageInner() {
                                     <h2 className={styles.planName}>{plan.name}</h2>
                                     <div className={styles.planPrice}>
                                         <div className={styles.planPriceOriginalRow}>
-                                            <span className={styles.planPriceOriginal}>${plan.originalPrice}</span>
                                             <span className={`${styles.planDiscountBadge} ${plan.color === 'gold' ? styles.planDiscountBadgeGold : styles.planDiscountBadgeBlue}`}>{plan.discountLabel}</span>
                                         </div>
-                                        <div className={styles.planPriceCurrentRow}>
-                                            <span className={styles.currency}>$</span>
-                                            <span className={styles.amount}>{plan.price}</span>
-                                            <span className={styles.period}>/mo</span>
-                                        </div>
+                                        {plan.price !== null && plan.available ? (
+                                            <>
+                                                <div className={styles.planPriceCurrentRow}>
+                                                    <span className={styles.currency}>$</span>
+                                                    <span className={styles.amount}>{plan.price}</span>
+                                                    <span className={styles.period}>/mo</span>
+                                                </div>
+                                                <p className={styles.cardSubtext} style={{ margin: '4px 0 0', textAlign: 'left' }}>{plan.priceNote}</p>
+                                            </>
+                                        ) : (
+                                            <p className={styles.cardSubtext} style={{ margin: '8px 0 0', textAlign: 'left' }}>{plan.priceNote}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -237,9 +260,16 @@ function UpgradePageInner() {
                                         : styles.btnBlue
                                 }`}
                                 style={{ width: '100%' }}
-                                onClick={() => currentTier !== plan.tier && handleCheckout(plan.tier)}
-                                disabled={checkoutState === 'loading' || currentTier === plan.tier}
-                                aria-label={currentTier === plan.tier ? 'Current Plan' : `${plan.cta} for $${plan.price}/month (was $${plan.originalPrice})`}
+                                onClick={() => {
+                                    if (currentTier === plan.tier || !plan.available) return;
+                                    if (plan.tier === 'brother' && bfcmOpen && currentTier === 'free') {
+                                        router.push('/offer');
+                                        return;
+                                    }
+                                    handleCheckout(plan.tier);
+                                }}
+                                disabled={checkoutState === 'loading' || currentTier === plan.tier || !plan.available}
+                                aria-label={currentTier === plan.tier ? 'Current Plan' : !plan.available ? `${plan.name}: coming soon` : `${plan.cta}: $${plan.price} ${plan.priceNote}`}
                             >
                                 {isLoading ? (
                                     <>
@@ -248,6 +278,10 @@ function UpgradePageInner() {
                                     </>
                                 ) : currentTier === plan.tier ? (
                                     'Current Plan'
+                                ) : !plan.available ? (
+                                    'Coming soon'
+                                ) : plan.tier === 'brother' && bfcmOpen && currentTier === 'free' ? (
+                                    'Try it free for a month'
                                 ) : (
                                     plan.cta
                                 )}

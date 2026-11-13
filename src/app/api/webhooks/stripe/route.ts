@@ -2,15 +2,20 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
 import { stripe, STRIPE_TEST_MODE } from '@/lib/stripe';
-import { syncSubscriptionToDb, cancelSubscriptionInDb } from '@/lib/stripe-sync';
+import { syncSubscriptionById, invoiceSubscriptionId } from '@/lib/stripe-sync';
 import { createServiceClient } from '@/lib/supabase/server';
 
 // Don't cache this endpoint
 export const dynamic = 'force-dynamic';
 
+/**
+ * Stripe webhook. Events are notifications only: we always re-read the
+ * subscription from Stripe and sync from that (see stripe-sync.ts), so the
+ * handler is idempotent and independent of the endpoint's API version.
+ */
 export async function POST(request: Request) {
     if (STRIPE_TEST_MODE) {
-        console.warn('[webhook] Stripe is in test mode — webhook received but skipped.');
+        console.warn('[webhook] Stripe is not configured (no STRIPE_SECRET_KEY) — webhook skipped.');
         return NextResponse.json({ received: true, mode: 'test' });
     }
 
@@ -24,114 +29,54 @@ export async function POST(request: Request) {
 
     let event: Stripe.Event;
     try {
-        event = stripe.webhooks.constructEvent(
-            body,
-            signature,
-            process.env.STRIPE_WEBHOOK_SECRET!
-        );
+        event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
     } catch (err) {
         console.error('[webhook] Signature verification failed:', err);
         return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    console.log(`[webhook] Received event: ${event.type}`);
+    console.log(`[webhook] Received event: ${event.type} (${event.id})`);
 
     try {
         switch (event.type) {
-
-            /**
-             * A checkout session completed — first payment.
-             * Link the Stripe customer to the user via metadata.userId.
-             */
             case 'checkout.session.completed': {
                 const session = event.data.object as Stripe.Checkout.Session;
                 const userId = session.metadata?.userId;
-                const customerId = session.customer as string;
-
-                if (!userId || !customerId) {
-                    console.error('[webhook] checkout.session.completed missing userId or customerId');
+                const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+                // Shared Sienvi account: only handle BB sessions (they carry metadata.app = 'bb').
+                if (!userId || session.metadata?.app !== 'bb') {
+                    console.log('[webhook] checkout.session.completed is not a BB session; ignored');
                     break;
                 }
 
-                // Store stripe_customer_id on the user immediately
                 const admin = await createServiceClient();
-                await admin.from('users').update({
-                    stripe_customer_id: customerId,
-                }).eq('id', userId);
-
-                // If there's an associated subscription, sync it now
-                if (session.subscription) {
-                    const subscription = await stripe.subscriptions.retrieve(
-                        session.subscription as string,
-                        { expand: ['items.data.price'] }
-                    );
-                    await syncSubscriptionToDb(subscription, customerId, userId);
+                if (customerId) {
+                    await admin.from('users').update({ stripe_customer_id: customerId }).eq('id', userId);
                 }
-                break;
-            }
 
-            /**
-             * Subscription created — new signup via API (non-checkout path).
-             */
-            case 'customer.subscription.created':
-            case 'customer.subscription.updated': {
-                const subscription = event.data.object as Stripe.Subscription;
-                const customerId = subscription.customer as string;
-                await syncSubscriptionToDb(subscription, customerId);
-                break;
-            }
-
-            /**
-             * Subscription deleted / cancelled.
-             */
-            case 'customer.subscription.deleted': {
-                const subscription = event.data.object as Stripe.Subscription;
-                const customerId = subscription.customer as string;
-                await cancelSubscriptionInDb(subscription, customerId);
-                break;
-            }
-
-            /**
-             * Invoice paid — confirm active status (catches renewals).
-             */
-            case 'invoice.paid': {
-                const invoice = event.data.object as Stripe.Invoice;
-                const subscriptionId = (invoice as any).subscription as string;
-                const customerId = invoice.customer as string;
+                const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
                 if (subscriptionId) {
-                    const subscription = await stripe.subscriptions.retrieve(
-                        subscriptionId,
-                        { expand: ['items.data.price'] }
-                    );
-                    await syncSubscriptionToDb(subscription, customerId);
+                    await syncSubscriptionById(subscriptionId, userId);
                 }
                 break;
             }
 
-            /**
-             * Invoice payment failed — mark as past_due.
-             */
+            case 'customer.subscription.created':
+            case 'customer.subscription.updated':
+            case 'customer.subscription.deleted':
+            case 'customer.subscription.trial_will_end': {
+                const subscription = event.data.object as Stripe.Subscription;
+                await syncSubscriptionById(subscription.id);
+                break;
+            }
+
+            case 'invoice.paid':
+            case 'invoice.payment_succeeded':
             case 'invoice.payment_failed': {
                 const invoice = event.data.object as Stripe.Invoice;
-                const customerId = invoice.customer as string;
-                const admin = await createServiceClient();
-                
-                const { data: user } = await admin
-                    .from('users')
-                    .select('id')
-                    .eq('stripe_customer_id', customerId)
-                    .single();
-
-                if (user) {
-                    await admin.from('users').update({
-                        subscription_status: 'past_due',
-                        updated_at: new Date().toISOString(),
-                    }).eq('id', user.id);
-
-                    await admin.from('subscriptions').update({
-                        status: 'past_due',
-                        updated_at: new Date().toISOString(),
-                    }).eq('user_id', user.id);
+                const subscriptionId = invoiceSubscriptionId(invoice);
+                if (subscriptionId) {
+                    await syncSubscriptionById(subscriptionId);
                 }
                 break;
             }

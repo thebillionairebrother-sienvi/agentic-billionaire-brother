@@ -308,7 +308,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                             <div className={`${styles.planCard} ${styles.planCardPro}`}>
                                 <div className={styles.planBadge}>Most Popular</div>
                                 <div className={styles.planName}>Brother</div>
-                                <div className={styles.planPrice}><span>$99.99</span><span className={styles.planPer}>/mo</span></div>
+                                <div className={styles.planPrice}><span>$39</span><span className={styles.planPer}>first month, then $49/mo</span></div>
                                 <ul className={styles.planFeatures}>
                                     <li className={styles.featureIncluded}><Check size={14} /> Daily task generation</li>
                                     <li className={styles.featureIncluded}><Check size={14} /> Strategy roadmap</li>
@@ -323,7 +323,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                             <div className={`${styles.planCard} ${styles.planCardTeam}`}>
                                 <div className={`${styles.planBadge} ${styles.planBadgeTeam}`}><Users size={10} /> Team</div>
                                 <div className={styles.planName}>Team</div>
-                                <div className={styles.planPrice}><span>$199</span><span className={styles.planPer}>/mo</span></div>
+                                <div className={styles.planPrice}><span>Soon</span><span className={styles.planPer}>pricing coming soon</span></div>
                                 <ul className={styles.planFeatures}>
                                     <li className={styles.featureIncluded}><Check size={14} /> Daily task generation</li>
                                     <li className={styles.featureIncluded}><Check size={14} /> Strategy roadmap</li>

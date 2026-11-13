@@ -49,7 +49,11 @@ export function UpgradeGate({ feature, userTier, children, fallback }: UpgradeGa
                 </p>
                 <p className={styles.description}>
                     {upgradePlan
-                        ? `Upgrade to the ${upgradePlan.label} at $${upgradePlan.monthlyPrice}/mo to unlock this.`
+                        ? upgradePlan.monthlyPrice
+                            ? upgradePlan.label === 'Brother Plan'
+                                ? `Upgrade to the ${upgradePlan.label} ($39 first month, then $${upgradePlan.monthlyPrice}/mo) to unlock this.`
+                                : `Upgrade to the ${upgradePlan.label} at $${upgradePlan.monthlyPrice}/mo to unlock this.`
+                            : `The ${upgradePlan.label} is coming soon.`
                         : 'This feature requires an upgrade.'}
                 </p>
                 {upgradeTo && (
