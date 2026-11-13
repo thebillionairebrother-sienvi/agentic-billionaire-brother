@@ -363,7 +363,7 @@ function SettingsInner() {
             </div>
 
             {/* Redesigned Premium Billing Card */}
-            <div className={`card ${styles.section}`} style={{
+            <div id="billing" className={`card ${styles.section}`} style={{ scrollMarginTop: 24,
                 background: (userProfile?.tier || usage?.tier || 'free') === 'brother' 
                     ? 'linear-gradient(135deg, rgba(234, 179, 8, 0.04) 0%, rgba(234, 179, 8, 0.01) 100%)' 
                     : (userProfile?.tier || usage?.tier || 'free') === 'team'

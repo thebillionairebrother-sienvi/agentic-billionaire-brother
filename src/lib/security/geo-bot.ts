@@ -272,5 +272,11 @@ export function isExemptRoute(pathname: string): boolean {
         return true;
     }
 
+    // 7. One-click trial cancellation from the reminder email. A subscriber
+    //    who is travelling must always be able to cancel before being charged.
+    if (pathname === '/trial/cancel' || pathname === '/api/billing/trial/cancel') {
+        return true;
+    }
+
     return false;
 }

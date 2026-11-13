@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { isAdminUser } from '@/lib/admin';
 
 export async function requireAdmin() {
   const supabase = await createClient();
@@ -15,7 +16,7 @@ export async function requireAdmin() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || profile.role !== 'admin') {
+  if (!isAdminUser(user.email, profile?.role)) {
     redirect('/dashboard'); // Non-admins should not see the admin area
   }
 
@@ -24,7 +25,7 @@ export async function requireAdmin() {
 
 export async function checkIsAdmin() {
   const supabase = await createClient();
-  
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
@@ -34,5 +35,5 @@ export async function checkIsAdmin() {
     .eq('id', user.id)
     .single();
 
-  return profile?.role === 'admin';
+  return isAdminUser(user.email, profile?.role);
 }

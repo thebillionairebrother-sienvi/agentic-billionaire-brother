@@ -3,3 +3,29 @@ env:
     secret: EMAILER_SUPABASE_ANON_KEY
   - variable: EMAILER_SUPABASE_URL
     secret: EMAILER_SUPABASE_URL
+
+  # ── Billing (BFCM 2026). Every secret below must exist in Cloud Secret
+  #    Manager BEFORE this file deploys, or the App Hosting build fails:
+  #    firebase apphosting:secrets:set <NAME> --project the-billionaire-brother
+  - variable: STRIPE_SECRET_KEY
+    secret: STRIPE_SECRET_KEY
+    availability: [RUNTIME]
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET
+    availability: [RUNTIME]
+  - variable: BILLING_LINK_SECRET
+    secret: BILLING_LINK_SECRET
+    availability: [RUNTIME]
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+    availability: [RUNTIME]
+
+  # Used for Stripe return URLs and links in billing emails.
+  - variable: NEXT_PUBLIC_APP_URL
+    value: "https://thebillionairebrother.com"
+    availability: [BUILD, RUNTIME]
+
+  # Team checkout stays off until the re-costed Team plan is approved.
+  - variable: NEXT_PUBLIC_TEAM_CHECKOUT_ENABLED
+    value: "false"
+    availability: [BUILD, RUNTIME]

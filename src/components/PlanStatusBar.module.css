@@ -1,0 +1,87 @@
+/* ─── Plan status bar (replaces TierBanner + BetaBanner) ─── */
+.bar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 0.84rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--surface-border);
+    text-align: center;
+    flex-shrink: 0;
+    z-index: 40;
+}
+
+.bar svg {
+    flex-shrink: 0;
+}
+
+.bar strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.muted {
+    color: var(--text-tertiary);
+}
+
+.action {
+    margin-left: 4px;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--gold-400);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background var(--duration-fast), border-color var(--duration-fast);
+}
+
+.action:hover,
+.action:focus-visible {
+    background: rgba(234, 179, 8, 0.1);
+    border-color: rgba(234, 179, 8, 0.5);
+}
+
+.admin svg,
+.plan svg,
+.trial svg {
+    color: var(--gold-400);
+}
+
+.trial {
+    background: linear-gradient(90deg, rgba(234, 179, 8, 0.06), rgba(234, 179, 8, 0.02));
+    border-bottom-color: rgba(234, 179, 8, 0.18);
+}
+
+.warning {
+    background: rgba(239, 68, 68, 0.08);
+    border-bottom-color: rgba(239, 68, 68, 0.25);
+}
+
+.warning svg {
+    color: #f87171;
+}
+
+.warning .action {
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.free svg {
+    color: var(--text-tertiary);
+}
+
+@media (max-width: 640px) {
+    .bar {
+        font-size: 0.78rem;
+        padding: 8px 12px;
+        gap: 6px;
+    }
+}

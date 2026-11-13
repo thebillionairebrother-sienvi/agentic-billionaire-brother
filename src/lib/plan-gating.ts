@@ -26,7 +26,7 @@ export interface PlanFeatures {
     maxWeeklyCycles: number | null;
     /** Plan display label */
     label: string;
-    /** Monthly price in USD */
+    /** Standard monthly price in USD (Brother: $39 first month, then this). null = not on sale yet. */
     monthlyPrice: number | null;
 }
 
@@ -51,7 +51,7 @@ export const PLAN_FEATURES: Record<Tier, PlanFeatures> = {
         tokenTopUp: true,
         maxWeeklyCycles: null,
         label: 'Brother Plan',
-        monthlyPrice: 99.99,
+        monthlyPrice: 49,
     },
     team: {
         dailyPrompts: 100,
@@ -62,7 +62,7 @@ export const PLAN_FEATURES: Record<Tier, PlanFeatures> = {
         tokenTopUp: true,
         maxWeeklyCycles: null,
         label: 'Team Plan',
-        monthlyPrice: 199,
+        monthlyPrice: null, // being re-costed; checkout disabled
     },
 };
 

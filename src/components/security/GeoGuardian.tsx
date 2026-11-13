@@ -12,6 +12,8 @@ export function GeoGuardian() {
             !pathname ||
             pathname === '/region-restricted' ||
             pathname.startsWith('/region-restricted/') ||
+            // One-click trial cancellation must work from any country (mirrors isExemptRoute).
+            pathname === '/trial/cancel' ||
             pathname.startsWith('/api/')
         ) {
             return;
