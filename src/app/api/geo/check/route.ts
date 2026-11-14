@@ -11,19 +11,8 @@ export async function GET(request: Request) {
     try {
         const nextReq = request as any;
 
-        // 1. Check if user already holds bypass access (cookie or key)
-        const cookieHeader = request.headers.get('cookie') || '';
-        const hasBypassCookie =
-            cookieHeader.includes('bb_geo_bypass=valid') ||
-            cookieHeader.includes('bb_geo_bypass=');
-
-        const url = new URL(request.url);
-        const queryKey =
-            url.searchParams.get('key') ||
-            url.searchParams.get('bypass') ||
-            url.searchParams.get('secret');
-
-        if (hasBypassCookie || (queryKey && queryKey.length > 0)) {
+        // 1. Signed bypass cookie or a valid key (any value used to be accepted here)
+        if (await hasBypassAccess(request)) {
             return NextResponse.json({
                 allowed: true,
                 country: 'BYPASS',

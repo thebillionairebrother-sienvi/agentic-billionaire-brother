@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
 import { createClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { ThinkingLevel } from '@google/genai';
 import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
+import { ALWAYS_ENFORCED_GUARD_CODES } from '@/lib/middleware/types';
 
 export async function POST(request: Request) {
     try {
@@ -23,7 +25,7 @@ export async function POST(request: Request) {
         try {
             ctx = await buildAiContext(supabase, user);
         } catch (err) {
-            if (err instanceof GuardError) {
+            if (err instanceof GuardError && !ALWAYS_ENFORCED_GUARD_CODES.includes(err.code)) {
                 console.warn('[tasks/generate] Guardrail would block, but task gen is exempt:', err.code);
                 ctx = {
                     userId: user.id,
@@ -265,7 +267,7 @@ Return ONLY a JSON array:
         await logUsageAndCost(supabase, {
             userId: user.id, tier: ctx.tier, endpoint: '/api/tasks/generate',
             inputTokens: response?.usageMetadata?.promptTokenCount ?? 0,
-            outputTokens: response?.usageMetadata?.candidatesTokenCount ?? 0,
+            outputTokens: billedOutputTokens(response?.usageMetadata),
             latencyMs, isDegradeMode: ctx.isDegradeMode,
         });
 

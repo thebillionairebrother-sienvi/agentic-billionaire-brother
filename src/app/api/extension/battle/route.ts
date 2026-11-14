@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
+import { guardExtensionAiRequest } from '@/lib/extension-guard';
 import { createServiceClient } from '@/lib/supabase/server';
 import {
     getExtensionCorsHeaders,
@@ -10,8 +12,6 @@ import { GEMINI_EXTENSION_MODEL } from '@/lib/gemini';
 import { generateExtensionContentWithRetry } from '@/lib/extension-gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { logUsageAndCost } from '@/lib/middleware/meter-logger';
-import { checkUsageGuard } from '@/lib/middleware/usage-guard';
-import { GuardError } from '@/lib/middleware/types';
 import type { Tier } from '@/lib/ai-config';
 import { DEFAULT_DEREK_MODE, formatDerekModeForPrompt, sanitizeDerekMode, type DerekMode } from '@/lib/extension-derek-mode';
 import {
@@ -107,7 +107,7 @@ async function runBattleAnalysis(
             tier: effectiveTier,
             endpoint: '/api/extension/battle',
             inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            outputTokens: billedOutputTokens(response.usageMetadata),
             latencyMs,
             isDegradeMode: false,
             model: GEMINI_EXTENSION_MODEL,
@@ -130,26 +130,17 @@ export async function POST(request: Request) {
         }
 
         const serviceClient = await createServiceClient();
-        const { tier, hasRequiredPlan } = await resolveExtensionUserPlan(serviceClient, user);
-        if (!hasRequiredPlan) {
-            return NextResponse.json(
-                { error: 'An active Brother or Team plan subscription is required to run competitor battles with the extension.' },
-                { status: 403, headers: corsHeaders }
-            );
-        }
-
-        const effectiveTier: Tier = tier === 'team' ? 'team' : tier === 'brother' ? 'brother' : 'free';
-        try {
-            await checkUsageGuard(serviceClient, user.id, effectiveTier, { email: user.email });
-        } catch (guardErr: any) {
-            if (guardErr instanceof GuardError) {
-                return NextResponse.json(
-                    { error: guardErr.message },
-                    { status: guardErr.statusCode || 429, headers: corsHeaders }
-                );
-            }
-            console.warn('[extension/battle] Usage guard check skipped due to transient DB issue:', guardErr?.message);
-        }
+        const plan = await resolveExtensionUserPlan(serviceClient, user);
+        const { tier } = plan;
+        const blocked = await guardExtensionAiRequest({
+            serviceClient,
+            user,
+            plan,
+            corsHeaders,
+            planRequiredMessage: 'An active Brother or Team plan subscription is required to run competitor battles with the extension.',
+            label: 'extension/battle',
+        });
+        if (blocked) return blocked;
 
         const body = await request.json().catch(() => ({}));
         const you = sanitizeBattleSnapshot(body?.snapshot);

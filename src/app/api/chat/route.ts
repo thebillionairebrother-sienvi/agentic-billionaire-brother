@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
 import { createMobileAwareClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { Type, ThinkingLevel } from '@google/genai';
@@ -268,7 +269,7 @@ REACTION RULES:
             tier: ctx.tier,
             endpoint: '/api/chat',
             inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            outputTokens: billedOutputTokens(response.usageMetadata),
             latencyMs,
             isDegradeMode: ctx.isDegradeMode,
         });

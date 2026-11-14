@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
 import { createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
@@ -224,7 +225,7 @@ Return ONLY a JSON array:
 
                 // Log usage for this user
                 const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
-                const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+                const outputTokens = billedOutputTokens(response.usageMetadata);
                 const cost = calculateEstimatedCost(inputTokens, outputTokens);
                 await supabase.from('request_logs').insert({
                     user_id: userId, model: GEMINI_MODEL,

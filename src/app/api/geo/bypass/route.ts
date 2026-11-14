@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isValidBypassKey } from '@/lib/security/geo-bot';
+import { BYPASS_COOKIE, bypassCookieValue, isValidBypassKey } from '@/lib/security/geo-bot';
 
 export async function POST(request: Request) {
     try {
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         });
 
         // Set persistent 30-day bypass cookie
-        response.cookies.set('bb_geo_bypass', 'valid', {
+        response.cookies.set(BYPASS_COOKIE, (await bypassCookieValue())!, {
             path: '/',
             maxAge: 30 * 24 * 60 * 60, // 30 days
             sameSite: 'lax',

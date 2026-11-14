@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
 import { createMobileAwareClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { Type, ThinkingLevel } from '@google/genai';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
+import { ALWAYS_ENFORCED_GUARD_CODES } from '@/lib/middleware/types';
 
 /**
  * Parse AI response that should be JSON with { reaction, response }.
@@ -154,7 +156,7 @@ export async function POST(request: Request) {
         try {
             ctx = await buildAiContext(supabase, user);
         } catch (err) {
-            if (err instanceof GuardError) {
+            if (err instanceof GuardError && !ALWAYS_ENFORCED_GUARD_CODES.includes(err.code)) {
                 console.warn('[interview] Guardrail would block, but interview is exempt:', err.code);
                 // Provide a fallback context so onboarding always works
                 ctx = {
@@ -209,7 +211,7 @@ export async function POST(request: Request) {
             await logUsageAndCost(supabase, {
                 userId: user.id, tier: ctx.tier, endpoint: '/api/interview',
                 inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-                outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+                outputTokens: billedOutputTokens(response.usageMetadata),
                 latencyMs, isDegradeMode: ctx.isDegradeMode,
                 isExempt: true,
             });
@@ -291,7 +293,7 @@ export async function POST(request: Request) {
             await logUsageAndCost(supabase, {
                 userId: user.id, tier: ctx.tier, endpoint: '/api/interview',
                 inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-                outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+                outputTokens: billedOutputTokens(response.usageMetadata),
                 latencyMs: latencyMs2, isDegradeMode: ctx.isDegradeMode,
                 isExempt: true,
             });
@@ -352,7 +354,7 @@ export async function POST(request: Request) {
                 await logUsageAndCost(supabase, {
                     userId: user.id, tier: ctx.tier, endpoint: '/api/interview/extract',
                     inputTokens: extractResponse.usageMetadata?.promptTokenCount ?? 0,
-                    outputTokens: extractResponse.usageMetadata?.candidatesTokenCount ?? 0,
+                    outputTokens: billedOutputTokens(extractResponse.usageMetadata),
                     latencyMs: extractLatency, isDegradeMode: ctx.isDegradeMode,
                     isExempt: true,
                 });
@@ -384,7 +386,7 @@ export async function POST(request: Request) {
         await logUsageAndCost(supabase, {
             userId: user.id, tier: ctx.tier, endpoint: '/api/interview',
             inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            outputTokens: billedOutputTokens(response.usageMetadata),
             latencyMs: latencyMs2, isDegradeMode: ctx.isDegradeMode,
             isExempt: true,
         });

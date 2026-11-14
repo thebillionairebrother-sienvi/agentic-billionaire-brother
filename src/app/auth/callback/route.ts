@@ -32,8 +32,10 @@ export async function GET(request: Request) {
                     const isScott = user.email?.toLowerCase() === 'scott@siemvi.com';
 
                     if (!existingSub) {
-                        // Determine tier from signup metadata, but override for Scott
-                        const tier = isScott ? 'team' : (user.user_metadata?.tier || 'free');
+                        // New accounts start free. Paid access comes only from the Stripe
+                        // webhook or /api/auth/set-tier (server-validated codes), never from
+                        // user_metadata, which users can write themselves.
+                        const tier = isScott ? 'team' : 'free';
                         await admin.from('subscriptions').insert({
                             user_id: user.id,
                             tier,

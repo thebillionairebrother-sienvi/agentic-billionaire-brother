@@ -3,7 +3,8 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { ThinkingLevel } from '@google/genai';
-import { buildAiContext, GuardError, guardErrorResponse } from '@/lib/middleware';
+import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
+import { billedOutputTokens } from '@/lib/ai-config';
 
 function extractJSON(text: string): Record<string, unknown> {
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -117,6 +118,7 @@ Return ONLY this JSON:
 }`;
 
     try {
+        const startTime = Date.now();
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
             config: {
@@ -126,6 +128,18 @@ Return ONLY this JSON:
                 thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
             },
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        });
+
+        // Count this generation toward the user's daily/monthly caps
+        await logUsageAndCost(serviceClient, {
+            userId: user.id,
+            tier: ctx.tier,
+            endpoint: '/api/social/generate',
+            inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+            outputTokens: billedOutputTokens(response.usageMetadata),
+            latencyMs: Date.now() - startTime,
+            isDegradeMode: ctx.isDegradeMode,
+            model: GEMINI_MODEL,
         });
 
         const rawText = response.text || '';

@@ -10,63 +10,84 @@ import { type NextRequest } from 'next/server';
 export const ALLOWED_COUNTRIES = new Set(['US', 'CA', 'GB', 'UK', 'IN']);
 
 /**
- * Secret testing key allowing developers, team members, and testers
- * to bypass geo-restrictions from anywhere (e.g. Philippines) on any browser.
+ * Secret testing key that lets the team bypass geo-restrictions (e.g. from the
+ * Philippines). It must come from GEO_BYPASS_KEY: there is no built-in default,
+ * and without a configured key the bypass is off.
  */
-export const DEFAULT_BYPASS_KEY = 'bb_secret_team_2026';
-
 export function getBypassSecret(): string {
-    return (
-        process.env.GEO_BYPASS_KEY ||
-        process.env.NEXT_PUBLIC_GEO_BYPASS_KEY ||
-        DEFAULT_BYPASS_KEY
-    ).trim();
+    return (process.env.GEO_BYPASS_KEY || process.env.NEXT_PUBLIC_GEO_BYPASS_KEY || '').trim();
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
 }
 
 /**
  * Verify whether a provided key matches the bypass secret.
  */
 export function isValidBypassKey(key: string | null | undefined): boolean {
-    if (!key) return false;
-    const cleanKey = key.trim();
     const secret = getBypassSecret();
-    return cleanKey === secret || cleanKey === DEFAULT_BYPASS_KEY;
+    if (!key || !secret) return false;
+    return constantTimeEqual(key.trim(), secret);
+}
+
+export const BYPASS_COOKIE = 'bb_geo_bypass';
+
+/**
+ * Value stored in the bb_geo_bypass cookie: "valid." + HMAC-SHA256(secret).
+ * The "valid" prefix keeps the client-side checks (cookie includes
+ * "bb_geo_bypass=valid") working, while the server only accepts the signed
+ * value, so typing bb_geo_bypass=valid into the browser no longer bypasses
+ * anything. Rotating GEO_BYPASS_KEY invalidates every issued cookie.
+ * Web Crypto, so it works in both the Node and Edge runtimes.
+ */
+export async function bypassCookieValue(): Promise<string | null> {
+    const secret = getBypassSecret();
+    if (!secret) return null;
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const sig = await crypto.subtle.sign('HMAC', key, enc.encode('bb-geo-bypass-v1'));
+    const hex = Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, '0')).join('');
+    return `valid.${hex}`;
+}
+
+function cookieFromHeader(cookieHeader: string, name: string): string | undefined {
+    for (const part of cookieHeader.split(';')) {
+        const [k, ...v] = part.trim().split('=');
+        if (k === name) return decodeURIComponent(v.join('='));
+    }
+    return undefined;
 }
 
 /**
  * Check if the incoming request carries a valid bypass signal:
- * 1. URL search param (?key=..., ?bypass=..., ?secret=..., ?bb_bypass=...)
- * 2. Persistent cookie (bb_geo_bypass)
+ * 1. Signed persistent cookie (bb_geo_bypass)
+ * 2. URL search param (?key=..., ?bypass=..., ?secret=..., ?bb_bypass=...)
  * 3. Header (x-bypass-key)
  */
-export function hasBypassAccess(request: NextRequest): boolean {
-    // 1. Check persistent bypass cookie
-    const bypassCookie = request.cookies.get('bb_geo_bypass')?.value;
-    if (bypassCookie) {
-        if (bypassCookie === 'valid' || isValidBypassKey(bypassCookie)) {
-            return true;
-        }
+export async function hasBypassAccess(request: Request): Promise<boolean> {
+    const expectedCookie = await bypassCookieValue();
+    if (!expectedCookie) return false;
+
+    const bypassCookie = cookieFromHeader(request.headers.get('cookie') || '', BYPASS_COOKIE);
+    if (bypassCookie && constantTimeEqual(bypassCookie, expectedCookie)) {
+        return true;
     }
 
-    // 2. Check URL query parameters
-    const searchParams = request.nextUrl.searchParams;
+    const searchParams = new URL(request.url).searchParams;
     const queryKey =
         searchParams.get('key') ||
         searchParams.get('bypass') ||
         searchParams.get('secret') ||
         searchParams.get('bb_bypass');
-
     if (isValidBypassKey(queryKey)) {
         return true;
     }
 
-    // 3. Check custom header
-    const headerKey = request.headers.get('x-bypass-key');
-    if (isValidBypassKey(headerKey)) {
-        return true;
-    }
-
-    return false;
+    return isValidBypassKey(request.headers.get('x-bypass-key'));
 }
 
 export type UserAgentClassification = 'good_bot' | 'bad_bot' | 'human';
@@ -140,27 +161,29 @@ const BAD_BOT_PATTERNS = [
  * Extract country code from request headers / cookies / edge geo object.
  */
 export function extractCountry(request: NextRequest): string | null {
-    // 1. Manual dev/test overrides (header or cookie)
-    const headerOverride = request.headers.get('x-override-country') || request.headers.get('x-country-override');
-    if (headerOverride) {
-        return headerOverride.trim().toUpperCase();
-    }
-
-    const cookieOverride = request.cookies.get('bb_country_override')?.value;
-    if (cookieOverride) {
-        return cookieOverride.trim().toUpperCase();
-    }
-
-    // 2. Previously cached detected country cookie (from IP lookup API)
-    const detectedCookie = request.cookies.get('bb_detected_country')?.value;
-    if (detectedCookie && detectedCookie.length === 2) {
-        return detectedCookie.trim().toUpperCase();
-    }
-
-    // 3. Vercel Edge Geolocation Header
+    // 1. Vercel's own geolocation header first: set by the platform, so a
+    //    visitor can't choose their country with a header or cookie.
     const vercelCountry = request.headers.get('x-vercel-ip-country');
     if (vercelCountry) {
         return vercelCountry.trim().toUpperCase();
+    }
+
+    // 2. Manual overrides (header or cookie): local development only
+    if (process.env.NODE_ENV === 'development') {
+        const headerOverride = request.headers.get('x-override-country') || request.headers.get('x-country-override');
+        if (headerOverride) {
+            return headerOverride.trim().toUpperCase();
+        }
+        const cookieOverride = request.cookies.get('bb_country_override')?.value;
+        if (cookieOverride) {
+            return cookieOverride.trim().toUpperCase();
+        }
+    }
+
+    // 3. Previously cached detected country cookie (from IP lookup API)
+    const detectedCookie = request.cookies.get('bb_detected_country')?.value;
+    if (detectedCookie && detectedCookie.length === 2) {
+        return detectedCookie.trim().toUpperCase();
     }
 
     // 4. Google Cloud / App Engine / Firebase Header

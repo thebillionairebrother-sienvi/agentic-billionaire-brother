@@ -22,17 +22,22 @@ export async function generateExtensionContentWithRetry(primaryModel: string, ar
 
     for (const model of candidateModels) {
         for (let attempt = 0; attempt < 2; attempt++) {
+            // Abort the request itself on timeout, so a slow attempt doesn't keep
+            // running (and holding the function open) while the next model is tried.
+            const controller = new AbortController();
+            let timer: ReturnType<typeof setTimeout> | undefined;
             try {
                 const callPromise = ai.models.generateContent({
                     model,
                     ...args,
+                    config: { ...(args?.config || {}), abortSignal: controller.signal },
                 });
-                const timeoutPromise = new Promise<never>((_, reject) =>
-                    setTimeout(
-                        () => reject(new Error(`503 UNAVAILABLE: Model ${model} is experiencing high demand and timed out after ${PER_ATTEMPT_TIMEOUT_MS / 1000}s.`)),
-                        PER_ATTEMPT_TIMEOUT_MS
-                    )
-                );
+                const timeoutPromise = new Promise<never>((_, reject) => {
+                    timer = setTimeout(() => {
+                        controller.abort();
+                        reject(new Error(`503 UNAVAILABLE: Model ${model} is experiencing high demand and timed out after ${PER_ATTEMPT_TIMEOUT_MS / 1000}s.`));
+                    }, PER_ATTEMPT_TIMEOUT_MS);
+                });
                 return await Promise.race([callPromise, timeoutPromise]);
             } catch (err: any) {
                 lastError = err;
@@ -53,6 +58,8 @@ export async function generateExtensionContentWithRetry(primaryModel: string, ar
                 }
                 console.warn(`[${logLabel}] Model ${model} failed (${err?.status || msg}). Trying next fallback...`);
                 break;
+            } finally {
+                clearTimeout(timer);
             }
         }
     }

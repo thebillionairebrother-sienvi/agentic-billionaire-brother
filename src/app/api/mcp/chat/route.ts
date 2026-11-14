@@ -1,4 +1,5 @@
 import { type NextRequest } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
 import { validateMcpAuth } from '../auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
@@ -291,7 +292,7 @@ REACTION RULES:
             tier: ctx.tier,
             endpoint: '/api/mcp/chat',
             inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            outputTokens: billedOutputTokens(response.usageMetadata),
             latencyMs,
             isDegradeMode: ctx.isDegradeMode,
         });

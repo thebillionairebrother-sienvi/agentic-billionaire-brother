@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
+import { guardExtensionAiRequest } from '@/lib/extension-guard';
 import { createServiceClient, isTransientSupabaseError } from '@/lib/supabase/server';
 import {
     getExtensionCorsHeaders,
@@ -12,8 +14,6 @@ import { generateExtensionContentWithRetry } from '@/lib/extension-gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { Type } from '@google/genai';
 import { logUsageAndCost } from '@/lib/middleware/meter-logger';
-import { checkUsageGuard } from '@/lib/middleware/usage-guard';
-import { GuardError } from '@/lib/middleware/types';
 import type { Tier } from '@/lib/ai-config';
 import { formatElementsForPrompt, sanitizeElements, sanitizeElementTargets } from '@/lib/extension-element-targets';
 import { DEFAULT_DEREK_MODE, formatDerekModeForPrompt, sanitizeDerekMode, type DerekMode } from '@/lib/extension-derek-mode';
@@ -337,7 +337,7 @@ STRICT RULES FOR seasonalRelevance:
             tier: effectiveTier,
             endpoint: '/api/extension/audit',
             inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            outputTokens: billedOutputTokens(response.usageMetadata),
             latencyMs,
             isDegradeMode: false,
             model: GEMINI_EXTENSION_MODEL,
@@ -394,28 +394,17 @@ export async function POST(request: Request) {
 
         // Verify Brother or Team Plan subscription using service client (with timeout resilience)
         const serviceClient = await createServiceClient();
-        const { tier, hasRequiredPlan } = await resolveExtensionUserPlan(serviceClient, user);
-
-        if (!hasRequiredPlan) {
-            return NextResponse.json(
-                { error: 'An active Brother or Team plan subscription is required to run audits with the extension.' },
-                { status: 403, headers: corsHeaders }
-            );
-        }
-
-        // Check usage caps / guardrails (non-blocking on transient DB timeout)
-        const effectiveTier: Tier = tier === 'team' ? 'team' : tier === 'brother' ? 'brother' : 'free';
-        try {
-            await checkUsageGuard(serviceClient, user.id, effectiveTier, { email: user.email });
-        } catch (guardErr: any) {
-            if (guardErr instanceof GuardError) {
-                return NextResponse.json(
-                    { error: guardErr.message },
-                    { status: guardErr.statusCode || 429, headers: corsHeaders }
-                );
-            }
-            console.warn('[extension/audit] Usage guard check skipped due to transient DB issue:', guardErr?.message);
-        }
+        const plan = await resolveExtensionUserPlan(serviceClient, user);
+        const { tier } = plan;
+        const blocked = await guardExtensionAiRequest({
+            serviceClient,
+            user,
+            plan,
+            corsHeaders,
+            planRequiredMessage: 'An active Brother or Team plan subscription is required to run audits with the extension.',
+            label: 'extension/audit',
+        });
+        if (blocked) return blocked;
 
         const body = await request.json();
         const { snapshot, auditScope = 'page' } = body;

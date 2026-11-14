@@ -187,6 +187,17 @@ export const THINKING_LEVELS = {
 export type ThinkingLevelValue = typeof THINKING_LEVELS[keyof typeof THINKING_LEVELS];
 
 // ─── Cost Helpers ───
+
+/**
+ * Output tokens Google bills for: the visible answer plus "thinking" tokens.
+ * candidatesTokenCount alone leaves the thinking tokens out, so costs (and the
+ * monthly $ caps) were undercounted for thinking models.
+ */
+export function billedOutputTokens(
+    usage?: { candidatesTokenCount?: number | null; thoughtsTokenCount?: number | null } | null
+): number {
+    return (usage?.candidatesTokenCount ?? 0) + (usage?.thoughtsTokenCount ?? 0);
+}
 export function calculateEstimatedCost(
     inputTokens: number,
     outputTokens: number,

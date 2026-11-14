@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isInternalRequest } from '@/lib/security/internal-auth';
 import { createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
@@ -38,6 +39,10 @@ interface WorkerPayload {
 }
 
 export async function POST(request: Request) {
+    // Internal only: called server-to-server with the cron secret
+    if (!isInternalRequest(request)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { jobId, decisionId, userId }: WorkerPayload = await request.json();
     const supabase = await createServiceClient();
 
