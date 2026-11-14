@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
+import { isInternalRequest } from '@/lib/security/internal-auth';
 import { createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
@@ -28,6 +30,10 @@ interface WorkerPayload {
 }
 
 export async function POST(request: Request) {
+    // Internal only: called server-to-server with the cron secret
+    if (!isInternalRequest(request)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { jobId, cycleId, userId, decisionId }: WorkerPayload = await request.json();
     const supabase = await createServiceClient();
 
@@ -212,7 +218,7 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
 
         // Log usage for this user
         const inputTokens = response?.usageMetadata?.promptTokenCount ?? 0;
-        const outputTokens = response?.usageMetadata?.candidatesTokenCount ?? 0;
+        const outputTokens = billedOutputTokens(response?.usageMetadata);
         const cost = calculateEstimatedCost(inputTokens, outputTokens);
         await supabase.from('request_logs').insert({
             user_id: userId, model: GEMINI_MODEL,

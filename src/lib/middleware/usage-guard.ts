@@ -20,12 +20,15 @@ interface UsageCheckResult {
  * Get or initialize daily usage row (returns zeroes if none exists).
  */
 async function getDailyUsage(supabase: SupabaseClient, userId: string): Promise<DailyUsage> {
-    const { data } = await supabase
+    // maybeSingle: no row yet means zero usage; a real read error must not
+    // silently count as zero (that would disable the caps during DB trouble)
+    const { data, error } = await supabase
         .from('usage_daily_user')
         .select('*')
         .eq('user_id', userId)
         .eq('date', getTodayDate())
-        .single();
+        .maybeSingle();
+    if (error) throw new Error(`usage_daily_user read failed: ${error.message}`);
 
     return data ?? {
         prompt_count: 0,
@@ -41,12 +44,13 @@ async function getDailyUsage(supabase: SupabaseClient, userId: string): Promise<
  * Get or initialize monthly usage row.
  */
 async function getMonthlyUsage(supabase: SupabaseClient, userId: string): Promise<MonthlyUsage> {
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from('usage_monthly_workspace')
         .select('*')
         .eq('user_id', userId)
         .eq('month_start', getCurrentMonthStart())
-        .single();
+        .maybeSingle();
+    if (error) throw new Error(`usage_monthly_workspace read failed: ${error.message}`);
 
     return data ?? {
         total_tokens: 0,

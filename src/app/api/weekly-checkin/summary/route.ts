@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
 import { createClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
@@ -160,7 +161,7 @@ IMPORTANT: Return ONLY the JSON object, no other text.`,
         await logUsageAndCost(supabase, {
             userId: user.id, tier: ctx.tier, endpoint: '/api/weekly-checkin/summary',
             inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            outputTokens: billedOutputTokens(response.usageMetadata),
             latencyMs, isDegradeMode: ctx.isDegradeMode,
         });
 

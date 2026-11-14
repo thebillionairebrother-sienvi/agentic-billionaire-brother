@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
 import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { ThinkingLevel } from '@google/genai';
 import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
+import { ALWAYS_ENFORCED_GUARD_CODES } from '@/lib/middleware/types';
 
 // Allow up to 120s for strategy generation
 export const maxDuration = 120;
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
         try {
             ctx = await buildAiContext(supabase, user);
         } catch (err) {
-            if (err instanceof GuardError) {
+            if (err instanceof GuardError && !ALWAYS_ENFORCED_GUARD_CODES.includes(err.code)) {
                 console.warn('[strategies/generate] Guardrail would block, but strategy gen is exempt:', err.code);
                 ctx = {
                     userId: user.id,
@@ -274,7 +276,7 @@ Generate 3 strategies ranked from best fit (rank 1) to least fit (rank 3). Each 
                      tier: ctx.tier,
                      endpoint: '/api/strategies/generate',
                      inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-                     outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+                     outputTokens: billedOutputTokens(response.usageMetadata),
                      latencyMs,
                      isDegradeMode: ctx.isDegradeMode,
                      isExempt: !!body.is_exempt || !!body.job_id,

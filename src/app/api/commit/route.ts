@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { internalAuthHeader } from '@/lib/security/internal-auth';
 import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
         const workerUrl = new URL('/api/workers/ship-pack-generator', request.url);
         fetch(workerUrl.toString(), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...internalAuthHeader() },
             body: JSON.stringify({
                 jobId: job!.id,
                 cycleId: cycle!.id,

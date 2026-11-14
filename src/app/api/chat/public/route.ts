@@ -1,12 +1,46 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { billedOutputTokens } from '@/lib/ai-config';
+import { createHmac } from 'node:crypto';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { Type, ThinkingLevel } from '@google/genai';
 import { DEREK_SYSTEM_PROMPT, DEREK_FULL_PROMPT } from '@/lib/system-prompt';
-import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
+import { buildAiContext, checkKillSwitch, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
+import { clientIp, guestLimits, isGuestAllowed, MAX_MESSAGE_CHARS, todayUtc, trimChatHistory } from '@/lib/security/guest-limits';
 import { fetchGifUrl } from '@/app/api/giphy-search/route';
 
 const MAX_GUEST_PROMPTS = 3;
+
+const GUEST_LIMIT_REPLY = {
+    response: "Yo, I'm loving this conversation — but we've hit the free preview limit. Sign up so we can keep going. I've got way more to say. 💪",
+    reaction: 'sign up now',
+    limitReached: true,
+};
+
+/**
+ * Server-side guest allowance: counts this message against the per-IP and
+ * global daily guest limits. Fails closed (no allowance) if the counter is
+ * unavailable, e.g. before migration 20261114_guest_chat_limits.sql is applied.
+ */
+async function guestAllowed(request: Request): Promise<boolean> {
+    const admin = await createServiceClient();
+    // Kill switch also stops guests (throws GuardError → 503)
+    await checkKillSwitch(admin);
+    try {
+        const salt = process.env.GUEST_CHAT_SALT || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+        const ipHash = createHmac('sha256', salt).update(clientIp(request.headers)).digest('hex').slice(0, 32);
+        const { data, error } = await admin.rpc('increment_guest_chat', { p_ip_bucket: `ip:${ipHash}`, p_day: todayUtc() });
+        const row = Array.isArray(data) ? data[0] : data;
+        if (error || !row) {
+            console.warn('[chat/public] guest counter unavailable, blocking guest:', error?.message);
+            return false;
+        }
+        return isGuestAllowed({ ipCount: Number(row.ip_count), globalCount: Number(row.global_count) }, guestLimits());
+    } catch (err) {
+        console.warn('[chat/public] guest counter error, blocking guest:', err);
+        return false;
+    }
+}
 
 /**
  * Parse Derek's response which should be JSON with { reaction, response }.
@@ -38,23 +72,30 @@ export async function POST(request: Request) {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
-        const { message, chatHistory, promptCount } = await request.json() as {
-            message: string;
-            chatHistory?: Array<{ role: string; content: string }>;
+        const body = await request.json().catch(() => ({})) as {
+            message?: unknown;
+            chatHistory?: unknown;
             promptCount?: number;
         };
+        const { promptCount } = body;
+        const message = typeof body.message === 'string' ? body.message.slice(0, MAX_MESSAGE_CHARS) : '';
+        // Bounded history for everyone: the client controls this array
+        const chatHistory = trimChatHistory<{ role: string; content: string }>(body.chatHistory);
 
-        if (!message) {
+        if (!message.trim()) {
             return NextResponse.json({ error: 'Message is required' }, { status: 400 });
         }
 
-        // ── Guest guard: enforce prompt limit ──
-        if (!user && typeof promptCount === 'number' && promptCount >= MAX_GUEST_PROMPTS) {
-            return NextResponse.json({
-                response: "Yo, I'm loving this conversation — but we've hit the free preview limit. Sign up so we can keep going. I've got way more to say. 💪",
-                reaction: 'sign up now',
-                limitReached: true,
-            });
+        // ── Guest guard ──
+        // promptCount (sent by the browser) still gives the friendly early cut-off,
+        // but the real limit is the server-side counter.
+        if (!user) {
+            if (typeof promptCount === 'number' && promptCount >= MAX_GUEST_PROMPTS) {
+                return NextResponse.json(GUEST_LIMIT_REPLY);
+            }
+            if (!(await guestAllowed(request))) {
+                return NextResponse.json(GUEST_LIMIT_REPLY);
+            }
         }
 
         // ── Build system instruction ──
@@ -229,7 +270,7 @@ REACTION RULES:
                 tier: ctx.tier,
                 endpoint: '/api/chat/public',
                 inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-                outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+                outputTokens: billedOutputTokens(response.usageMetadata),
                 latencyMs,
                 isDegradeMode: ctx.isDegradeMode,
             });

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { billedOutputTokens } from '@/lib/ai-config';
+import { guardExtensionAiRequest } from '@/lib/extension-guard';
 import { createServiceClient } from '@/lib/supabase/server';
 import {
     getExtensionCorsHeaders,
@@ -13,8 +15,6 @@ import { formatDerekModeForPrompt, sanitizeDerekMode } from '@/lib/extension-der
 import { Type } from '@google/genai';
 import { fetchGifUrl } from '@/app/api/giphy-search/route';
 import { logUsageAndCost } from '@/lib/middleware/meter-logger';
-import { checkUsageGuard } from '@/lib/middleware/usage-guard';
-import { GuardError } from '@/lib/middleware/types';
 import type { Tier } from '@/lib/ai-config';
 
 function parseDerekResponse(raw: string): { reaction: string; response: string } {
@@ -100,28 +100,18 @@ export async function POST(request: Request) {
 
         // Verify Brother or Team Plan subscription (with timeout resilience)
         const serviceClient = await createServiceClient();
-        const { tier, hasRequiredPlan } = await resolveExtensionUserPlan(serviceClient, user);
-
-        if (!hasRequiredPlan) {
-            return NextResponse.json(
-                { error: 'An active Brother or Team plan subscription is required to chat with Derek.' },
-                { status: 403, headers: corsHeaders }
-            );
-        }
-
-        // Check usage caps / guardrails (non-blocking on transient DB timeout)
+        const plan = await resolveExtensionUserPlan(serviceClient, user);
+        const { tier } = plan;
+        const blocked = await guardExtensionAiRequest({
+            serviceClient,
+            user,
+            plan,
+            corsHeaders,
+            planRequiredMessage: 'An active Brother or Team plan subscription is required to chat with Derek.',
+            label: 'extension/chat',
+        });
+        if (blocked) return blocked;
         const effectiveTier: Tier = tier === 'team' ? 'team' : tier === 'brother' ? 'brother' : 'free';
-        try {
-            await checkUsageGuard(serviceClient, user.id, effectiveTier, { email: user.email });
-        } catch (guardErr: any) {
-            if (guardErr instanceof GuardError) {
-                return NextResponse.json(
-                    { error: guardErr.message },
-                    { status: guardErr.statusCode || 429, headers: corsHeaders }
-                );
-            }
-            console.warn('[extension/chat] Usage guard check skipped due to transient DB issue:', guardErr?.message);
-        }
 
         const body = await request.json();
         const { runId, message, chatHistory = [], auditResult: clientResult, snapshot: clientSnapshot } = body;
@@ -300,7 +290,7 @@ export async function POST(request: Request) {
             tier: effectiveTier,
             endpoint: '/api/extension/chat',
             inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
-            outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+            outputTokens: billedOutputTokens(response.usageMetadata),
             latencyMs,
             isDegradeMode: false,
             model: GEMINI_EXTENSION_MODEL,

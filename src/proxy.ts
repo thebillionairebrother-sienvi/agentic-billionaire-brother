@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import {
+    BYPASS_COOKIE,
+    bypassCookieValue,
     classifyUserAgent,
     extractCountry,
     hasBypassAccess,
@@ -28,9 +30,9 @@ export async function proxy(request: NextRequest) {
 
     // 2. Secret Key Bypass (URL param: ?key=..., ?bypass=..., or cookie: bb_geo_bypass)
     // Allows developers and testers from anywhere (e.g. Philippines) to test in any browser
-    if (hasBypassAccess(request)) {
+    if (await hasBypassAccess(request)) {
         const response = await updateSession(request);
-        response.cookies.set('bb_geo_bypass', 'valid', {
+        response.cookies.set(BYPASS_COOKIE, (await bypassCookieValue())!, {
             path: '/',
             maxAge: 30 * 24 * 60 * 60, // 30 days
             sameSite: 'lax',

@@ -16,7 +16,15 @@ export async function GET(request: Request) {
         }
 
         const serviceClient = await createServiceClient();
-        const { email, tier, isAdmin, hasRequiredPlan } = await resolveExtensionUserPlan(serviceClient, user);
+        const { email, tier, isAdmin, hasRequiredPlan, dbHealthy } = await resolveExtensionUserPlan(serviceClient, user);
+
+        // Plan unknown (DB outage, nothing cached): a 5xx makes the panel keep its cached session
+        if (!dbHealthy && !hasRequiredPlan) {
+            return NextResponse.json(
+                { error: 'Plan lookup temporarily unavailable', retryable: true },
+                { status: 503, headers: corsHeaders }
+            );
+        }
 
         return NextResponse.json(
             {

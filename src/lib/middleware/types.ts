@@ -49,6 +49,13 @@ export class GuardError extends Error {
     }
 }
 
+/**
+ * Guard codes that even "exempt" routes (interview, strategy and task generation)
+ * must respect: exemption skips the daily prompt cap, never the global kill switch
+ * or the monthly dollar cap.
+ */
+export const ALWAYS_ENFORCED_GUARD_CODES = ['KILL_SWITCH_ACTIVE', 'DOLLAR_CAP_EXCEEDED'];
+
 // ─── Guard Response Helper ───
 export function guardErrorResponse(error: GuardError) {
     return {

@@ -1,6 +1,14 @@
 import { createMobileAwareClient, isTransientSupabaseError } from '@/lib/supabase/server';
 import type { User } from '@supabase/supabase-js';
 import type { DerekMode } from '@/lib/extension-derek-mode';
+import {
+    decideExtensionTier,
+    hasPaidExtensionAccess,
+    readCachedPlan,
+    takeOutageAllowance,
+    type CachedPlan,
+    type PlanTier,
+} from '@/lib/extension-plan';
 
 const KNOWN_PRIVILEGED_USERS: Record<string, { id: string; tier: 'brother' | 'team'; isAdmin: boolean }> = {
     'spenceralmodiel@gmail.com': {
@@ -90,27 +98,16 @@ export async function getExtensionUser(request: Request): Promise<User | null> {
         console.warn('[extension-auth] createMobileAwareClient error:', err);
     }
 
-    // Check extension session recovery headers (sent by the Chrome Extension from cached session storage)
-    const extEmail = (request.headers.get('x-bb-extension-email') || '').toLowerCase().trim();
-    const extUserId = (request.headers.get('x-bb-extension-user-id') || '').trim();
-    const origin = request.headers.get('origin') || '';
-    const isExtensionOrigin = origin.startsWith('chrome-extension://') || process.env.NODE_ENV === 'development';
-
-    if (isExtensionOrigin && extEmail) {
+    // Local development only: the extension's cached-session headers and a fixed
+    // test account. In production these headers prove nothing (any client can send
+    // them with a fake chrome-extension:// Origin), so they are ignored there.
+    if (process.env.NODE_ENV === 'development') {
+        const extEmail = (request.headers.get('x-bb-extension-email') || '').toLowerCase().trim();
+        const extUserId = (request.headers.get('x-bb-extension-user-id') || '').trim();
         const privileged = KNOWN_PRIVILEGED_USERS[extEmail];
-        if (privileged) {
+        if (extEmail && (privileged || (extUserId && extUserId !== 'placeholder-user-id'))) {
             return {
-                id: extUserId || privileged.id,
-                email: extEmail,
-                app_metadata: {},
-                user_metadata: { tier: privileged.tier },
-                aud: 'authenticated',
-                created_at: new Date().toISOString(),
-            } as User;
-        }
-        if (extUserId && extUserId !== 'placeholder-user-id') {
-            return {
-                id: extUserId,
+                id: extUserId || privileged!.id,
                 email: extEmail,
                 app_metadata: {},
                 user_metadata: {},
@@ -118,15 +115,11 @@ export async function getExtensionUser(request: Request): Promise<User | null> {
                 created_at: new Date().toISOString(),
             } as User;
         }
-    }
-
-    // In local development, fall back to Spencer's account for seamless extension testing
-    if (process.env.NODE_ENV === 'development') {
         return {
             id: '2208e1d4-20e7-4b7f-a672-7477202d8c8a',
             email: 'spenceralmodiel@gmail.com',
             app_metadata: {},
-            user_metadata: { tier: 'brother' },
+            user_metadata: {},
             aud: 'authenticated',
             created_at: new Date().toISOString(),
         } as User;
@@ -135,18 +128,45 @@ export async function getExtensionUser(request: Request): Promise<User | null> {
     return null;
 }
 
+const globalForPlans = globalThis as unknown as { __bbExtensionPlans?: Map<string, CachedPlan> };
+function planCache(): Map<string, CachedPlan> {
+    if (!globalForPlans.__bbExtensionPlans) globalForPlans.__bbExtensionPlans = new Map();
+    return globalForPlans.__bbExtensionPlans;
+}
+
+/**
+ * Plan for an authenticated extension user.
+ *
+ * On a transient Supabase error the last plan verified on this server instance
+ * (up to LAST_KNOWN_PLAN_TTL_MS old) is used. With nothing cached the user gets
+ * no paid access and dbHealthy=false, so routes answer 503 "try again" instead
+ * of either locking out or handing out paid access.
+ */
 export async function resolveExtensionUserPlan(
     serviceClient: any,
     user: User
 ): Promise<{
     email: string;
-    tier: 'free' | 'brother' | 'team';
+    tier: PlanTier;
     isAdmin: boolean;
     hasRequiredPlan: boolean;
     dbHealthy: boolean;
 }> {
-    const rawEmail = (user.email || user.user_metadata?.email || '').toLowerCase().trim();
+    const rawEmail = (user.email || '').toLowerCase().trim();
     const privileged = KNOWN_PRIVILEGED_USERS[rawEmail];
+
+    const fromCacheOrDenied = () => {
+        const cached = readCachedPlan(planCache(), user.id);
+        const tier: PlanTier = cached?.tier || privileged?.tier || 'free';
+        const isAdmin = Boolean(cached?.isAdmin || privileged?.isAdmin);
+        return {
+            email: cached?.email || rawEmail,
+            tier,
+            isAdmin,
+            hasRequiredPlan: hasPaidExtensionAccess(tier, isAdmin),
+            dbHealthy: false,
+        };
+    };
 
     try {
         const [userRes, subRes, profileRes] = await Promise.all([
@@ -161,45 +181,45 @@ export async function resolveExtensionUserPlan(
             serviceClient.from('profiles').select('role').eq('id', user.id).maybeSingle(),
         ]);
 
-        const anyTransientError =
-            isTransientSupabaseError(userRes.error) ||
-            isTransientSupabaseError(subRes.error) ||
-            isTransientSupabaseError(profileRes.error);
-
-        const email = userRes.data?.email || rawEmail;
-        const dbTier = (subRes.data?.tier || userRes.data?.tier || '').toLowerCase();
-        const metaTier = (user.user_metadata?.tier || '').toLowerCase();
-
-        let tier: 'free' | 'brother' | 'team' = 'free';
-        if (dbTier === 'team' || metaTier === 'team' || privileged?.tier === 'team') {
-            tier = 'team';
-        } else if (dbTier === 'brother' || metaTier === 'brother' || privileged?.tier === 'brother') {
-            tier = 'brother';
-        } else if (anyTransientError) {
-            // Do not downgrade an authenticated extension user to 'free' during a transient DB 504/522
-            tier = 'brother';
+        if (userRes.error || subRes.error || profileRes.error) {
+            const transient =
+                isTransientSupabaseError(userRes.error) ||
+                isTransientSupabaseError(subRes.error) ||
+                isTransientSupabaseError(profileRes.error);
+            console.warn(`[extension-auth] Plan lookup error (${transient ? 'transient' : 'non-transient'}), using last known plan`);
+            return fromCacheOrDenied();
         }
 
+        const email = userRes.data?.email || rawEmail;
+        const tier = decideExtensionTier({
+            usersTier: userRes.data?.tier,
+            subscription: subRes.data,
+            privilegedTier: privileged?.tier,
+        });
         const isAdmin = Boolean(profileRes.data?.role === 'admin' || privileged?.isAdmin);
-        const hasRequiredPlan = tier === 'brother' || tier === 'team' || isAdmin;
+        planCache().set(user.id, { tier, isAdmin, email, at: Date.now() });
 
         return {
             email,
             tier,
             isAdmin,
-            hasRequiredPlan,
-            dbHealthy: !anyTransientError,
+            hasRequiredPlan: hasPaidExtensionAccess(tier, isAdmin),
+            dbHealthy: true,
         };
     } catch (err) {
-        console.warn('[extension-auth] Plan lookup fallback due to DB error:', err);
-        const tier: 'free' | 'brother' | 'team' = privileged?.tier || 'brother';
-        const isAdmin = Boolean(privileged?.isAdmin);
-        return {
-            email: rawEmail,
-            tier,
-            isAdmin,
-            hasRequiredPlan: true,
-            dbHealthy: false,
-        };
+        console.warn('[extension-auth] Plan lookup threw, using last known plan:', err);
+        return fromCacheOrDenied();
     }
+}
+
+/** Response for "we couldn't verify your plan right now" (DB outage, nothing cached). */
+export const PLAN_UNVERIFIED_ERROR =
+    'Billionaire Brother could not verify your plan right now (temporary server issue). Please try again in a minute.';
+
+// ── Usage guard outage fallback (per server instance) ──
+const globalForOutage = globalThis as unknown as { __bbExtensionOutageLog?: Map<string, number[]> };
+/** When usage counters can't be read: a few requests per user per hour instead of no limit. */
+export function allowDuringUsageOutage(userId: string): boolean {
+    if (!globalForOutage.__bbExtensionOutageLog) globalForOutage.__bbExtensionOutageLog = new Map();
+    return takeOutageAllowance(globalForOutage.__bbExtensionOutageLog, userId);
 }
