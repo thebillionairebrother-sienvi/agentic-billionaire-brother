@@ -20,6 +20,12 @@ env:
     secret: CRON_SECRET
     availability: [RUNTIME]
 
+  # Team geo-bypass key (src/lib/security/geo-bot.ts). Server-only: never add
+  # NEXT_PUBLIC_GEO_BYPASS_KEY here, it would ship the key to every browser.
+  - variable: GEO_BYPASS_KEY
+    secret: GEO_BYPASS_KEY
+    availability: [RUNTIME]
+
   # Used for Stripe return URLs and links in billing emails.
   - variable: NEXT_PUBLIC_APP_URL
     value: "https://thebillionairebrother.com"
