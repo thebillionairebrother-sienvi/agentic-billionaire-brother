@@ -4,7 +4,9 @@ import { createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { ThinkingLevel } from '@google/genai';
-import { TIER_CONFIG, calculateEstimatedCost, getCurrentMonthStart } from '@/lib/ai-config';
+import { TIER_CONFIG } from '@/lib/ai-config';
+import { logUsageAndCost } from '@/lib/middleware/meter-logger';
+import { getMonthlyUsage } from '@/lib/middleware/usage-guard';
 import type { Tier } from '@/lib/ai-config';
 
 export const maxDuration = 300; // 5 min max for cron jobs
@@ -178,6 +180,14 @@ Return ONLY a JSON array:
                 const tier = (sub?.tier || 'brother') as Tier;
                 const maxOutputTokens = TIER_CONFIG[tier].max_output_tokens;
 
+                // Respect the monthly $ cap: no background spend for users already over it
+                const monthly = await getMonthlyUsage(supabase, userId);
+                if (Number(monthly.estimated_cost) >= TIER_CONFIG[tier].monthly_dollar_cap) {
+                    console.warn(`Cron: skipping ${userId}, monthly AI budget reached`);
+                    skipped++;
+                    continue;
+                }
+
                 const startTime = Date.now();
                 const response = await ai.models.generateContent({
                     model: GEMINI_MODEL,
@@ -226,16 +236,10 @@ Return ONLY a JSON array:
                 // Log usage for this user
                 const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
                 const outputTokens = billedOutputTokens(response.usageMetadata);
-                const cost = calculateEstimatedCost(inputTokens, outputTokens);
-                await supabase.from('request_logs').insert({
-                    user_id: userId, model: GEMINI_MODEL,
-                    input_tokens: inputTokens, output_tokens: outputTokens,
-                    latency_ms: latencyMs, estimated_cost: cost.budgeted,
-                    endpoint: '/api/cron/generate-tasks', tier: tier, degrade_mode: false,
-                });
-                await supabase.rpc('increment_monthly_usage', {
-                    p_user_id: userId, p_month_start: getCurrentMonthStart(),
-                    p_tokens: inputTokens + outputTokens, p_prompts: 1, p_cost: cost.budgeted, p_is_regen: false,
+                await logUsageAndCost(supabase, {
+                    userId, tier, endpoint: '/api/cron/generate-tasks',
+                    inputTokens, outputTokens, latencyMs,
+                    isDegradeMode: false, isExempt: true, model: GEMINI_MODEL,
                 });
 
                 generated++;

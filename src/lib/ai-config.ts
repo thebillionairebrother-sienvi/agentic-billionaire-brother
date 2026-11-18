@@ -16,6 +16,12 @@ export interface TierEntitlements {
     daily_regen_cap: number;
     monthly_dollar_cap: number;
     degrade_output_tokens: number;
+    /**
+     * Hard ceiling on ALL Gemini calls per UTC day, counted from request_logs.
+     * Exempt routes (interview, strategy/task generation) skip daily_prompt_cap
+     * so onboarding never stalls; this ceiling stops them being called without limit.
+     */
+    daily_request_ceiling: number;
     tools_enabled: boolean;
     search_enabled: boolean;
 }
@@ -28,6 +34,7 @@ export const TIER_CONFIG: Record<Tier, TierEntitlements> = {
         daily_regen_cap: 1,
         monthly_dollar_cap: 5.0,
         degrade_output_tokens: 1024,
+        daily_request_ceiling: 50,
         tools_enabled: false,
         search_enabled: false,
     },
@@ -38,6 +45,7 @@ export const TIER_CONFIG: Record<Tier, TierEntitlements> = {
         daily_regen_cap: 2,
         monthly_dollar_cap: 50.0,
         degrade_output_tokens: 2048,
+        daily_request_ceiling: 150,
         tools_enabled: false,
         search_enabled: false,
     },
@@ -48,6 +56,7 @@ export const TIER_CONFIG: Record<Tier, TierEntitlements> = {
         daily_regen_cap: 4,
         monthly_dollar_cap: 150.0,
         degrade_output_tokens: 4096,
+        daily_request_ceiling: 300,
         tools_enabled: false,
         search_enabled: false,
     },

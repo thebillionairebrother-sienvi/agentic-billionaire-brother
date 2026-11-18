@@ -4,8 +4,7 @@ import { createMobileAwareClient, createServiceClient } from '@/lib/supabase/ser
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { ThinkingLevel } from '@google/genai';
-import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
-import { ALWAYS_ENFORCED_GUARD_CODES } from '@/lib/middleware/types';
+import { buildExemptAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
 
 // Allow up to 120s for strategy generation
 export const maxDuration = 120;
@@ -36,6 +35,7 @@ function extractJSON(text: string): Record<string, unknown> {
 export async function POST(request: Request) {
     let jobId: string | null = null;
     let decisionId: string | null = null;
+    let isOnboardingJob = false;
     let serviceClient: Awaited<ReturnType<typeof createServiceClient>> | null = null;
 
     try {
@@ -53,26 +53,9 @@ export async function POST(request: Request) {
 
         // ── Guardrail Gate ──
         // Strategy generation is critical — never block with 429
-        let ctx;
-        try {
-            ctx = await buildAiContext(supabase, user);
-        } catch (err) {
-            if (err instanceof GuardError && !ALWAYS_ENFORCED_GUARD_CODES.includes(err.code)) {
-                console.warn('[strategies/generate] Guardrail would block, but strategy gen is exempt:', err.code);
-                ctx = {
-                    userId: user.id,
-                    email: user.email ?? '',
-                    tier: 'brother' as const,
-                    subscriptionStatus: 'active',
-                    maxOutputTokens: undefined,
-                    isDegradeMode: true,
-                    isHardStop: false,
-                    requestId: crypto.randomUUID(),
-                };
-            } else {
-                throw err;
-            }
-        }
+        // Skips the daily prompt cap only; kill switch, dollar cap, billing
+        // status and the daily request ceiling still apply.
+        const ctx = await buildExemptAiContext(supabase, user, { label: 'strategies/generate' });
         console.log('[strategies/generate] Guardrails OK. Tier:', ctx.tier, 'Degrade:', ctx.isDegradeMode);
 
         if (ctx.isDegradeMode) {
@@ -107,8 +90,25 @@ export async function POST(request: Request) {
         serviceClient = await createServiceClient();
 
         if (body.decision_id && body.job_id) {
+            // IDs come from the client (onboard page, after /api/questionnaire created them).
+            // They're written with the service client below, so confirm this user owns
+            // them and the job hasn't finished — otherwise anyone could overwrite another
+            // user's decision or replay one job forever as an uncounted call.
+            const { data: ownedJob } = await serviceClient
+                .from('generation_jobs')
+                .select('id')
+                .eq('id', body.job_id)
+                .eq('user_id', user.id)
+                .eq('job_type', 'strategies')
+                .eq('reference_id', body.decision_id)
+                .neq('status', 'completed')
+                .maybeSingle();
+            if (!ownedJob) {
+                return NextResponse.json({ error: 'Strategy job not found' }, { status: 404 });
+            }
             decisionId = body.decision_id;
             jobId = body.job_id;
+            isOnboardingJob = true;
             console.log('[strategies/generate] Using pre-created decision and job IDs:', decisionId, jobId);
         } else {
             // ── Create decision row ──
@@ -279,7 +279,8 @@ Generate 3 strategies ranked from best fit (rank 1) to least fit (rank 3). Each 
                      outputTokens: billedOutputTokens(response.usageMetadata),
                      latencyMs,
                      isDegradeMode: ctx.isDegradeMode,
-                     isExempt: !!body.is_exempt || !!body.job_id,
+                     // Only the verified onboarding job is free of the prompt count
+                     isExempt: isOnboardingJob,
                  }).catch((e) => console.warn('[strategies/generate] Usage log failed:', e));
 
                 break; // success

@@ -3,7 +3,7 @@
  *
  * Import everything from '@/lib/middleware' in API routes.
  */
-export { buildAiContext, GuardError } from './compose';
+export { buildAiContext, buildExemptAiContext, GuardError } from './compose';
 export type { AiContext } from './compose';
 export { guardErrorResponse } from './types';
 export type { DailyUsage, MonthlyUsage } from './types';

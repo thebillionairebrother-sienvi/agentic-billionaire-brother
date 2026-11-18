@@ -4,8 +4,7 @@ import { createMobileAwareClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { Type, ThinkingLevel } from '@google/genai';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
-import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
-import { ALWAYS_ENFORCED_GUARD_CODES } from '@/lib/middleware/types';
+import { buildExemptAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
 
 /**
  * Parse AI response that should be JSON with { reaction, response }.
@@ -152,27 +151,9 @@ export async function POST(request: Request) {
 
         // ── Guardrail Gate ──
         // Interview is critical onboarding — never block it with 429
-        let ctx;
-        try {
-            ctx = await buildAiContext(supabase, user);
-        } catch (err) {
-            if (err instanceof GuardError && !ALWAYS_ENFORCED_GUARD_CODES.includes(err.code)) {
-                console.warn('[interview] Guardrail would block, but interview is exempt:', err.code);
-                // Provide a fallback context so onboarding always works
-                ctx = {
-                    userId: user.id,
-                    email: user.email ?? '',
-                    tier: 'brother' as const,
-                    subscriptionStatus: 'active',
-                    maxOutputTokens: 2048,
-                    isDegradeMode: true,
-                    isHardStop: false,
-                    requestId: crypto.randomUUID(),
-                };
-            } else {
-                throw err;
-            }
-        }
+        // Skips the daily prompt cap only; kill switch, dollar cap, billing
+        // status and the daily request ceiling still apply.
+        const ctx = await buildExemptAiContext(supabase, user, { label: 'interview' });
 
         // Build Gemini message history
         const geminiContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
