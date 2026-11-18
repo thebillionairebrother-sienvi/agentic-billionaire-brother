@@ -4,8 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { ThinkingLevel } from '@google/genai';
-import { buildAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
-import { ALWAYS_ENFORCED_GUARD_CODES } from '@/lib/middleware/types';
+import { buildExemptAiContext, GuardError, guardErrorResponse, logUsageAndCost } from '@/lib/middleware';
 
 export async function POST(request: Request) {
     try {
@@ -21,26 +20,9 @@ export async function POST(request: Request) {
 
         // ── Guardrail Gate ──
         // Task generation is a core workflow — never block with 429
-        let ctx;
-        try {
-            ctx = await buildAiContext(supabase, user);
-        } catch (err) {
-            if (err instanceof GuardError && !ALWAYS_ENFORCED_GUARD_CODES.includes(err.code)) {
-                console.warn('[tasks/generate] Guardrail would block, but task gen is exempt:', err.code);
-                ctx = {
-                    userId: user.id,
-                    email: user.email ?? '',
-                    tier: 'brother' as const,
-                    subscriptionStatus: 'active',
-                    maxOutputTokens: 2048,
-                    isDegradeMode: true,
-                    isHardStop: false,
-                    requestId: crypto.randomUUID(),
-                };
-            } else {
-                throw err;
-            }
-        }
+        // Skips the daily prompt cap only; kill switch, dollar cap, billing
+        // status and the daily request ceiling still apply.
+        const ctx = await buildExemptAiContext(supabase, user, { label: 'tasks/generate' });
 
         // Degrade mode: warn but still allow task generation
         if (ctx.isDegradeMode) {

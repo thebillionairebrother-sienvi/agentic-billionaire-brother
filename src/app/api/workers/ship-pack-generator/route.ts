@@ -5,7 +5,8 @@ import { createServiceClient } from '@/lib/supabase/server';
 import ai, { GEMINI_MODEL } from '@/lib/gemini';
 import { DEREK_FULL_PROMPT } from '@/lib/system-prompt';
 import { ThinkingLevel } from '@google/genai';
-import { TIER_CONFIG, calculateEstimatedCost, getCurrentMonthStart } from '@/lib/ai-config';
+import { TIER_CONFIG } from '@/lib/ai-config';
+import { logUsageAndCost } from '@/lib/middleware/meter-logger';
 import type { Tier } from '@/lib/ai-config';
 
 /**
@@ -219,16 +220,12 @@ OUTPUT FORMAT: Return ONLY the raw JSON object below. No markdown, no code fence
         // Log usage for this user
         const inputTokens = response?.usageMetadata?.promptTokenCount ?? 0;
         const outputTokens = billedOutputTokens(response?.usageMetadata);
-        const cost = calculateEstimatedCost(inputTokens, outputTokens);
-        await supabase.from('request_logs').insert({
-            user_id: userId, model: GEMINI_MODEL,
-            input_tokens: inputTokens, output_tokens: outputTokens,
-            latency_ms: latencyMs, estimated_cost: cost.budgeted,
-            endpoint: '/api/workers/ship-pack-generator', tier, degrade_mode: false,
-        });
-        await supabase.rpc('increment_monthly_usage', {
-            p_user_id: userId, p_month_start: getCurrentMonthStart(),
-            p_tokens: inputTokens + outputTokens, p_prompts: 1, p_cost: cost.budgeted, p_is_regen: false,
+        // Shared logger: request_logs + daily and monthly counters (cost counts
+        // toward the monthly $ cap; isExempt keeps it out of the daily prompt count)
+        await logUsageAndCost(supabase, {
+            userId, tier, endpoint: '/api/workers/ship-pack-generator',
+            inputTokens, outputTokens, latencyMs,
+            isDegradeMode: false, isExempt: true, model: GEMINI_MODEL,
         });
 
         return NextResponse.json({ success: true });
