@@ -5,6 +5,7 @@ import { FloatingDerekChat } from '@/components/FloatingDerekChat';
 import { DerekLeadCapturePopup } from '@/components/DerekLeadCapturePopup';
 import { AnalyticsGate } from '@/components/analytics/AnalyticsGate';
 import { GeoGuardian } from '@/components/security/GeoGuardian';
+import { EmbedLinkGuard } from '@/components/security/EmbedLinkGuard';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://thebillionairebrother.com'),
@@ -77,6 +78,7 @@ export default function RootLayout({
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>
         <GeoGuardian />
+        <EmbedLinkGuard />
         <AnalyticsGate gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
         {children}
         <FloatingDerekChat />
