@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createSenderClient } from '@/lib/supabase/sender';
 
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const CHROME_STORE_URL = process.env.NEXT_PUBLIC_CHROME_STORE_URL || 'https://chromewebstore.google.com/detail/billionaire-brother-execu/ofaehbeohogfjnfbfjpnceihhnegamnh';
@@ -72,13 +72,12 @@ export async function POST(request: Request) {
         }
 
         // 2. Direct Sync into Sienvi Sender (MailPilot) recipients table
-        const emailerUrl = process.env.EMAILER_SUPABASE_URL;
-        const emailerKey = process.env.EMAILER_SUPABASE_SERVICE_ROLE_KEY || process.env.EMAILER_SUPABASE_ANON_KEY;
+        const senderSupabase = createSenderClient();
 
-        if (emailerUrl && emailerKey) {
+        if (!senderSupabase) {
+            console.error('[voluntary-subscribe] Sender sync skipped: EMAILER_SUPABASE_URL or EMAILER_SUPABASE_SERVICE_ROLE_KEY is not set.');
+        } else {
             try {
-                const senderSupabase = createSupabaseClient(emailerUrl, emailerKey);
-
                 // Check if recipient already exists for this client and email
                 const { data: existingRecipients } = await senderSupabase
                     .from('recipients')

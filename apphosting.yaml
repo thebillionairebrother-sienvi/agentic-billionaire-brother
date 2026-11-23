@@ -1,6 +1,9 @@
 env:
-  - variable: EMAILER_SUPABASE_ANON_KEY
-    secret: EMAILER_SUPABASE_ANON_KEY
+  # Sienvi Sender service key. Server-only: never expose it as NEXT_PUBLIC_. Must exist in Cloud Secret
+  # Manager BEFORE this file deploys (see the note below).
+  - variable: EMAILER_SUPABASE_SERVICE_ROLE_KEY
+    secret: EMAILER_SUPABASE_SERVICE_ROLE_KEY
+    availability: [RUNTIME]
   - variable: EMAILER_SUPABASE_URL
     secret: EMAILER_SUPABASE_URL
 

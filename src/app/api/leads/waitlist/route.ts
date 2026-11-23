@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createSenderClient } from '@/lib/supabase/sender';
 
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const SENDER_CLIENT_ID = '3100c308-48f2-4727-b136-0f4d0f09c94e'; // Billionaire Brother client in Sienvi Sender
@@ -53,13 +53,12 @@ export async function POST(request: Request) {
         }
 
         // 2. Direct Sync into Sienvi Sender (MailPilot) recipients table if configured
-        const emailerUrl = process.env.EMAILER_SUPABASE_URL;
-        const emailerKey = process.env.EMAILER_SUPABASE_SERVICE_ROLE_KEY || process.env.EMAILER_SUPABASE_ANON_KEY;
+        const senderSupabase = createSenderClient();
 
-        if (emailerUrl && emailerKey) {
+        if (!senderSupabase) {
+            console.error('[waitlist] Sender sync skipped: EMAILER_SUPABASE_URL or EMAILER_SUPABASE_SERVICE_ROLE_KEY is not set.');
+        } else {
             try {
-                const senderSupabase = createSupabaseClient(emailerUrl, emailerKey);
-
                 const { data: existingRecipients } = await senderSupabase
                     .from('recipients')
                     .select('id, segment')

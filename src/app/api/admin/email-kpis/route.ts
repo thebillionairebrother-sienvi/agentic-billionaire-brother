@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createMobileAwareClient } from '@/lib/supabase/server';
-import { createClient } from '@supabase/supabase-js';
+import { createSenderClient } from '@/lib/supabase/sender';
 import { isAdmin } from '@/lib/admin';
 
 export const revalidate = 0;
@@ -44,20 +44,15 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        // 2. Create a read-only client pointing at the Sienvi emailer Supabase project
-        const emailerUrl = process.env.EMAILER_SUPABASE_URL;
-        const emailerKey = process.env.EMAILER_SUPABASE_ANON_KEY;
+        // 2. Create a client pointing at the Sienvi emailer Supabase project (this route only reads)
+        const emailerSupabase = createSenderClient();
 
-        if (!emailerUrl || !emailerKey) {
+        if (!emailerSupabase) {
             return NextResponse.json(
-                { error: 'Emailer Supabase credentials not configured. Add EMAILER_SUPABASE_URL and EMAILER_SUPABASE_ANON_KEY to .env.local.' },
+                { error: 'Emailer Supabase credentials not configured. Add EMAILER_SUPABASE_URL and EMAILER_SUPABASE_SERVICE_ROLE_KEY.' },
                 { status: 500 }
             );
         }
-
-        const emailerSupabase = createClient(emailerUrl, emailerKey, {
-            auth: { persistSession: false },
-        });
 
         // 3. Query all clients to find the fuzzy match for "Billionaire Brother"
         const { data: clients, error: clientsErr } = await emailerSupabase
